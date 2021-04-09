@@ -29,6 +29,10 @@
 # The version ranges will change as the versions of
 # the artifacts and/or their dependencies change.
 -runbundles: \
+	avro;version='[1.10.1,1.10.2)',\
+	com.fasterxml.jackson.core.jackson-annotations;version='[2.11.3,2.11.4)',\
+	com.fasterxml.jackson.core.jackson-core;version='[2.11.3,2.11.4)',\
+	com.fasterxml.jackson.core.jackson-databind;version='[2.11.3,2.11.4)',\
 	helloworld-impl-tests;version='[5.0.0,5.0.1)',\
 	junit-jupiter-api;version='[5.7.1,5.7.2)',\
 	junit-jupiter-engine;version='[5.7.1,5.7.2)',\
@@ -37,6 +41,7 @@
 	junit-platform-launcher;version='[1.7.1,1.7.2)',\
 	net.corda.helloworld;version='[5.0.0,5.0.1)',\
 	net.corda.helloworld-impl;version='[5.0.0,5.0.1)',\
+	org.apache.commons.commons-compress;version='[1.20.0,1.20.1)',\
 	org.apache.felix.scr;version='[2.1.20,2.1.21)',\
 	org.assertj.core;version='[3.12.2,3.12.3)',\
 	org.jetbrains.kotlin.osgi-bundle;version='[1.4.21,1.4.22)',\

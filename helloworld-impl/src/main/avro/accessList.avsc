@@ -1,0 +1,8 @@
+{"namespace": "net.corda.sample.hello.impl.avro",
+  "type": "record",
+  "name": "AccessList",
+  "fields": [
+    {"name": "name", "type": "string"},
+    {"name": "users",  "type": {"type": "map", "values":"User"}}
+  ]
+}

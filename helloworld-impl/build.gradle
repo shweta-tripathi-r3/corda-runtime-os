@@ -2,10 +2,17 @@ plugins {
     id 'corda.common-library'
     id 'corda.osgi-test-conventions'
     id 'corda.publish'
+
+    // gradle-avro-plugin
+    id "com.github.davidmc24.gradle.plugin.avro"
 }
 
 description 'Hello World Implementation'
 
 dependencies {
     implementation project(":helloworld")
+}
+
+avro {
+    fieldVisibility = "PRIVATE"
 }

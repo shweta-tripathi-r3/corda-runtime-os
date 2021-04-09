@@ -1,0 +1,5 @@
+{"namespace": "net.corda.sample.hello.impl.avro",
+  "type": "enum",
+  "name": "Colour",
+  "symbols" : ["BLACK", "WHITE", "BLUE", "RED"]
+}
