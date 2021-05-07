@@ -2,6 +2,7 @@ plugins {
     id 'corda.common-library'
     id 'corda.osgi-test-conventions'
     id 'corda.publish'
+    id 'corda.common-cpk'
 }
 
 description 'Hello World Implementation'
