@@ -1,0 +1,24 @@
+plugins {
+    id 'net.corda.plugins.cordapp-cpk'
+}
+
+cordapp {
+    targetPlatformVersion platformVersion as Integer
+    minimumPlatformVersion 1
+    contract {
+        name "cpk-test"
+        versionId 1
+        vendor "R3"
+    }
+}
+
+group 'net.corda'
+version '5.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}

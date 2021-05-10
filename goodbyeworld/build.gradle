@@ -10,53 +10,18 @@ dependencies {
 
     implementation project(":helloworld")
 
-//    implementation "com.google.guava:guava:$guavaVersion"
-//    implementation "com.google.code.findbugs:jsr305:$jsr305Version"
-//    implementation "io.reactivex:rxjava:$rxjavaVersion"
-//    implementation "co.paralleluniverse:quasar-core-osgi:$quasarVersion"
-//    implementation "com.github.ben-manes.caffeine:caffeine:$caffeineVersion"
-//    implementation("org.hibernate:hibernate-osgi:$hibernateVersion") {
-//        exclude group: 'org.osgi'
-//    }
-//    implementation "javax.xml.bind:jaxb-api:$jaxbVersion"
-//    implementation "com.sun.activation:javax.activation:$activationVersion"
     implementation "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion" //
     implementation "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion" //
     implementation "org.apache.commons:commons-lang3:$commonsLangVersion" //
-//    implementation "io.github.classgraph:classgraph:$classgraphVersion"
-//    implementation("org.apache.activemq:artemis-server-osgi:$artemisVersion") {
-//        exclude group: 'org.apache.activemq', module: 'artemis-core-client'
-//        exclude group: 'org.apache.activemq', module: 'artemis-jdbc-store'
-//        exclude group: 'org.apache.activemq', module: 'artemis-jms-client'
-//        exclude group: 'org.apache.activemq', module: 'artemis-jms-server'
-//        exclude group: 'org.apache.activemq', module: 'artemis-journal'
-//        exclude group: 'org.apache.activemq', module: 'artemis-selector'
-//        exclude group: 'org.apache.activemq', module: 'artemis-server'
-//        exclude group: 'org.apache.activemq', module: 'artemis-service-extensions'
-//    }
-//      implementation "io.github.classgraph:classgraph:4.8.90"
-//    implementation "org.apache.qpid:proton-j:$protonjVersion"
-//    implementation "org.osgi:osgi.core:$osgiVersion"
-//    implementation "org.ow2.asm:asm:$asmVersion"
-//    implementation "io.netty:netty-transport-native-epoll:4.1.48.Final"
-//    implementation "io.netty:netty-transport-native-kqueue:4.1.48.Final"
-//    implementation "io.netty:netty-codec:4.1.48.Final"
-//    implementation "io.netty:netty-codec-http:4.1.48.Final"
-//    implementation "io.netty:netty-codec-socks:4.1.48.Final"
     implementation "io.netty:netty-common:4.1.48.Final"
-//    implementation "io.netty:netty-handler:4.1.48.Final"
-//    implementation "io.netty:netty-resolver:4.1.48.Final"
-//    implementation "io.netty:netty-handler-proxy:4.1.48.Final"
-//    implementation "org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2"
-//    implementation "org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1.1"
+
     implementation "net.i2p.crypto:eddsa:0.3.0"
+    implementation 'org.osgi:org.osgi.service.cm:1.6.0'
 
     implementation files("/home/ldebiasi/IdeaProjects/corda5/base/build/libs/corda-base-1.0.0-SNAPSHOT.jar")
-//    implementation files("/home/ldebiasi/IdeaProjects/corda5/serialization/build/libs/corda-serialization-1.0.0-SNAPSHOT.jar")
-//    implementation files("/home/ldebiasi/IdeaProjects/corda5/serialization-internal/build/libs/corda-serialization-internal-1.0.0-SNAPSHOT.jar")
-//    implementation files("/home/ldebiasi/IdeaProjects/corda5/serialization-encoding/build/libs/corda-serialization-encoding-1.0.0-SNAPSHOT.jar")
     implementation files("/home/ldebiasi/IdeaProjects/corda5/crypto/crypto-api/build/libs/corda-crypto-api-1.0.0-SNAPSHOT.jar")
 
+    implementation files("/home/ldebiasi/IdeaProjects/corda5/sandbox/build/libs/corda-sandbox-1.0.0-SNAPSHOT.jar")
     implementation files("/home/ldebiasi/IdeaProjects/corda5/install/build/libs/corda-install-1.0.0-SNAPSHOT.jar")
 
     runtimeOnly project(":helloworld-impl")
