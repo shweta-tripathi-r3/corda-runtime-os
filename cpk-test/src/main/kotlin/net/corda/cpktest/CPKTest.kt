@@ -7,8 +7,3 @@ class CPKTest {
     }
 
 }
-
-fun main(args: Array<String>) {
-    println("net.corda.cpktest.CPKTest main")
-    CPKTest()
-}
