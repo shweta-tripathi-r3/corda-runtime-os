@@ -12,10 +12,9 @@ import org.osgi.service.component.annotations.Deactivate
 import org.osgi.service.component.annotations.Reference
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.exists
 
 @Component(immediate = true)
-class GoodbyeWorld: BundleActivator {
+class GoodbyeWorld : BundleActivator {
 
     @Reference
     var helloWorld: HelloWorld? = null
@@ -26,12 +25,14 @@ class GoodbyeWorld: BundleActivator {
     @Reference
     var sandboxService: SandboxService? = null
 
+    val path = Paths.get("/home/ldebiasi/IdeaProjects/flow-worker/cpk-test/build/libs/")
+
     fun callHelloWorld() {
         helloWorld?.sayHello() ?: println("We couldn't find hello world!!!")
     }
 
     fun installCpk(path: Path) {
-        if (installService != null ){
+        if (installService != null) {
             println("INSTALL...")
             val cpiIdentifier = "unique_cpi_identifier"
             val cpkUris = installService!!.scanForCpks(setOf(path.toUri()))
@@ -41,7 +42,7 @@ class GoodbyeWorld: BundleActivator {
             } else {
                 emptyList()
             }
-            cpis.forEach{ cpi->
+            cpis.forEach { cpi ->
                 installService!!.installCpi(cpi)
                 val loadedCpi = installService!!.getCpi(cpiIdentifier)
                     ?: throw IllegalArgumentException("CPI $cpiIdentifier has not been installed.")
@@ -57,11 +58,10 @@ class GoodbyeWorld: BundleActivator {
     @Activate
     override fun start(context: BundleContext?) {
         println("net.corda.sample.goodbye.GoodbyeWorld START")
-        callHelloWorld()
-        val path =
-            Paths.get("/home/ldebiasi/IdeaProjects/flow-worker/cpk-test/build/libs/")
-        println(path.toFile().exists())
-        installCpk(path)
+        Thread {
+            println("net.corda.sample.goodbye.GoodbyeWorld RUN")
+            installCpk(path)
+        }.start()
     }
 
     @Deactivate
