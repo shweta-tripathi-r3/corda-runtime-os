@@ -58,10 +58,11 @@ class GoodbyeWorld : BundleActivator {
     @Activate
     override fun start(context: BundleContext?) {
         println("net.corda.sample.goodbye.GoodbyeWorld START")
-        Thread {
+//        Thread {
             println("net.corda.sample.goodbye.GoodbyeWorld RUN")
             installCpk(path)
-        }.start()
+//        }.start()
+//        Thread.sleep(5000)
     }
 
     @Deactivate
