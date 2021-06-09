@@ -127,8 +127,8 @@ implement `net.corda.osgi.api.Application`
 The class implementing the `net.corda.osgi.api.Application` is an OSGI service, thus a OSGi component, the
 terms are synonyms.
 
-To let the class to access additional services, annotate them with `@Reference` where the
-`service` attribute is the full-qualified name used to publish the service.
+To let the class to access additional services, annotate the properties referring to the services with `@Reference` 
+where the `service` attribute is equal to the class or interface used to publish the service.
 
 The following example declares `kafkaTopicAdmin` to refers the service published as 
 the `KafkaTopicAdmin` service. 
@@ -143,8 +143,9 @@ class App @Activate constructor(
 }
 ```
 
-The referenced service must be annotated as `@Component` with an element of the `service` attribute set to the
-same class used in the reference. Completing the above example, the `KafkaTopicAdmin` class must be annotated as
+The referenced service must be annotated as `@Component` with an element of the `service` attribute equal to the
+same class or interface used in the reference.
+Completing the above example, the `KafkaTopicAdmin` class must be annotated as
 
 ```kotlin
 @Component(immediate = true, service = [KafkaTopicAdmin::class])
@@ -158,6 +159,16 @@ class KafkaTopicAdmin @Activate constructor(
 
 As rule of thumbs, each time a property is annotated with `@Reference(service = <class>)`,
 the `<class>` must be annotated with `@Component(service = [<class>])`.
+
+*NOTE! The `<class>` set in `@Reference(service = <class>)` and `@Component(service = [<class>])` must match:
+if <class> is an interface, the class annotated with `@Component` must implement that interface and the `service`
+attribute of the `@Component` annotation must be set equal the interface implemented.*
+ 
+*WARNING! Mismatch of `<class>` between `@Reference(service = <class>)` and `@Component(service = [<class>])` 
+annotations for properties in the class implementing `net.corda.osgi.api.Application` leads to the class 
+implementing `net.corda.osgi.api.Application` not being resolved by OSGi.
+The bootstrapper logs an error because no `net.corda.osgi.api.Application` implementation if found to start,
+then the bootstrapper quits.*
 
 #### How to clean-up and release resources before to quit
 
