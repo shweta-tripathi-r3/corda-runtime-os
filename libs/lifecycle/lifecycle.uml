@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>/home/ldebiasi/IdeaProjects/flow-worker/libs/lifecycle/src/main/kotlin/net/corda/lifecycle</OriginalElement>
+  <nodes>
+    <node x="533.0" y="143.0">net.corda.lifecycle.StartEvent</node>
+    <node x="0.0" y="129.5">net.corda.lifecycle.TimerEvent</node>
+    <node x="77.99999999999994" y="278.0">net.corda.lifecycle.LifeCycleCoordinator</node>
+    <node x="240.01041666666663" y="93.0">net.corda.lifecycle.LifeCycle</node>
+    <node x="269.87500000000006" y="463.0">net.corda.lifecycle.SimpleLifeCycleCoordinator</node>
+    <node x="682.0" y="143.0">net.corda.lifecycle.StopEvent</node>
+    <node x="483.0" y="0.0">net.corda.lifecycle.LifeCycleEvent</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="net.corda.lifecycle.StopEvent" target="net.corda.lifecycle.LifeCycleEvent" relationship="REALIZATION">
+      <point x="0.0" y="-16.5" />
+      <point x="745.5" y="73.0" />
+      <point x="670.8854166666667" y="73.0" />
+      <point x="670.8854166666667" y="53.0" />
+      <point x="581.75" y="53.0" />
+      <point x="19.75" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.LifeCycleCoordinator" relationship="REALIZATION">
+      <point x="-139.99999999999994" y="-139.0" />
+      <point x="409.8750000000001" y="432.0" />
+      <point x="294.99999999999994" y="432.0" />
+      <point x="0.0" y="66.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.TimerEvent" target="net.corda.lifecycle.LifeCycleEvent" relationship="INTERFACE_GENERALIZATION">
+      <point x="0.0" y="-30.0" />
+      <point x="67.5" y="63.0" />
+      <point x="502.75" y="63.0" />
+      <point x="-59.25" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.LifeCycleCoordinator" target="net.corda.lifecycle.TimerEvent" relationship="DEPENDENCY">
+      <point x="-144.66666666666663" y="-66.5" />
+      <point x="150.33333333333331" y="252.0" />
+      <point x="67.5" y="252.0" />
+      <point x="0.0" y="30.0" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.LifeCycleEvent" relationship="TO_MANY">
+      <point x="233.33333333333326" y="-139.0" />
+      <point x="783.2083333333333" y="442.0" />
+      <point x="819.5" y="442.0" />
+      <point x="819.5" y="63.0" />
+      <point x="621.25" y="63.0" />
+      <point x="59.25" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.StartEvent" target="net.corda.lifecycle.LifeCycleEvent" relationship="REALIZATION">
+      <point x="-2.8421709430404007E-14" y="-16.5" />
+      <point x="597.5" y="73.0" />
+      <point x="670.8854166666667" y="73.0" />
+      <point x="670.8854166666667" y="53.0" />
+      <point x="581.75" y="53.0" />
+      <point x="19.75" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.LifeCycleCoordinator" target="net.corda.lifecycle.LifeCycle" relationship="INTERFACE_GENERALIZATION">
+      <point x="0.0" y="-66.5" />
+      <point x="294.99999999999994" y="252.0" />
+      <point x="313.01041666666663" y="252.0" />
+      <point x="0.0" y="66.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.LifeCycleCoordinator" target="net.corda.lifecycle.LifeCycleEvent" relationship="DEPENDENCY">
+      <point x="144.66666666666663" y="-66.5" />
+      <point x="439.6666666666666" y="252.0" />
+      <point x="409.1328125" y="252.0" />
+      <point x="409.1328125" y="73.0" />
+      <point x="449.8854166666667" y="73.0" />
+      <point x="449.8854166666667" y="53.0" />
+      <point x="542.25" y="53.0" />
+      <point x="-19.75" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.TimerEvent" relationship="DEPENDENCY">
+      <point x="-233.33333333333326" y="-139.0" />
+      <point x="316.5416666666668" y="442.0" />
+      <point x="67.5" y="442.0" />
+      <point x="0.0" y="30.0" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.LifeCycleEvent" relationship="DEPENDENCY">
+      <point x="-46.66666666666663" y="-139.0" />
+      <point x="503.2083333333334" y="442.0" />
+      <point x="522.5" y="442.0" />
+      <point x="522.5" y="73.0" />
+      <point x="449.8854166666667" y="73.0" />
+      <point x="449.8854166666667" y="53.0" />
+      <point x="542.25" y="53.0" />
+      <point x="-19.75" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.StopEvent" relationship="DEPENDENCY">
+      <point x="140.0" y="-139.0" />
+      <point x="689.875" y="442.0" />
+      <point x="745.5" y="442.0" />
+      <point x="0.0" y="16.5" />
+    </edge>
+    <edge source="net.corda.lifecycle.SimpleLifeCycleCoordinator" target="net.corda.lifecycle.StartEvent" relationship="DEPENDENCY">
+      <point x="46.666666666666686" y="-139.0" />
+      <point x="0.0" y="16.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic" zoom="1.0" showDependencies="true" x="415.0" y="370.5" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Constructors</Category>
+    <Category>Fields</Category>
+    <Category>Methods</Category>
+    <Category>Properties</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>public</VISIBILITY>
+</Diagram>
+

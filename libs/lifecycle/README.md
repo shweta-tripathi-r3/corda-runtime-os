@@ -2,6 +2,8 @@
 
 This module defines the interfaces and classes to coordinate Corda components.
 
+![LifeCycle Classes](lifecycle_classes.svg)
+
 Start and stop operations should be coordinated to sort the sequence
 components are started and stopped.
 
@@ -9,6 +11,8 @@ The `net.corda.lifecycle.LifeCycleCoordinator` implementations schedules `net.co
 processed by `lifeCycleProcessor`, a lambda function parameter of the coordinator.
 
 The `lifeCycleProcessor` executes the proper logic according the type of `net.corda.lifecycle.LifeCycleEvent`.
+
+![LifeCycle States](lifecycle_states.svg)
 
 The module provides the `net.corda.lifecycle.SimpleLifeCycleCoordinator`
 as default coordinator.
