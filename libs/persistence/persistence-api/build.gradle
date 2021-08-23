@@ -1,0 +1,13 @@
+plugins {
+    id 'corda.publish'
+    id 'corda.common-library'
+}
+
+description 'Persistence API'
+
+dependencies {
+    api "javax.persistence:javax.persistence-api:$persistenceApiVersion"
+
+    implementation "com.typesafe:config:$typeSafeConfigVersion"
+    implementation "net.corda:corda-base:$cordaApiVersion"
+}
