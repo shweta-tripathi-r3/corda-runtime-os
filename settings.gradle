@@ -109,4 +109,6 @@ include 'libs:utilities'
 include 'osgi-framework-api'
 include 'osgi-framework-bootstrap'
 include 'testing:apps:test-app'
+include 'applications:gateway'
+findProject(':applications:gateway')?.name = 'gateway'
 

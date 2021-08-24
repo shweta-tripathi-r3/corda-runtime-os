@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 import java.lang.Exception
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import org.osgi.service.component.annotations.Component
 
 /**
  * The Gateway is a light component which facilitates the sending and receiving of P2P messages.
@@ -32,6 +33,7 @@ import kotlin.concurrent.withLock
  * to the internal messaging system.
  *
  */
+@Component(immediate = true)
 class Gateway(config: GatewayConfiguration,
               @Reference(service = SubscriptionFactory::class)
               subscriptionFactory: SubscriptionFactory,
