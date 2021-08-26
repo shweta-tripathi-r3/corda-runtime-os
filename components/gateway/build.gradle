@@ -15,6 +15,10 @@ dependencies {
     implementation project(":libs:p2p-crypto")
     implementation project(":libs:messaging:messaging")
     implementation project(":libs:lifecycle")
+    implementation project(':libs:configuration:configuration-read')
+    implementation project(":components:examples:config-reader")
+
+    runtimeOnly project(":libs:configuration:kafka-configuration-read-impl")
 
     implementation "com.typesafe:config:$typeSafeConfigVersion"
     implementation "io.reactivex:rxjava:$rxjavaVersion"
