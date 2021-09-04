@@ -11,5 +11,5 @@ dependencies {
 
     implementation "net.corda:corda-base:$cordaApiVersion"
     implementation project(":libs:sandbox")
-    implementation "net.corda:corda-serialization:$cordaVersion"
+    implementation "net.corda:corda-serialization:$cordaApiVersion"
 }

@@ -13,22 +13,25 @@ configurations {
             substitute module("org.dom4j:dom4j") using module("org.apache.servicemix.bundles:org.apache.servicemix.bundles.dom4j:$dom4jOsgiVersion")
         }
     }
-    cpks
+    cpks {
+        canBeConsumed = false
+        transitive = false
+    }
 }
 
 dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation project(":libs:class-info")
-    implementation "net.corda:corda-install:$cordaVersion"
+    implementation project(':libs:install')
     implementation "net.corda:corda-packaging"
     implementation project(":libs:sandbox")
     implementation "net.corda:corda-serialization"
     implementation project(":libs:serialization:serialization-amqp")
 
-    cpks project(path: ':libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-1', configuration: 'cordaCPK')
-    cpks project(path: ':libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-2', configuration: 'cordaCPK')
-    cpks project(path: ':libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-3', configuration: 'cordaCPK')
-    cpks project(path: ':libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-4', configuration: 'cordaCPK')
+    cpks project(path: ':libs:serialization:serialization-amqp:serializable-cpk-one', configuration: 'cordaCPK')
+    cpks project(path: ':libs:serialization:serialization-amqp:serializable-cpk-two', configuration: 'cordaCPK')
+    cpks project(path: ':libs:serialization:serialization-amqp:serializable-cpk-three', configuration: 'cordaCPK')
+    cpks project(path: ':libs:serialization:serialization-amqp:serializable-cpk-four', configuration: 'cordaCPK')
 
     integrationTestCompileOnly "org.osgi:org.osgi.service.component.annotations:$osgiScrAnnotationVersion"
     integrationTestCompileOnly "org.osgi:osgi.annotation:$osgiVersion"

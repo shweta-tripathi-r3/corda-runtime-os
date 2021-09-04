@@ -44,7 +44,6 @@ pluginManagement {
         id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish' version internalPublishVersion
         id 'com.r3.internal.gradle.plugins.r3Publish' version internalPublishVersion
         id 'io.gitlab.arturbosch.detekt' version detektPluginVersion
-        id 'corda.common-library' version internalPublishVersion
     }
 }
 
@@ -88,6 +87,7 @@ include 'libs:flows:statemachine'
 include 'libs:flows:statemachine-impl'
 include 'libs:http-rpc:http-rpc'
 include 'libs:http-rpc:http-rpc-tools'
+include 'libs:install'
 include 'libs:kafka-utils:topic-admin'
 include 'libs:kafka-utils:topic-admin-impl'
 include 'libs:kotlin-reflection'
@@ -117,11 +117,11 @@ include 'libs:security-manager:osgi-integration-tests:local-permissions-impl'
 include 'libs:serialization:checkpoint-serialization-api'
 include 'libs:serialization:kryo-custom-serializers'
 include 'libs:serialization:serialization-amqp'
+include 'libs:serialization:serialization-amqp:serializable-cpk-one'
+include 'libs:serialization:serialization-amqp:serializable-cpk-two'
+include 'libs:serialization:serialization-amqp:serializable-cpk-three'
+include 'libs:serialization:serialization-amqp:serializable-cpk-four'
 include 'libs:serialization:serialization-amqp:osgi-integration-tests'
-include 'libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-1'
-include 'libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-2'
-include 'libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-3'
-include 'libs:serialization:serialization-amqp:osgi-integration-tests:test-serializable-4'
 include 'libs:serialization:serialization-encoding'
 include 'libs:serialization:serialization-kryo'
 include 'libs:utilities'

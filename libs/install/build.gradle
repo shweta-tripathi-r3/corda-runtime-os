@@ -1,0 +1,95 @@
+import aQute.bnd.gradle.Resolve
+
+plugins {
+    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'biz.aQute.bnd.builder'
+}
+
+description "Installs extensions into the node's OSGi framework."
+
+configurations {
+    all {
+        resolutionStrategy.dependencySubstitution {
+            substitute module("antlr:antlr") using module("antlr:antlr.osgi:$antlrVersion")
+            substitute module("org.dom4j:dom4j") using module("org.apache.servicemix.bundles:org.apache.servicemix.bundles.dom4j:$dom4jOsgiVersion")
+        }
+    }
+    systemClasspath
+}
+
+dependencies {
+    implementation platform("net.corda:corda-api:$cordaApiVersion")
+    implementation "net.corda.kotlin:kotlin-stdlib-jdk8-osgi"
+    implementation "org.slf4j:slf4j-api"
+    implementation "net.corda:corda-base-internal:$cordaVersion"
+    implementation 'net.corda:corda-base'
+    implementation 'net.corda:corda-packaging'
+    implementation 'net.corda:corda-crypto'
+    implementation project(':libs:crypto:crypto-impl')
+    implementation project(':libs:crypto:crypto-internal')
+    implementation 'net.corda:corda-serialization'
+
+    compileOnly "org.osgi:osgi.annotation:$osgiVersion"
+    compileOnly "org.osgi:osgi.core:$osgiVersion"
+    compileOnly "org.osgi:org.osgi.service.component.annotations:$osgiScrAnnotationVersion"
+    compileOnly "org.osgi:org.osgi.service.cm:$osgiCmVersion"
+
+    testImplementation project(":libs:crypto:crypto-testkit")
+    testImplementation 'net.corda:corda-cipher-suite'
+
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion") {
+        exclude group: 'mockito-core'
+    }
+    testImplementation "org.apache.felix:org.apache.felix.configadmin:$felixConfigAdminVersion"
+    testImplementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
+    testRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
+
+    integrationTestRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
+    integrationTestRuntimeOnly "org.apache.felix:org.apache.felix.scr:$felixScrVersion"
+    integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:$ariesDynamicBundleVersion"
+    integrationTestRuntimeOnly "org.osgi:org.osgi.util.promise:$osgiUtilPromiseVersion"
+    integrationTestRuntimeOnly "org.osgi:org.osgi.util.function:$osgiUtilFunctionVersion"
+
+    systemClasspath "com.esotericsoftware:reflectasm:$reflectAsmVersion"
+}
+
+tasks.named('jar', Jar) {
+    archiveBaseName = 'corda-install'
+    bnd """\
+Bundle-Name: Corda Install
+Bundle-SymbolicName: \${project.group}.install
+"""
+}
+
+def resolve = tasks.register('resolve', Resolve) {
+    dependsOn jar
+    bundles = files(sourceSets.integrationTest.runtimeClasspath, configurations.archives.artifacts.files, configurations.systemClasspath.files)
+    bndrun = file('tests.bndrun')
+    //  bnd attempts to use ~/ for caching if this is unavailable the build will fail.
+    System.setProperty("bnd.home.dir", "$rootDir/bnd")
+}
+
+tasks.register('integrationTest', Test) {
+    description = "Runs integration tests."
+    group = "verification"
+    enabled = false
+}
+
+tasks.named('check') {
+    dependsOn resolve
+}
+
+//tasks.named("test", Test) { testTask ->
+//    ['contract' : ':testing:cordapps:fungiblestate-sample:fungiblestate-contracts',
+//     'workflow' : ':testing:cordapps:fungiblestate-sample:fungiblestate-workflows',
+//     'flows' : ':flows'].each { String key , String projectPath ->
+//        Project project = project(projectPath)
+//        Provider<AbstractArchiveTask> cpkTask = project.tasks.named('cpk', AbstractArchiveTask)
+//        inputs.files(cpkTask)
+//        testTask.systemProperties([
+//                ("test.cpk." + key) : cpkTask.get().outputs.files.singleFile,
+//        ])
+//    }
+//}
