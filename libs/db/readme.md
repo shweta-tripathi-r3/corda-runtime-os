@@ -34,7 +34,6 @@ implementation of `PersistenceUnitInfo` so to avoid the need of any XML configur
 
 ### OSGi
 
-
 `EntityManagerFactoryFactory` is an OSGi service, hence can be injected (see osgi integration test)
 
 When used in an OSGi context, the following bundles are required 
@@ -86,6 +85,50 @@ The `confirm we can query cross-bundle` test uses a query that uses enties in bo
 completely artificial scenario, and not one that we would expect to see in production code, but the sole purpose
 of this test is to validate that this is technically possible.
 
-## Data definition (DDL) / Liquibase
+## Data definition (DDL)
 
-TODO
+### Liquibase
+
+We use [Liquibase](https://www.liquibase.org/) for DB schema management. For this, Schema definition needs to be 
+provided in a DB Change Log that contains one or more Change Sets.
+Normally these files are part of a JAR as resource files, or present on a file system, and Liquibase provide 
+"out-the-box" `ResourceAccessor` implementations to support this.
+However, we envisage we may have different ways of fetching these files. For example, DB change log files could
+be fetched from a DB or Kafka where they were published as part of a CPI installation (TBC).
+For this reason, we have an abstraction in `DbChange` with currently one implementation (`ClassloaderChangeLog`).
+Internally this uses a `StreamResourceAcessor` which relies on the `DbChange` implementation being able to return
+a Change Log file as a Stream.
+
+### Multiple Change Log files
+
+Previous version of Corda have the ability to provide multiple "master" Change Log files. This is to support the
+way we map from MappedSchema to Change Log files. 
+In order to continue to support this, the `DbChange` interface also specifies "one or more" master change log files
+must be specified.
+
+### DBMS specific changes
+
+DBMS specific changes can be defined in the Change Log files by using the `dbms` attribute. E.g.:
+```xml
+<changeSet author="R3.Corda" id="test-migrations-v1.0" dbms="postgresql">
+    <createTable tableName="postgres_table">
+        <column name="id" type="INT">
+            <constraints nullable="false"/>
+        </column>
+        <column name="name" type="VARCHAR(255)"/>
+    </createTable>
+</changeSet>
+```
+See an example of this in the Integration Tests. A full list of supported DBMS are [here](https://www.liquibase.org/get-started/databases?_ga=2.89667163.1554106465.1631635367-1762864281.1630587927)
+
+### JAXB
+
+Liquibase uses JAXB and specifies the dependency on `javax.xml.bind`. However a JAXB implementation needs to be 
+provided at runtime. This is not the case by default in JAVA 11.
+Hibernate does bring in this dependency, so in most cases there will already be such implementation on the classpath,
+however, as you can see we specify: `testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$jaxbVersion"` in `admin-impl` 
+to support the unit tests.
+
+`StreamResourceAccessor` also uses JAXB to generate a "composite" Change Log file dynamically. We could change this
+to using JAXP instead, however, given Liquibase itself needs a JAXB implementation and therefore we kept it in line
+with that.

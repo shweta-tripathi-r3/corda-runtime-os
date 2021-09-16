@@ -1,9 +1,10 @@
 package net.corda.db.test.osgi
 
-import net.corda.orm.DdlManage
+import net.corda.db.core.PostgresDataSourceFactory
 import net.corda.orm.EntityManagerFactoryFactory
+import net.corda.orm.DbEntityManagerConfiguration
+import net.corda.orm.DdlManage
 import net.corda.orm.impl.InMemoryEntityManagerConfiguration
-import net.corda.orm.impl.PostgresEntityManagerConfiguration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotSame
@@ -78,14 +79,11 @@ class EntitiesInBundlesTest {
         private val dbConfig = run {
             if (null != System.getProperty("postgresPort").toIntOrNull()) {
                 logger.info("Using Postgres on port ${System.getProperty("postgresPort")}".emphasise())
-                PostgresEntityManagerConfiguration(
+                val ds = PostgresDataSourceFactory().create(
                     "jdbc:postgresql://localhost:${System.getProperty("postgresPort")}/postgres",
                     "postgres",
-                    "password",
-                    DdlManage.UPDATE,
-                    formatSql = true,
-                    showSql = true
-                )
+                    "password")
+                DbEntityManagerConfiguration(ds, true, true)
             } else {
                 logger.info("Using in-memory (HSQL) DB".emphasise())
                 InMemoryEntityManagerConfiguration("pets")
