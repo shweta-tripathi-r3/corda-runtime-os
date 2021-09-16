@@ -1,14 +1,17 @@
 package net.corda.db.test.osgi
 
+import net.corda.db.admin.ChangeLogResourceFiles
+import net.corda.db.admin.ClassloaderChangeLog
+import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.core.PostgresDataSourceFactory
-import net.corda.orm.EntityManagerFactoryFactory
 import net.corda.orm.DbEntityManagerConfiguration
 import net.corda.orm.DdlManage
+import net.corda.orm.EntityManagerFactoryFactory
 import net.corda.orm.impl.InMemoryEntityManagerConfiguration
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotSame
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -83,7 +86,7 @@ class EntitiesInBundlesTest {
                     "jdbc:postgresql://localhost:${System.getProperty("postgresPort")}/postgres",
                     "postgres",
                     "password")
-                DbEntityManagerConfiguration(ds, true, true)
+                DbEntityManagerConfiguration(ds, true, true, DdlManage.UPDATE)
             } else {
                 logger.info("Using in-memory (HSQL) DB".emphasise())
                 InMemoryEntityManagerConfiguration("pets")
@@ -94,6 +97,15 @@ class EntitiesInBundlesTest {
         @JvmStatic
         @BeforeAll
         fun setupEntities() {
+            logger.info("Create Schema for ${dbConfig.dataSource.connection.metaData.url}".emphasise())
+            val lbm = LiquibaseSchemaMigratorImpl()
+            val cl = ClassloaderChangeLog(
+                linkedSetOf(
+                    ChangeLogResourceFiles("db.changelog-master.xml", classLoader = catClass.classLoader),
+                    ChangeLogResourceFiles("db.changelog-master.xml", classLoader = dogClass.classLoader)
+            ))
+            lbm.updateDb(dbConfig.dataSource.connection, cl)
+
             logger.info("Create Entities".emphasise())
 
             emf = entityManagerFactoryFactory.create(

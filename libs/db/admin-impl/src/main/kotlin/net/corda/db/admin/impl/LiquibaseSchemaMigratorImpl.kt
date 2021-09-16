@@ -57,6 +57,8 @@ class LiquibaseSchemaMigratorImpl(
             StreamResourceAccessor(masterChangeLogFileName, dbChange),
             database
         )
+
+//        Thread.currentThread().contextClassLoader = LiquibaseSchemaMigratorImpl::class.java.classLoader
         log.info("Updating ${database.databaseProductName} ${database.databaseProductVersion} DB Schema for ${database.connection.catalog}")
         if (null == sql)
             lb.update(Contexts())

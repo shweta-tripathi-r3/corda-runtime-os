@@ -1,4 +1,4 @@
 @Export
-package net.corda.db.admin.impl;
+package liquibase.ext.logging;
 
 import org.osgi.annotation.bundle.Export;

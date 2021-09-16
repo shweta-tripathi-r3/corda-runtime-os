@@ -9,6 +9,7 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation "net.corda:corda-base"
     compileOnly "org.osgi:osgi.annotation"
+    compileOnly "biz.aQute.bnd:biz.aQute.bnd.annotation:$bndVersion"
     implementation "org.slf4j:slf4j-api"
     implementation "org.liquibase:liquibase-core:$liquibaseVersion"
 

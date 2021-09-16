@@ -8,29 +8,61 @@ import java.nio.file.Path
  * Classloader implementation of [DbChange]
  * This will provide ChangeLog files that are present in the classloader as resource files.
  *
- * @property changelogFiles relative to the specified [rootPath]
- * @property classLoader defaulted to current classloader
- * @property rootPath defaulted to "migration"
+ * @property list of [ChangeLogResourceFiles] that will be processed in order. Associated classloaders will be de-duped.
  * @constructor Create empty Classloader change log
  */
 class ClassloaderChangeLog(
-    private val changelogFiles: LinkedHashSet<String>,
-    private val classLoader: ClassLoader = ClassloaderChangeLog::class.java.classLoader,
-    private val rootPath: String = "migration"
+    private val changelogFiles: LinkedHashSet<ChangeLogResourceFiles>,
 ) : DbChange {
-    override val masterChangeLogFiles by lazy {
-        LinkedHashSet(changelogFiles.map { "$rootPath/$it" })
+    private val classLoaderMap by lazy {
+        // de-dupe and put in map for quick retrieval
+        changelogFiles.map {
+            it.classLoader
+        }.distinct().associateBy (
+            // give the classloader a name if it doesn't have one already
+            { createClassLoaderId(it) }, {it}
+        )
     }
 
-    override val changeLogFileList by lazy {
-        val root = Path.of(classLoader.getResource(rootPath).toURI())
-        root.tree()
-            .map {
-                "$rootPath/${root.relativize(it)}"
-            }.toSet()
+    override val masterChangeLogFiles by lazy {
+        LinkedHashSet(changelogFiles.map { clf ->
+            "${createClassLoaderId(clf.classLoader)}:${clf.rootPath}/${clf.masterFile}" })
+    }
+
+    override val changeLogFileList: Set<String> by lazy {
+        changelogFiles.map { clf ->
+            val clId = createClassLoaderId(clf.classLoader)
+            val root = Path.of(classLoaderMap.getValue(clId).getResource(clf.rootPath).toURI())
+            root.tree()
+                .map { resourcePath ->
+                    "$clId:${clf.rootPath}/${root.relativize(resourcePath)}"
+                }
+        }.flatten().toSet()
     }
 
     override fun fetch(path: String): InputStream {
-        return classLoader.getResourceAsStream(path) ?: throw FileNotFoundException("$path not found.")
+        val splitPath = path.split(':', limit = 2)
+        if(splitPath.size != 2)
+            throw IllegalArgumentException("$path is not a valid resource path.")
+        val cl = classLoaderMap[splitPath[0]] ?:
+            throw IllegalArgumentException("Classloader ${splitPath[0]} from $path is not a valid.")
+        return cl.getResourceAsStream(splitPath[1]) ?: throw FileNotFoundException("$path not found.")
     }
+
+    private fun createClassLoaderId(classLoader: ClassLoader) =
+        (classLoader.name ?: System.identityHashCode(classLoader).toString()).replace(':','|')
 }
+
+/**
+ * Definition of a master change log file and associated classloader
+ *
+ * @property masterFile
+ * @property rootPath defaulted to "migration"
+ * @property classLoader defaulted to current classloader
+ * @constructor
+ */
+data class ChangeLogResourceFiles(
+    val masterFile: String,
+    val rootPath: String = "migration",
+    val classLoader: ClassLoader = ChangeLogResourceFiles::class.java.classLoader
+)

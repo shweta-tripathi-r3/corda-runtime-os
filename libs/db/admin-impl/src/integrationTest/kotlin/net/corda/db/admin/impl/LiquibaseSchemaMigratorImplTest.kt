@@ -1,5 +1,6 @@
 package net.corda.db.admin.impl
 
+import net.corda.db.admin.ChangeLogResourceFiles
 import net.corda.db.admin.ClassloaderChangeLog
 import net.corda.db.core.InMemoryDataSourceFactory
 import org.assertj.core.api.Assertions.assertThat
@@ -9,6 +10,12 @@ import java.io.StringWriter
 
 class LiquibaseSchemaMigratorImplTest {
     val ds = InMemoryDataSourceFactory().create("test-db")
+    val cl = ClassloaderChangeLog(
+        linkedSetOf(
+            ChangeLogResourceFiles("db.changelog-master.xml"),
+            ChangeLogResourceFiles("db.changelog-master2.xml")
+        )
+    )
 
     @AfterEach
     fun `clear db`() {
@@ -20,9 +27,7 @@ class LiquibaseSchemaMigratorImplTest {
     @Test
     fun `when updateDb create DB schema`() {
         val lbm = LiquibaseSchemaMigratorImpl()
-        val cl = ClassloaderChangeLog(
-            linkedSetOf("db.changelog-master.xml", "db.changelog-master2.xml")
-        )
+
         lbm.updateDb(ds.connection, cl)
 
         var tables = mutableListOf<String>()
@@ -47,9 +52,6 @@ class LiquibaseSchemaMigratorImplTest {
     fun `when createUpdateSql generate DB schema`() {
         val writer = StringWriter()
         val lbm = LiquibaseSchemaMigratorImpl()
-        val cl = ClassloaderChangeLog(
-            linkedSetOf("db.changelog-master.xml", "db.changelog-master2.xml")
-        )
         lbm.createUpdateSql(ds.connection, cl, writer)
 
         val sql = writer.toString().toLowerCase()
