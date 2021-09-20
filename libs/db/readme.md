@@ -81,9 +81,27 @@ integrationTestRuntime "org.hsqldb:hsqldb:$hsqldbVersion"
 The `osgi-integration-tests` module contains a test suite to test/validate/prove the DB modules in an OSGi context.
 The most important validation is persisting/querying entities across different OSGi bundles.
 
-The `confirm we can query cross-bundle` test uses a query that uses enties in both dogs and cats bundles. This is a 
+The `confirm we can query cross-bundle` test uses a query that uses entities in both dogs and cats bundles. This is a 
 completely artificial scenario, and not one that we would expect to see in production code, but the sole purpose
 of this test is to validate that this is technically possible.
+This test will also run DB migration scripts located in both bundles.
+
+**Debugging OSGi Tests** 
+
+OSGi integration tests run in a different process, which means you cannot debug them as you would normally do.
+In order to debug them you need to specify a debug port in a system property (`runjdb`) and attach a remote
+debugger.
+For example, these integrations tests can be run like this:
+
+```bash
+gradle :libs:db:osgi-integration-tests:integrationTest -D-runjdb=1046
+```
+
+or against Postgres like so:
+
+```bash
+gradle :libs:db:osgi-integration-tests:integrationTest -D-runjdb=1046 -PpostgresPort=5432
+```
 
 ## Data definition (DDL)
 
@@ -106,6 +124,34 @@ way we map from MappedSchema to Change Log files.
 In order to continue to support this, the `DbChange` interface also specifies "one or more" master change log files
 must be specified.
 
+### Multiple classloaders
+
+Because of the above requirement, it is possible that ChangeLog files will exist in multiple bundles (or CPKs).
+Therefore, we must support fetching from multiple classloaders.
+This is achieved by being able to specify a classloader as well as master file(s) when creating a 
+`ClassloaderChangeLog`.
+
+This, however, brings an additional complication in that multiple classloaders could have identically named ChangeLog
+files. For example, both cat and dog bundles may have a packages of `migration` that includes a migration file 
+called `owner-v1.0.xml`. Because of the way Liquibase works, there is no way to know which script belongs to which 
+bundle.
+
+For this reason, we require a "name" attribute to be associated to each set of master ChangeLogs and classloader 
+pairs, and we allow that full name to be used in file inclusion tags. E.g.:
+
+```xml
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <include file="migration/cats-migration-v1.0.xml"/>
+    <include file="classloader://net.corda.testing.bundles.cats/migration/owner-migration-v1.0.xml"/>
+</databaseChangeLog>
+```
+
+This may not be necessary for CorDapp related migrations as we should be able to extract the migration files
+from the CPKs at CPB/CPI installation time (and for example store them in the cluster DB), in which case we
+could use CPK identifiers to uniquely define migration scripts belong to which bundles (TBC).
+
 ### DBMS specific changes
 
 DBMS specific changes can be defined in the Change Log files by using the `dbms` attribute. E.g.:
@@ -119,16 +165,5 @@ DBMS specific changes can be defined in the Change Log files by using the `dbms`
     </createTable>
 </changeSet>
 ```
-See an example of this in the Integration Tests. A full list of supported DBMS are [here](https://www.liquibase.org/get-started/databases?_ga=2.89667163.1554106465.1631635367-1762864281.1630587927)
-
-### JAXB
-
-Liquibase uses JAXB and specifies the dependency on `javax.xml.bind`. However a JAXB implementation needs to be 
-provided at runtime. This is not the case by default in JAVA 11.
-Hibernate does bring in this dependency, so in most cases there will already be such implementation on the classpath,
-however, as you can see we specify: `testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$jaxbVersion"` in `admin-impl` 
-to support the unit tests.
-
-`StreamResourceAccessor` also uses JAXB to generate a "composite" Change Log file dynamically. We could change this
-to using JAXP instead, however, given Liquibase itself needs a JAXB implementation and therefore we kept it in line
-with that.
+See an example of this in the Integration Tests. A full list of supported DBMS are 
+[here](https://www.liquibase.org/get-started/databases?_ga=2.89667163.1554106465.1631635367-1762864281.1630587927)

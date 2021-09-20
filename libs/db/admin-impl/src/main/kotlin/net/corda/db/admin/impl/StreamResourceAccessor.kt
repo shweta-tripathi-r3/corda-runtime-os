@@ -50,7 +50,7 @@ class StreamResourceAccessor(
      */
     override fun openStreams(relativeTo: String?, streamPath: String?): InputStreamList {
         if (masterChangeLogFileName == streamPath) {
-            return createCompositeMasterChangeLog(streamPath)
+            return createCompositeMasterChangeLog()
         }
         if (null != streamPath && streamPath.contains("www.liquibase.org")) {
             // NOTE: this is needed for fetching the XML schemas
@@ -67,7 +67,7 @@ class StreamResourceAccessor(
         )
     }
 
-    private fun createCompositeMasterChangeLog(streamPath: String): InputStreamList {
+    private fun createCompositeMasterChangeLog(): InputStreamList {
         log.info("Creating composite master changelog file $masterChangeLogFileName with: ${dbChange.masterChangeLogFiles}")
         // dynamically create the master file by combining the specified.
         ByteArrayOutputStream().use {
