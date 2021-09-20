@@ -10,6 +10,7 @@
             </column>
             <column name="name" type="VARCHAR(255)"/>
             <column name="colour" type="VARCHAR(255)"/>
+            <column name="owner_id" type="uuid"/>
         </createTable>
         <addPrimaryKey columnNames="id" constraintName="cat_id" tableName="cat"/>
     </changeSet>

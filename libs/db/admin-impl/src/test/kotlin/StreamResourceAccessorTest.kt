@@ -38,10 +38,10 @@ class StreamResourceAccessorTest {
     }
 
     @Test
-    fun `when openStreams with unknown changelog delegate`() {
-        sra.openStreams(null, "unknown")
+    fun `when openStreams with liquibase schema URL delegate`() {
+        sra.openStreams(null, "http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd")
 
-        verify(classLoaderResourceAccessor).openStreams(null, "unknown")
+        verify(classLoaderResourceAccessor).openStreams(null, "http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd")
     }
 
     @Test

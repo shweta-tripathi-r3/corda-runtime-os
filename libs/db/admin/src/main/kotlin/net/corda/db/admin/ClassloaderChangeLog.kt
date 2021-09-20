@@ -1,8 +1,9 @@
 package net.corda.db.admin
 
+import net.corda.db.admin.ClassloaderChangeLog.ChangeLogResourceFiles
 import java.io.FileNotFoundException
 import java.io.InputStream
-import java.nio.file.Path
+import java.net.URLEncoder
 
 /**
  * Classloader implementation of [DbChange]
@@ -14,55 +15,72 @@ import java.nio.file.Path
 class ClassloaderChangeLog(
     private val changelogFiles: LinkedHashSet<ChangeLogResourceFiles>,
 ) : DbChange {
-    private val classLoaderMap by lazy {
-        // de-dupe and put in map for quick retrieval
-        changelogFiles.map {
-            it.classLoader
-        }.distinct().associateBy (
-            // give the classloader a name if it doesn't have one already
-            { createClassLoaderId(it) }, {it}
-        )
+    /**
+     * Definition of a master change log file and associated classloader
+     * [name] is required so to be able to support "overlapping" resource files.
+     * I.e. if 2 resource files with the same name exist in 2 different classloaders (e.g. migration/bob.xml in 2
+     * different bundles), then a name must be specified and this name can be uses in the "file" attribute of an
+     * "include" tag in a ChangeLog file.
+     * Name could be the jar or bundle name, for example.
+     *
+     * @property name that uniquely identifies the set of changelogs related to the classloader
+     * @property masterFiles one or more master ChangeLog files.
+     * @property classLoader defaulted to current classloader
+     */
+    data class ChangeLogResourceFiles(
+        val name: String,
+        val masterFiles: List<String>,
+        val classLoader: ClassLoader = ChangeLogResourceFiles::class.java.classLoader
+    ) {
+        init {
+            if(masterFiles.isEmpty())
+                throw IllegalArgumentException("masterFiles must have at least one item.")
+        }
+    }
+
+    companion object {
+        const val CLASS_LOADER_PREFIX = "classloader://"
+    }
+
+    private val allChangeFiles = mutableListOf<String>()
+
+    private val distinctLoaders by lazy {
+        changelogFiles.map { it.classLoader }.distinct()
     }
 
     override val masterChangeLogFiles by lazy {
         LinkedHashSet(changelogFiles.map { clf ->
-            "${createClassLoaderId(clf.classLoader)}:${clf.rootPath}/${clf.masterFile}" })
+            clf.masterFiles.map { mf ->
+                "${CLASS_LOADER_PREFIX}${URLEncoder.encode(clf.name, "utf-8")}/${mf}" }
+            }.flatten())
     }
 
-    override val changeLogFileList: Set<String> by lazy {
-        changelogFiles.map { clf ->
-            val clId = createClassLoaderId(clf.classLoader)
-            val root = Path.of(classLoaderMap.getValue(clId).getResource(clf.rootPath).toURI())
-            root.tree()
-                .map { resourcePath ->
-                    "$clId:${clf.rootPath}/${root.relativize(resourcePath)}"
-                }
-        }.flatten().toSet()
-    }
+    override val changeLogFileList: Set<String>
+        get() {
+            return allChangeFiles.toSet()
+        }
 
     override fun fetch(path: String): InputStream {
-        val splitPath = path.split(':', limit = 2)
-        if(splitPath.size != 2)
-            throw IllegalArgumentException("$path is not a valid resource path.")
-        val cl = classLoaderMap[splitPath[0]] ?:
-            throw IllegalArgumentException("Classloader ${splitPath[0]} from $path is not a valid.")
-        return cl.getResourceAsStream(splitPath[1]) ?: throw FileNotFoundException("$path not found.")
+        // if classloader is specified
+        if(path.startsWith(CLASS_LOADER_PREFIX)) {
+            val splitPath = path.removePrefix(CLASS_LOADER_PREFIX).split('/', limit = 2)
+            if (splitPath.size != 2 || splitPath[1].isEmpty())
+                throw IllegalArgumentException("$path is not a valid classloader resource path.")
+            val cl = changelogFiles.firstOrNull {  URLEncoder.encode(it.name, "utf-8") == splitPath[0] }
+                ?: throw IllegalArgumentException("Cannot find classloader ${splitPath[0]} from $path")
+            allChangeFiles.add(path)
+            return cl.classLoader.getResourceAsStream(splitPath[1]) ?:
+                throw FileNotFoundException("Master file '$path' not found.")
+        }
+
+        // else look in all classLoaders if classloader not specified.
+        distinctLoaders.forEach {
+            val resource = it.getResourceAsStream(path)
+            if(null != resource) {
+                allChangeFiles.add(path)
+                return resource
+            }
+        }
+        throw FileNotFoundException("$path not found.")
     }
-
-    private fun createClassLoaderId(classLoader: ClassLoader) =
-        (classLoader.name ?: System.identityHashCode(classLoader).toString()).replace(':','|')
 }
-
-/**
- * Definition of a master change log file and associated classloader
- *
- * @property masterFile
- * @property rootPath defaulted to "migration"
- * @property classLoader defaulted to current classloader
- * @constructor
- */
-data class ChangeLogResourceFiles(
-    val masterFile: String,
-    val rootPath: String = "migration",
-    val classLoader: ClassLoader = ChangeLogResourceFiles::class.java.classLoader
-)

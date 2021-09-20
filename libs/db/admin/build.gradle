@@ -10,6 +10,7 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
 
     compileOnly "org.osgi:osgi.annotation"
+    implementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
     api "javax.persistence:javax.persistence-api"
     api "org.liquibase:liquibase-core:$liquibaseVersion"
 

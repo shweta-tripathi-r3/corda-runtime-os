@@ -29,6 +29,13 @@ dependencies {
 
     integrationTestImplementation "org.slf4j:slf4j-simple:$slf4jVersion"
 
+    // NOTE: Liquibase needs a jaxb runtime
+//    integrationTestRuntimeOnly "com.sun.xml.bind:jaxb-osgi:2.3.0"
+//    integrationTestRuntimeOnly "com.sun.xml.bind:jaxb-core:2.3.0"
+//    integrationTestRuntimeOnly "com.sun.xml.bind:jaxb-impl:2.3.0"
+//    integrationTestRuntimeOnly "org.apache.servicemix.bundles:org.apache.servicemix.bundles.jaxb-xjc:2.2.11_1"
+//    integrationTestRuntimeOnly "org.apache.servicemix.bundles:org.apache.servicemix.bundles.jaxb-impl:2.2.11_1"
+//    integrationTestRuntimeOnly "org.apache.servicemix.bundles:org.apache.servicemix.bundles.jaxb-impl:2.2.11_1"
     integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:$ariesDynamicBundleVersion"
 
 }

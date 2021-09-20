@@ -1,6 +1,5 @@
 package net.corda.db.admin.impl
 
-import net.corda.db.admin.ChangeLogResourceFiles
 import net.corda.db.admin.ClassloaderChangeLog
 import net.corda.db.core.InMemoryDataSourceFactory
 import org.assertj.core.api.Assertions.assertThat
@@ -12,8 +11,10 @@ class LiquibaseSchemaMigratorImplTest {
     val ds = InMemoryDataSourceFactory().create("test-db")
     val cl = ClassloaderChangeLog(
         linkedSetOf(
-            ChangeLogResourceFiles("db.changelog-master.xml"),
-            ChangeLogResourceFiles("db.changelog-master2.xml")
+            ClassloaderChangeLog.ChangeLogResourceFiles(
+                this.javaClass.packageName, listOf("migration/db.changelog-master.xml")),
+            ClassloaderChangeLog.ChangeLogResourceFiles(
+                this.javaClass.packageName, listOf("migration/db.changelog-master2.xml"), this.javaClass.classLoader)
         )
     )
 

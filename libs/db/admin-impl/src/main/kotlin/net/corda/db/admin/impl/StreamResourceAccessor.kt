@@ -7,17 +7,15 @@ import liquibase.resource.ResourceAccessor
 import net.corda.db.admin.DbChange
 import net.corda.v5.base.util.contextLogger
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.StringWriter
-import java.lang.UnsupportedOperationException
 import java.net.URI
 import java.util.SortedSet
-import javax.xml.bind.JAXBContext
-import javax.xml.bind.Marshaller
-import javax.xml.bind.annotation.XmlAccessType
-import javax.xml.bind.annotation.XmlAccessorType
-import javax.xml.bind.annotation.XmlAttribute
-import javax.xml.bind.annotation.XmlElement
-import javax.xml.bind.annotation.XmlRootElement
+import javax.xml.stream.XMLOutputFactory
+import javax.xml.transform.OutputKeys
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.stream.StreamResult
+import javax.xml.transform.stream.StreamSource
 
 /**
  * Implementation of [liquibase.resource.ResourceAccessor] that handles with
@@ -29,22 +27,13 @@ import javax.xml.bind.annotation.XmlRootElement
  * @constructor Create empty Stream resource accessor
  */
 class StreamResourceAccessor(
-    val masterChangeLogFileName: String,
-    val dbChange: DbChange,
+    private val masterChangeLogFileName: String,
+    private val dbChange: DbChange,
     private val classLoaderResourceAccessor: ResourceAccessor =
         ClassLoaderResourceAccessor(ClassLoaderResourceAccessor::class.java.classLoader)
 ) : AbstractResourceAccessor() {
     companion object {
         private val log = contextLogger()
-    }
-
-    val xmlMarshaller by lazy {
-        val marshaller = JAXBContext.newInstance(CompositeDatabaseChangeLog::class.java).createMarshaller()
-        marshaller.setProperty(
-            Marshaller.JAXB_SCHEMA_LOCATION,
-            "http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
-        )
-        marshaller
     }
 
     /**
@@ -61,23 +50,11 @@ class StreamResourceAccessor(
      */
     override fun openStreams(relativeTo: String?, streamPath: String?): InputStreamList {
         if (masterChangeLogFileName == streamPath) {
-            log.info("Creating composite master changelog file $masterChangeLogFileName with: ${dbChange.masterChangeLogFiles}")
-            // dynamically create the master file by combining the specified.
-            val master = CompositeDatabaseChangeLog(
-                dbChange.masterChangeLogFiles.map {
-                    Include(it)
-                }
-            )
-            // using string writer for ease of debugging.
-            StringWriter().use {
-                xmlMarshaller.marshal(master, it)
-                log.debug("Composite master file: $it")
-                return InputStreamList(URI(masterChangeLogFileName), ByteArrayInputStream(it.toString().toByteArray()))
-            }
+            return createCompositeMasterChangeLog(streamPath)
         }
-        if (null != streamPath && !dbChange.changeLogFileList.contains(streamPath)) {
+        if (null != streamPath && streamPath.contains("www.liquibase.org")) {
             // NOTE: this is needed for fetching the XML schemas
-            log.debug("'$streamPath' not a known change log ... delegating to ClassLoaderResourceAccessor")
+            log.debug("'$streamPath' looks like an XML schema ... delegating to ClassLoaderResourceAccessor")
             return classLoaderResourceAccessor.openStreams(relativeTo, streamPath)
         }
         if (null == relativeTo && null != streamPath) {
@@ -88,6 +65,45 @@ class StreamResourceAccessor(
         throw UnsupportedOperationException(
             "openStreams with arguments '$relativeTo' and '$streamPath' not supported"
         )
+    }
+
+    private fun createCompositeMasterChangeLog(streamPath: String): InputStreamList {
+        log.info("Creating composite master changelog file $masterChangeLogFileName with: ${dbChange.masterChangeLogFiles}")
+        // dynamically create the master file by combining the specified.
+        ByteArrayOutputStream().use {
+            val xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(it)
+            xmlWriter.writeStartDocument("utf-8", "1.0")
+            xmlWriter.writeStartElement("databaseChangeLog")
+            xmlWriter.writeDefaultNamespace("http://www.liquibase.org/xml/ns/dbchangelog")
+            xmlWriter.writeNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            xmlWriter.writeAttribute(
+                "http://www.w3.org/2001/XMLSchema-instance",
+                "schemaLocation",
+                "http://www.liquibase.org/xml/ns/dbchangelog " +
+                        "http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+            )
+
+            dbChange.masterChangeLogFiles.forEach { f ->
+                xmlWriter.writeStartElement("include")
+                xmlWriter.writeAttribute("file", f)
+                xmlWriter.writeEndElement()
+            }
+
+            xmlWriter.writeEndElement()
+            xmlWriter.flush()
+
+            if(log.isDebugEnabled) {
+                val transformer = TransformerFactory.newInstance().newTransformer()
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes")
+                transformer.setOutputProperty(OutputKeys.STANDALONE, "yes")
+                StringWriter().use { sw ->
+                    transformer.transform(StreamSource(ByteArrayInputStream(it.toByteArray())), StreamResult(sw))
+                    log.debug("Generated Master XML$sw")
+                }
+            }
+
+            return InputStreamList(URI(masterChangeLogFileName), ByteArrayInputStream(it.toByteArray()))
+        }
     }
 
     /**
@@ -127,25 +143,5 @@ class StreamResourceAccessor(
     override fun describeLocations(): SortedSet<String> {
         return (dbChange.changeLogFileList + masterChangeLogFileName)
             .map { "[${dbChange.javaClass.simpleName}]$it" }.toSortedSet()
-    }
-
-    @XmlRootElement(
-        name = "databaseChangeLog",
-        namespace = "http://www.liquibase.org/xml/ns/dbchangelog"
-    )
-    @XmlAccessorType(XmlAccessType.PROPERTY)
-    class CompositeDatabaseChangeLog(
-        @field:XmlElement(
-            name = "include",
-            namespace = "http://www.liquibase.org/xml/ns/dbchangelog"
-        )
-        val includes: List<Include>
-    ) {
-        constructor() : this(emptyList())
-    }
-
-    @XmlAccessorType(XmlAccessType.FIELD)
-    class Include(@field:XmlAttribute(name = "file") val file: String) {
-        constructor() : this("")
     }
 }

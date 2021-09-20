@@ -1,6 +1,5 @@
 package net.corda.db.test.osgi
 
-import net.corda.db.admin.ChangeLogResourceFiles
 import net.corda.db.admin.ClassloaderChangeLog
 import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.core.PostgresDataSourceFactory
@@ -21,6 +20,7 @@ import org.osgi.test.common.annotation.InjectService
 import org.osgi.test.junit5.service.ServiceExtension
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.StringWriter
 import java.time.LocalDate
 import java.util.UUID
 import javax.persistence.EntityManagerFactory
@@ -101,9 +101,15 @@ class EntitiesInBundlesTest {
             val lbm = LiquibaseSchemaMigratorImpl()
             val cl = ClassloaderChangeLog(
                 linkedSetOf(
-                    ChangeLogResourceFiles("db.changelog-master.xml", classLoader = catClass.classLoader),
-                    ChangeLogResourceFiles("db.changelog-master.xml", classLoader = dogClass.classLoader)
+                    ClassloaderChangeLog.ChangeLogResourceFiles(
+                        catClass.packageName, listOf("migration/db.changelog-master.xml"), classLoader = catClass.classLoader),
+                    ClassloaderChangeLog.ChangeLogResourceFiles(
+                        dogClass.packageName, listOf("migration/db.changelog-master.xml"), classLoader = dogClass.classLoader)
             ))
+            StringWriter().use {
+                lbm.createUpdateSql(dbConfig.dataSource.connection, cl, it)
+                logger.info("Schema creation SQL: $it")
+            }
             lbm.updateDb(dbConfig.dataSource.connection, cl)
 
             logger.info("Create Entities".emphasise())
