@@ -9,14 +9,10 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation "net.corda:corda-base"
     compileOnly "org.osgi:osgi.annotation"
-//    compileOnly "biz.aQute.bnd:biz.aQute.bnd.annotation:$bndVersion"
     implementation "org.slf4j:slf4j-api"
     implementation "org.liquibase:liquibase-core:$liquibaseVersion"
 
     implementation project(":libs:db:admin")
-
-    // NOTE: Liquibase needs a jaxb runtime
-    implementation "org.glassfish.jaxb:jaxb-runtime:$jaxbVersion"
 
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
@@ -26,7 +22,6 @@ dependencies {
     integrationTestImplementation "org.slf4j:slf4j-simple:$slf4jVersion"
 
     integrationTestImplementation project(":libs:db:core")
-
 }
 
 // TODO: integrationTest/integration-test inconsistency
@@ -46,18 +41,18 @@ sourceSets {
     }
 }
 
-def jar = tasks.named('jar', Jar) {
-    archiveBaseName = 'corda-db-admin-impl'
-    bnd """\
-Bundle-Name: Corda DB Admin Library
-Bundle-SymbolicName: \${project.group}.db.admin-impl
-Import-Package:\
-    *
--includeresource: \
-    @jaxb-runtime-${jaxbVersion}.jar,\
-    @txw2-${jaxbVersion}.jar
-"""
-}
+//def jar = tasks.named('jar', Jar) {
+//    archiveBaseName = 'corda-db-admin-impl'
+//    bnd """\
+//Bundle-Name: Corda DB Admin Library
+//Bundle-SymbolicName: \${project.group}.db.admin-impl
+//Import-Package:\
+//    *
+//-includeresource: \
+//    @jaxb-runtime-${jaxbVersion}.jar,\
+//    @txw2-${jaxbVersion}.jar
+//"""
+//}
 
 tasks.register('integrationTest', Test) {
     description = "Runs integration tests."

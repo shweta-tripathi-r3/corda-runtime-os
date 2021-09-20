@@ -13,6 +13,4 @@ dependencies {
     implementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
     api "javax.persistence:javax.persistence-api"
     api "org.liquibase:liquibase-core:$liquibaseVersion"
-
-    testImplementation "com.google.jimfs:jimfs:$jimfsVersion"
 }
