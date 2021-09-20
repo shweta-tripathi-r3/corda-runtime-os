@@ -117,6 +117,15 @@ For this reason, we have an abstraction in `DbChange` with currently one impleme
 Internally this uses a `StreamResourceAcessor` which relies on the `DbChange` implementation being able to return
 a Change Log file as a Stream.
 
+### Liquibase and OSGi
+
+The latest version of Liquibase (4.4.x) does not work in OSGi. This is related to Liquibase using the 
+ServiceLoader to load an implementation of its own logging abstraction.
+This GitHub issues describes the problem we were also seeing: https://github.com/liquibase/liquibase/issues/2054
+The patch in the associated PR does work.
+Because API changed between 3.x and 4.x is impacting us, we have chosen to take a copy of the patch for
+now and raised [CORE-2723](https://r3-cev.atlassian.net/browse/CORE-2723) to resolve this when the patch is released.
+
 ### Multiple Change Log files
 
 Previous version of Corda have the ability to provide multiple "master" Change Log files. This is to support the

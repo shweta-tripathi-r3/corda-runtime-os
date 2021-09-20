@@ -41,19 +41,6 @@ sourceSets {
     }
 }
 
-//def jar = tasks.named('jar', Jar) {
-//    archiveBaseName = 'corda-db-admin-impl'
-//    bnd """\
-//Bundle-Name: Corda DB Admin Library
-//Bundle-SymbolicName: \${project.group}.db.admin-impl
-//Import-Package:\
-//    *
-//-includeresource: \
-//    @jaxb-runtime-${jaxbVersion}.jar,\
-//    @txw2-${jaxbVersion}.jar
-//"""
-//}
-
 tasks.register('integrationTest', Test) {
     description = "Runs integration tests."
     group = "verification"
