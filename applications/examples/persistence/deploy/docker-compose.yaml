@@ -1,5 +1,6 @@
 services:
   zookeeper:
+    container_name: zookeeper
     # https://hub.docker.com/r/bitnami/zookeeper
     image: "bitnami/zookeeper:latest"
     ports:
@@ -7,6 +8,7 @@ services:
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
   kafka:
+    container_name: kafka
     # https://hub.docker.com/r/bitnami/kafka
     image: "bitnami/kafka:latest"
     ports:
@@ -23,6 +25,7 @@ services:
     depends_on:
       - zookeeper
   kafdrop:
+    container_name: kafdrop
     image: obsidiandynamics/kafdrop
     restart: "no"
     ports:
@@ -33,6 +36,7 @@ services:
     depends_on:
       - kafka
   cluster-db:
+    container_name: cluster-db
     image: postgres
     ports:
       - "5433:5432"
@@ -41,6 +45,7 @@ services:
       POSTGRES_USER: "user"
       POSTGRES_PASSWORD: "password"
   app-db:
+    container_name: app-db
     image: postgres
     ports:
       - "5434:5432"
