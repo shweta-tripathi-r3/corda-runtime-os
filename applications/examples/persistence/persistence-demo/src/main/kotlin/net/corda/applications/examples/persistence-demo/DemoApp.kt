@@ -1,9 +1,7 @@
 package net.corda.applications.examples.`persistence-demo`
 
-import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 import net.corda.osgi.api.Application
-import net.corda.osgi.api.Shutdown
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -13,16 +11,11 @@ import org.slf4j.Logger
 @Component
 class DemoApp @Activate constructor(
     @Reference(service = SubscriptionFactory::class)
-    private val subscriptionFactory: SubscriptionFactory,
-//    @Reference(service = Shutdown::class)
-//    private val shutDownService: Shutdown,
-//    @Reference(service = LifecycleCoordinatorFactory::class)
-//    private val coordinatorFactory: LifecycleCoordinatorFactory,
+    private val subscriptionFactory: SubscriptionFactory
 )  : Application {
 
     companion object {
         val log: Logger = contextLogger()
-        const val TOPIC_PREFIX = "persistence-demo"
     }
 
     override fun startup(args: Array<String>) {
