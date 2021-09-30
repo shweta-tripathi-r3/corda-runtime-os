@@ -3,7 +3,6 @@ package foo
 import net.corda.db.admin.LiquibaseSchemaMigrator
 import net.corda.db.admin.impl.ClassloaderChangeLog
 import net.corda.db.core.InMemoryDataSourceFactory
-import net.corda.db.core.PostgresDataSourceFactory
 import net.corda.osgi.api.Application
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate

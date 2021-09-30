@@ -2,12 +2,12 @@ package net.corda.db.test.osgi
 
 import net.corda.db.admin.LiquibaseSchemaMigrator
 import net.corda.db.admin.impl.ClassloaderChangeLog
-import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
+import net.corda.db.core.InMemoryDataSourceFactory
 import net.corda.db.core.PostgresDataSourceFactory
 import net.corda.orm.DbEntityManagerConfiguration
 import net.corda.orm.DdlManage
+import net.corda.orm.EntityManagerConfiguration
 import net.corda.orm.EntityManagerFactoryFactory
-import net.corda.orm.impl.InMemoryEntityManagerConfiguration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,6 +25,7 @@ import java.io.StringWriter
 import java.time.LocalDate
 import java.util.UUID
 import javax.persistence.EntityManagerFactory
+import javax.sql.DataSource
 import kotlin.math.ceil
 
 /**
@@ -212,4 +213,16 @@ private fun String.emphasise(paddingChars: String = "#", width: Int = 80): Strin
         kotlin.math.max(ceil((width - this.length - 2).toDouble() / 2).toInt(), 4)
     )
     return "$padding $this $padding"
+}
+
+class InMemoryEntityManagerConfiguration(dbName: String) : EntityManagerConfiguration {
+    private val ds by lazy {
+        InMemoryDataSourceFactory().create(dbName)
+    }
+
+    override val dataSource: DataSource
+        get() = ds
+
+    override val ddlManage: DdlManage
+        get() = DdlManage.UPDATE
 }
