@@ -39,6 +39,8 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion") {
         exclude group: 'mockito-core'
     }
+    testImplementation project(":libs:lifecycle:lifecycle-impl")
+    testImplementation project(":testing:test-utilities")
 
     integrationTestImplementation project(":testing:test-utilities")
 

@@ -1,6 +1,5 @@
 package net.corda.p2p.gateway.domino
 
-import net.corda.lifecycle.ErrorEvent
 import net.corda.lifecycle.Lifecycle
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
@@ -9,8 +8,6 @@ import net.corda.lifecycle.LifecycleEvent
 import net.corda.lifecycle.LifecycleEventHandler
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationStatusChangeEvent
-import net.corda.lifecycle.StartEvent
-import net.corda.lifecycle.StopEvent
 import net.corda.v5.base.util.contextLogger
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicReference
@@ -36,7 +33,6 @@ abstract class LifecycleWithCoordinator(
         StoppedDueToError,
         StoppedByParent
     }
-    private val currentState = AtomicReference(State.Created)
 
     val name: LifecycleCoordinatorName = LifecycleCoordinatorName(
         javaClass.simpleName,
@@ -48,88 +44,50 @@ abstract class LifecycleWithCoordinator(
     override val isRunning: Boolean
         get() = state == State.Started
 
-    var state: State
-        get() =
-            currentState.get()
-        set(newState) {
-            val oldState = currentState.getAndSet(newState)
-            if ((newState != State.Started) && (oldState == State.Started)) {
-                coordinator.updateStatus(LifecycleStatus.DOWN)
-            } else if ((oldState != State.Started) && (newState == State.Started)) {
-                coordinator.updateStatus(LifecycleStatus.UP)
-            }
-            logger.info("State of $name is $newState")
-        }
+    var state: State = State.Created
 
     abstract val children: Collection<LifecycleWithCoordinator>
 
-    private val closeActions = ConcurrentLinkedDeque<()->Unit>()
-    fun executeBeforeClose(action: () -> Unit) {
-        closeActions.addFirst(action)
-    }
-    private val stopActions = ConcurrentLinkedDeque<()->Unit>()
-    fun executeBeforeStop(action: () -> Unit) {
-        stopActions.addFirst(action)
-    }
-
     open fun startSequence() {}
+
+    open fun stopSequence() {}
 
     override fun start() {
         logger.info("Starting $name")
+        if (!coordinator.isRunning) {
+            coordinator.start()
+        }
         when (state) {
-            State.Created -> {
-                coordinator.start()
-                children.map {
-                    it.name
-                }
-                    .map {
+            State.Created, State.StoppedByParent, State.StoppedDueToError -> {
+
+                /**
+                 * If there are no children, we initiate the start sequence of ourselves.
+                 * If there are children, we trigger start() on them and wait until they are all ready before we start ourselves.
+                 */
+                if (children.isEmpty()) {
+                    try {
+                        startSequence()
+                        state = State.Started
+                        coordinator.updateStatus(LifecycleStatus.UP)
+                    } catch (e: Exception) {
+                        state = State.StoppedDueToError
+                        coordinator.updateStatus(LifecycleStatus.ERROR, "${e.javaClass.simpleName}: ${e.message ?: "-"}")
+                    }
+                } else {
+                    children.map {
+                        it.name
+                    }.map {
                         coordinator.followStatusChangesByName(setOf(it))
                     }.forEach {
                         executeBeforeClose(it::close)
                     }
+                    children.forEach { it.start() }
+                }
             }
             State.Started -> {
                 // Do nothing
             }
-            State.StoppedByParent -> {
-                children.forEach {
-                    it.start()
-                }
-                onStart()
-            }
-            State.StoppedDueToError -> {
-                logger.info("Can not start $name, it was stopped due to an error")
-            }
         }
-    }
-
-    private fun onStart() {
-        children.filter {
-            it.state == State.StoppedByParent
-        }.forEach {
-            it.start()
-        }
-
-        if (children.all { it.isRunning }) {
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                startSequence()
-            } catch (e: Throwable) {
-                gotError(e)
-            }
-        }
-    }
-
-    private fun stopSequence() {
-        stopActions.onEach {
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                it.invoke()
-            } catch (e: Throwable) {
-                logger.warn("Fail to stop", e)
-            }
-        }
-        stopActions.clear()
     }
 
     override fun stop() {
@@ -137,21 +95,21 @@ abstract class LifecycleWithCoordinator(
         when (state) {
             State.Created -> {
                 state = State.StoppedByParent
+                coordinator.updateStatus(LifecycleStatus.DOWN)
             }
             State.Started -> {
-                children.forEach {
-                    if (it.state != State.StoppedDueToError) {
-                        it.stop()
-                    }
+                if (children.isEmpty()) {
+                    stopSequence()
+                    state = State.StoppedByParent
+                    coordinator.updateStatus(LifecycleStatus.DOWN)
+                } else {
+                    children.forEach { it.stop() }
+                    state = State.StoppedByParent
+                    coordinator.updateStatus(LifecycleStatus.DOWN)
                 }
-                stopSequence()
-                state = State.StoppedByParent
             }
-            State.StoppedByParent -> {
+            State.StoppedByParent, State.StoppedDueToError -> {
                 // Nothing to do
-            }
-            State.StoppedDueToError -> {
-                state = State.StoppedByParent
             }
         }
     }
@@ -160,21 +118,15 @@ abstract class LifecycleWithCoordinator(
         logger.info("Got error in $name", error)
         when (state) {
             State.Created -> {
-                state = State.StoppedDueToError
+                // Cannot fail before even being started.
             }
             State.Started -> {
                 stopSequence()
-                children.forEach {
-                    it.stop()
-                }
                 state = State.StoppedDueToError
+                coordinator.updateStatus(LifecycleStatus.ERROR, "${error.javaClass.simpleName}: ${error.message ?: "-"}")
             }
             State.StoppedByParent -> {
-                stopSequence()
-                children.forEach {
-                    it.stop()
-                }
-                state = State.StoppedDueToError
+                // Nothing to do
             }
             State.StoppedDueToError -> {
                 // Nothing to do
@@ -185,30 +137,20 @@ abstract class LifecycleWithCoordinator(
     private inner class EventHandler : LifecycleEventHandler {
         override fun processEvent(event: LifecycleEvent, coordinator: LifecycleCoordinator) {
             when (event) {
-                is ErrorEvent -> {
-                    gotError(event.cause)
-                }
-                is StartEvent -> {
-                    when (state) {
-                        State.Created -> {
-                            children.forEach {
-                                it.start()
-                            }
-                            onStart()
-                        }
-                        else -> logger.warn("Unexpected start event, my state is $state")
-                    }
-                }
-                is StopEvent -> {
-                    // Do nothing
-                }
                 is RegistrationStatusChangeEvent -> {
                     if (event.status == LifecycleStatus.UP) {
-                        onStart()
+                        if (children.all { it.state == State.Started }) {
+                            state = State.Started
+                            coordinator.updateStatus(LifecycleStatus.UP)
+                        } else if (children.none { it.state == State.StoppedDueToError }) {
+                            children.forEach { it.start() }
+                        }
                     } else {
-                        // A child went down, stop my self
+                        children.forEach { it.stop() }
+                        // one of our children went down.
                         if (state == State.Started) {
-                            stop()
+                            state = State.StoppedDueToError
+                            coordinator.updateStatus(LifecycleStatus.DOWN)
                         }
                     }
                 }
@@ -220,7 +162,7 @@ abstract class LifecycleWithCoordinator(
     }
 
     override fun close() {
-        stopSequence()
+        stopActionsSequence()
 
         closeActions.onEach {
             @Suppress("TooGenericExceptionCaught")
@@ -241,4 +183,34 @@ abstract class LifecycleWithCoordinator(
     override fun toString(): String {
         return "$name: $state: $children"
     }
+
+
+
+
+
+    /**
+     *  Not needed with new implementation
+     */
+
+    private val closeActions = ConcurrentLinkedDeque<()->Unit>()
+    fun executeBeforeClose(action: () -> Unit) {
+        closeActions.addFirst(action)
+    }
+    private val stopActions = ConcurrentLinkedDeque<()->Unit>()
+    fun executeBeforeStop(action: () -> Unit) {
+        stopActions.addFirst(action)
+    }
+
+    private fun stopActionsSequence() {
+        stopActions.onEach {
+            @Suppress("TooGenericExceptionCaught")
+            try {
+                it.invoke()
+            } catch (e: Throwable) {
+                logger.warn("Fail to stop", e)
+            }
+        }
+        stopActions.clear()
+    }
+
 }
