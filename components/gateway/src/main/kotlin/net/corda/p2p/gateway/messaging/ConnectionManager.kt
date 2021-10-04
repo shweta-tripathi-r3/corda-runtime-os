@@ -8,6 +8,7 @@ import net.corda.configuration.read.ConfigurationReadService
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.p2p.gateway.GatewayConfigurationService
 import net.corda.p2p.gateway.domino.DominoLifecycle
+import net.corda.p2p.gateway.domino.DominoLifecycle.*
 import net.corda.p2p.gateway.domino.LeafDominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
 import net.corda.p2p.gateway.messaging.http.DestinationInfo
@@ -50,12 +51,12 @@ class ConnectionManager(
     private var nettyGroup: EventLoopGroup? = null
 
     override fun startSequence() {
-        if (configRegistration == null) {
-            configRegistration = configurationReaderService.registerForUpdates(this)
+        if (state != State.Started && gatewayConfiguration != null) {
+            startResources()
         }
 
-        if (gatewayConfiguration != null) {
-            startResources()
+        if (configRegistration == null) {
+            configRegistration = configurationReaderService.registerForUpdates(this)
         }
     }
 
@@ -66,7 +67,6 @@ class ConnectionManager(
     private fun restart() {
         cleanUpConnectionPool()
         startResources()
-        hasStarted()
     }
 
     private fun cleanUpConnectionPool() {
@@ -80,6 +80,7 @@ class ConnectionManager(
     private fun startResources() {
         writeGroup = NioEventLoopGroup(NUM_CLIENT_WRITE_THREADS)
         nettyGroup = NioEventLoopGroup(NUM_CLIENT_NETTY_THREADS)
+        hasStarted()
     }
 
     /**
@@ -106,19 +107,20 @@ class ConnectionManager(
         // TODO: check for changes needs to be more granular (i.e. changes on host/port are not relevant here).
         if (config.containsKey("p2p.gateway") && changedKeys.contains("p2p.gateway")) {
             val configPath = config["p2p.gateway"]!!
-            val keyStore = Base64.getDecoder().decode(configPath.getString("keystore"))
-            val keyStorePassword = configPath.getString("keystorePassword")
-            val trustStore = Base64.getDecoder().decode(configPath.getString("truststore"))
-            val revocationConfigMode = RevocationConfigMode.valueOf(configPath.getString("revocationMode"))
+            val keyStore = Base64.getDecoder().decode(configPath.getString("sslConfig.keyStore"))
+            val keyStorePassword = configPath.getString("sslConfig.keyStorePassword")
+            val trustStore = Base64.getDecoder().decode(configPath.getString("sslConfig.trustStore"))
+            val truststorePassword = configPath.getString("sslConfig.trustStorePassword")
+            val revocationConfigMode = configPath.getEnum(RevocationConfigMode::class.java, "sslConfig.revocationCheck.mode")
             val revocationConfig = RevocationConfig(revocationConfigMode)
-            val sslConfiguration = SslConfiguration(keyStore, keyStorePassword, trustStore, "", revocationConfig)
+            val sslConfiguration = SslConfiguration(keyStore, keyStorePassword, trustStore, truststorePassword, revocationConfig)
             gatewayConfiguration = GatewayConfiguration(
-                configPath.getString("serverAddress"),
-                configPath.getInt("serverPort"),
+                configPath.getString("hostAddress"),
+                configPath.getInt("hostPort"),
                 sslConfiguration
             )
 
-            if (state != DominoLifecycle.State.StoppedByParent) {
+            if (state != State.StoppedByParent) {
                 restart()
             }
         }

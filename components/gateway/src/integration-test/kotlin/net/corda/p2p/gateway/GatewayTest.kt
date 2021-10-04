@@ -103,6 +103,10 @@ class GatewayTest : TestBase() {
     private val alice = Node("alice")
     private val bob = Node("bob")
 
+    private val configurationPair = getConfigPair()
+    private val configReadService = configurationPair.first
+    private val configWriter = configurationPair.second
+
     @AfterEach
     fun setup() {
         alice.stop()
@@ -116,7 +120,7 @@ class GatewayTest : TestBase() {
         val serverAddress = URI.create("http://www.alice.net:10000")
         val linkInMessage = LinkInMessage(authenticatedP2PMessage(""))
         Gateway(
-            createConfigurationServiceFor(GatewayConfiguration(serverAddress.host, serverAddress.port, aliceSslConfig),),
+            createConfigurationServiceFor(GatewayConfiguration(serverAddress.host, serverAddress.port, aliceSslConfig)),
             alice.subscriptionFactory,
             alice.publisherFactory,
             lifecycleCoordinatorFactory,
@@ -166,8 +170,6 @@ class GatewayTest : TestBase() {
             payload = authenticatedP2PMessage("link out")
         }.build()
 
-        val configPublisher = ConfigPublisher()
-
         val outboundCountdownLatch = CountDownLatch(1)
         val listenToOutboundMessages = object : ListenerWithServer() {
             override fun onOpen(event: HttpConnectionEvent) {
@@ -188,18 +190,21 @@ class GatewayTest : TestBase() {
                 }
             }
         }
+
+        val (serverConfigReadService, serverConfigWriter) = getConfigPair()
+        val (gatewayConfigReadService, gatewayConfigWriter) = getConfigPair()
+
+        val config = GatewayConfiguration(outboundServerUrl.host, outboundServerUrl.port, aliceSslConfig)
+        serverConfigWriter.publishConfig(config)
         HttpServer(
             listenToOutboundMessages,
-            GatewayConfiguration(
-                outboundServerUrl.host,
-                outboundServerUrl.port,
-                aliceSslConfig,
-            )
+            serverConfigReadService,
+            lifecycleCoordinatorFactory
         ).use { outboundServer ->
             listenToOutboundMessages.server = outboundServer
             outboundServer.startAndWaitForStarted()
             Gateway(
-                configPublisher.readerService,
+                gatewayConfigReadService,
                 alice.subscriptionFactory,
                 alice.publisherFactory,
                 lifecycleCoordinatorFactory,
@@ -223,8 +228,7 @@ class GatewayTest : TestBase() {
                         }
                     }
 
-                    configPublisher.publishConfig(GatewayConfiguration(url.host, url.port, aliceSslConfig))
-                    gateway.startAndWaitForStarted()
+                    gatewayConfigWriter.publishConfig(GatewayConfiguration(url.host, url.port, aliceSslConfig))
                     eventually(duration = 10.seconds, waitBefore = Duration.ofMillis(200), waitBetween = Duration.ofMillis(200)) {
                         assertDoesNotThrow {
                             Socket(url.host, url.port).close()
@@ -342,9 +346,13 @@ class GatewayTest : TestBase() {
                     deliveryLatch.countDown()
                 }
             }
+            val (configReadService, configWriter) = getConfigPair()
+            val config = GatewayConfiguration(serverUri.host, serverUri.port, chipSslConfig)
+            configWriter.publishConfig(config)
             HttpServer(
                 serverListener,
-                GatewayConfiguration(serverUri.host, serverUri.port, chipSslConfig)
+                configReadService,
+                lifecycleCoordinatorFactory
             ).also {
                 serverListener.server = it
             }
@@ -478,6 +486,15 @@ class GatewayTest : TestBase() {
         threads.forEach {
             it.join()
         }
+    }
+
+    private fun publishConfig(serverAddress: URI) {
+        val gatewayConfig = GatewayConfiguration(
+            serverAddress.host,
+            serverAddress.port,
+            aliceSslConfig
+        )
+        configWriter.publishConfig(gatewayConfig)
     }
 
     private fun authenticatedP2PMessage(content: String) = AuthenticatedDataMessage.newBuilder().apply {

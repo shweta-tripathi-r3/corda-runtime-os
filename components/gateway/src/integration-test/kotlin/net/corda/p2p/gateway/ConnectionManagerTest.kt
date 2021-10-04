@@ -27,19 +27,23 @@ class ConnectionManagerTest : TestBase() {
     )
     private val parent = createParentCoordinator()
     private val configService = createConfigurationServiceFor(configuration)
+    private val configurationPair = getConfigPair()
+    private val configReadService = configurationPair.first
+    private val configWriter = configurationPair.second
 
     @Test
     @Timeout(30)
     fun `acquire connection`() {
         val responseReceived = CountDownLatch(1)
         val manager = ConnectionManager(
-            parent, configService,
+            configService,
             object : HttpEventListener {
                 override fun onMessage(message: HttpMessage) {
                     assertEquals(serverResponseContent, String(message.payload))
                     responseReceived.countDown()
                 }
-            }
+            },
+            lifecycleCoordinatorFactory
         )
         val listener = object : ListenerWithServer() {
             override fun onMessage(message: HttpMessage) {
@@ -48,9 +52,11 @@ class ConnectionManagerTest : TestBase() {
             }
         }
         manager.startAndWaitForStarted()
-        HttpServer(listener, configuration).use { server ->
+
+        configWriter.publishConfig(configuration)
+        HttpServer(listener, configReadService, lifecycleCoordinatorFactory).use { server ->
             listener.server = server
-            server.start()
+            server.startAndWaitForStarted()
             manager.acquire(destination).use { client ->
                 client.write(clientMessageContent.toByteArray())
                 responseReceived.await()
@@ -61,7 +67,7 @@ class ConnectionManagerTest : TestBase() {
     @Test
     @Timeout(30)
     fun `reuse connection`() {
-        val manager = ConnectionManager(parent, configService, object : HttpEventListener {})
+        val manager = ConnectionManager(configService, object : HttpEventListener {}, lifecycleCoordinatorFactory)
         val remotePeers = mutableListOf<SocketAddress>()
         manager.startAndWaitForStarted()
         val requestReceived = CountDownLatch(2)
@@ -73,8 +79,9 @@ class ConnectionManagerTest : TestBase() {
                 requestReceived.countDown()
             }
         }
-        HttpServer(listener, configuration).use { server ->
-            server.start()
+        configWriter.publishConfig(configuration)
+        HttpServer(listener, configReadService, lifecycleCoordinatorFactory).use { server ->
+            server.startAndWaitForStarted()
             manager.acquire(destination).write(clientMessageContent.toByteArray())
             manager.acquire(destination).write(clientMessageContent.toByteArray())
             requestReceived.await()
@@ -82,4 +89,5 @@ class ConnectionManagerTest : TestBase() {
             manager.acquire(destination).stop()
         }
     }
+
 }

@@ -9,7 +9,19 @@ import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.ssl.SslHandler
+import net.corda.configuration.read.ConfigurationReadService
+import net.corda.configuration.read.impl.ConfigurationReadServiceImpl
+import net.corda.libs.configuration.read.kafka.factory.ConfigReaderFactoryImpl
+import net.corda.libs.configuration.write.ConfigWriter
+import net.corda.libs.configuration.write.kafka.ConfigWriterImpl
 import net.corda.lifecycle.Lifecycle
+import net.corda.lifecycle.LifecycleCoordinatorFactory
+import net.corda.lifecycle.impl.LifecycleCoordinatorFactoryImpl
+import net.corda.messaging.api.publisher.config.PublisherConfig
+import net.corda.messaging.api.publisher.factory.PublisherFactory
+import net.corda.messaging.emulation.publisher.factory.CordaPublisherFactory
+import net.corda.messaging.emulation.subscription.factory.InMemSubscriptionFactory
+import net.corda.messaging.emulation.topic.service.impl.TopicServiceImpl
 import net.corda.p2p.NetworkType
 import net.corda.p2p.gateway.LoggingInterceptor
 import net.corda.p2p.gateway.TestBase
@@ -22,8 +34,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
+import org.mockito.kotlin.mock
 import java.io.FileInputStream
 import java.net.URI
 import java.security.SecureRandom
@@ -56,6 +70,10 @@ class HttpTest : TestBase() {
     }
 
     private val serverAddress = URI.create("http://alice.net:10000")
+    private val coordinatorFactory = LifecycleCoordinatorFactoryImpl()
+    private val configurationPair = getConfigPair()
+    private val configReadService = configurationPair.first
+    private val configWriter = configurationPair.second
 
     @Test
     @Timeout(30)
@@ -66,13 +84,11 @@ class HttpTest : TestBase() {
                 server?.write(HttpResponseStatus.OK, serverResponseContent.toByteArray(Charsets.UTF_8), message.source)
             }
         }
+        publishConfig(serverAddress)
         HttpServer(
             listener,
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                aliceSslConfig
-            ),
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             listener.server = server
             server.startAndWaitForStarted()
@@ -113,13 +129,11 @@ class HttpTest : TestBase() {
                 server?.write(HttpResponseStatus.OK, serverResponseContent.toByteArray(Charsets.UTF_8), message.source)
             }
         }
+        publishConfig(serverAddress)
         val httpServer = HttpServer(
             listener,
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                aliceSslConfig
-            )
+            configReadService,
+            coordinatorFactory
         )
         val threadPool = NioEventLoopGroup(threadNo)
         httpServer.use { server ->
@@ -181,14 +195,11 @@ class HttpTest : TestBase() {
                 server?.write(HttpResponseStatus.OK, serverResponseContent.toByteArray(Charsets.UTF_8), message.source)
             }
         }
-
+        publishConfig(serverAddress)
         HttpServer(
             listener,
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                aliceSslConfig
-            )
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             listener.server = server
             server.startAndWaitForStarted()
@@ -219,13 +230,12 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake succeeds - revocation checking disabled C5`() {
+        val config = GatewayConfiguration(serverAddress.host, serverAddress.port, bobSslConfig)
+        configWriter.publishConfig(config)
         HttpServer(
             object : HttpEventListener {},
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                bobSslConfig
-            )
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             server.startAndWaitForStarted()
             var connected = false
@@ -244,7 +254,7 @@ class HttpTest : TestBase() {
                 clientListener
             ).use { client ->
 
-                client.start()
+                client.startAndWaitForStarted()
                 client.write(ByteArray(0))
                 connectedLatch.await()
                 assertTrue(connected)
@@ -255,13 +265,12 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake succeeds - revocation checking disabled C4`() {
+        val config = GatewayConfiguration(serverAddress.host, serverAddress.port, c4sslConfig)
+        configWriter.publishConfig(config)
         HttpServer(
             object : HttpEventListener {},
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                c4sslConfig
-            )
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             server.startAndWaitForStarted()
             var connected = false
@@ -280,7 +289,7 @@ class HttpTest : TestBase() {
                 clientListener
             ).use { client ->
 
-                client.start()
+                client.startAndWaitForStarted()
                 client.write(ByteArray(0))
                 connectedLatch.await()
                 assertTrue(connected)
@@ -291,6 +300,7 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake fails - server identity check fails C4`() {
+        publishConfig(serverAddress)
         MitmServer(serverAddress.host, serverAddress.port, c4sslConfig).use { server ->
             server.start()
             val expectedX500Name = "O=Test,L=London,C=GB"
@@ -325,6 +335,7 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake fails - server identity check fails C5`() {
+        publishConfig(serverAddress)
         MitmServer(serverAddress.host, serverAddress.port, chipSslConfig).use { server ->
             val connectedLatch = CountDownLatch(1)
             val clientListener = object : HttpEventListener {
@@ -356,14 +367,11 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake fails - requested SNI is not recognized`() {
-
+        publishConfig(serverAddress)
         HttpServer(
             object : HttpEventListener {},
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                aliceSslConfig
-            )
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             server.startAndWaitForStarted()
             val connectedLatch = CountDownLatch(1)
@@ -394,14 +402,12 @@ class HttpTest : TestBase() {
     @Test
     @Timeout(30)
     fun `tls handshake fails - server presents revoked certificate`() {
-
+        val config = GatewayConfiguration(serverAddress.host, serverAddress.port, bobSslConfig)
+        configWriter.publishConfig(config)
         HttpServer(
             object : HttpEventListener {},
-            GatewayConfiguration(
-                serverAddress.host,
-                serverAddress.port,
-                bobSslConfig
-            )
+            configReadService,
+            coordinatorFactory
         ).use { server ->
             server.startAndWaitForStarted()
             val connectedLatch = CountDownLatch(1)
@@ -428,6 +434,15 @@ class HttpTest : TestBase() {
                 "java.security.cert.CertPathValidatorException: Certificate has been revoked",
             Level.ERROR
         )
+    }
+
+    private fun publishConfig(serverAddress: URI) {
+        val gatewayConfig = GatewayConfiguration(
+            serverAddress.host,
+            serverAddress.port,
+            aliceSslConfig
+        )
+        configWriter.publishConfig(gatewayConfig)
     }
 
     // Lightweight testing server which ignores SNI checks and presents invalid certificates

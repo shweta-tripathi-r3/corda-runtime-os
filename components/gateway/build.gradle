@@ -52,6 +52,10 @@ dependencies {
     integrationTestImplementation project(":libs:configuration:configuration-read")
     integrationTestImplementation project(":libs:configuration:configuration-write")
     integrationTestImplementation project(":libs:configuration:configuration-write-impl")
+    integrationTestImplementation "org.mockito:mockito-core:$mockitoVersion"
+    integrationTestImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion") {
+        exclude group: 'mockito-core'
+    }
 }
 
 sourceSets {

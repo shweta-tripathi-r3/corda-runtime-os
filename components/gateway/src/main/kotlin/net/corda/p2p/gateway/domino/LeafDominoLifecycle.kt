@@ -59,6 +59,7 @@ abstract class LeafDominoLifecycle(
                 try {
                     startSequence()
                 } catch (e: Exception) {
+                    logger.warn("Error while trying to start component", e)
                     state = State.StoppedDueToError
                     coordinator.updateStatus(LifecycleStatus.ERROR, "${e.javaClass.simpleName}: ${e.message ?: "-"}")
                 }
@@ -88,7 +89,7 @@ abstract class LeafDominoLifecycle(
     }
 
     fun gotError(error: Throwable) {
-        logger.info("Got error in $name", error)
+        logger.warn("Got error in $name", error)
         when (state) {
             State.Created -> {
                 // Cannot fail before even being started.

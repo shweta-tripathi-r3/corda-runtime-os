@@ -84,6 +84,7 @@ open class TestBase {
     )
 
     protected val lifecycleCoordinatorFactory = LifecycleCoordinatorFactoryImpl()
+
     protected inner class ConfigPublisher {
         private val configurationTopicService = TopicServiceImpl()
         private val topicName = "config.${UUID.randomUUID().toString().replace("-", "")}"
@@ -136,6 +137,11 @@ open class TestBase {
         val publisher = ConfigPublisher()
         publisher.publishConfig(configuration)
         return publisher.readerService
+    }
+
+    protected fun getConfigPair(): Pair<ConfigurationReadService, ConfigPublisher> {
+        val publisher = ConfigPublisher()
+        return publisher.readerService to publisher
     }
 
     fun createParentCoordinator(): LifecycleWithCoordinator {

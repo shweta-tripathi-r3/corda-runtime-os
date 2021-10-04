@@ -13,6 +13,7 @@ import io.netty.handler.timeout.IdleStateHandler
 import net.corda.configuration.read.ConfigurationHandler
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.lifecycle.LifecycleCoordinatorFactory
+import net.corda.p2p.gateway.domino.DominoLifecycle.State
 import net.corda.p2p.gateway.domino.LeafDominoLifecycle
 import net.corda.p2p.gateway.messaging.GatewayConfiguration
 import net.corda.p2p.gateway.messaging.RevocationConfig
@@ -22,7 +23,6 @@ import net.corda.v5.base.util.contextLogger
 import java.net.SocketAddress
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
 import javax.net.ssl.KeyManagerFactory
 
 /**
@@ -68,12 +68,12 @@ class HttpServer(
     private var gatewayConfiguration: GatewayConfiguration? = null
 
     override fun startSequence() {
-        if (configRegistration == null) {
-            configurationService.registerForUpdates(this)
+        if (state != State.Started &&  gatewayConfiguration != null) {
+            startResources()
         }
 
-        if (gatewayConfiguration != null) {
-            tryToBindServerSocket()
+        if (configRegistration == null) {
+            configurationService.registerForUpdates(this)
         }
     }
 
@@ -90,7 +90,7 @@ class HttpServer(
         clientChannels.clear()
     }
 
-    private fun tryToBindServerSocket() {
+    private fun startResources() {
         bossGroup = NioEventLoopGroup(1)
         workerGroup = NioEventLoopGroup(NUM_SERVER_THREADS)
         val server = ServerBootstrap()
@@ -111,7 +111,7 @@ class HttpServer(
 
     private fun restartServer() {
         stopSequence()
-        tryToBindServerSocket()
+        startResources()
     }
 
     /**
@@ -173,19 +173,25 @@ class HttpServer(
         // TODO: create proper structure for config and reuse shared logic
         if (config.containsKey("p2p.gateway") && changedKeys.contains("p2p.gateway")) {
             val configPath = config["p2p.gateway"]!!
-            val keyStore = Base64.getDecoder().decode(configPath.getString("keystore"))
-            val keyStorePassword = configPath.getString("keystorePassword")
-            val trustStore = Base64.getDecoder().decode(configPath.getString("truststore"))
-            val revocationConfigMode = RevocationConfigMode.valueOf(configPath.getString("revocationMode"))
+            val keyStore = Base64.getDecoder().decode(configPath.getString("sslConfig.keyStore"))
+            val keyStorePassword = configPath.getString("sslConfig.keyStorePassword")
+            val trustStore = Base64.getDecoder().decode(configPath.getString("sslConfig.trustStore"))
+            val truststorePassword = configPath.getString("sslConfig.trustStorePassword")
+            val revocationConfigMode = configPath.getEnum(RevocationConfigMode::class.java, "sslConfig.revocationCheck.mode")
             val revocationConfig = RevocationConfig(revocationConfigMode)
-            val sslConfiguration = SslConfiguration(keyStore, keyStorePassword, trustStore, "", revocationConfig)
+            val sslConfiguration = SslConfiguration(keyStore, keyStorePassword, trustStore, truststorePassword, revocationConfig)
             gatewayConfiguration = GatewayConfiguration(
-                configPath.getString("serverAddress"),
-                configPath.getInt("serverPort"),
+                configPath.getString("hostAddress"),
+                configPath.getInt("hostPort"),
                 sslConfiguration
             )
 
-            restartServer()
+            when(state) {
+                State.Created -> startResources()
+                State.Started -> restartServer()
+                State.StoppedByParent -> {}
+                State.StoppedDueToError -> restartServer()
+            }
         }
     }
 

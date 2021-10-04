@@ -7,6 +7,7 @@ import net.corda.lifecycle.LifecycleEvent
 import net.corda.lifecycle.LifecycleEventHandler
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationStatusChangeEvent
+import net.corda.lifecycle.StartEvent
 import net.corda.p2p.gateway.domino.DominoLifecycle.*
 import net.corda.v5.base.util.contextLogger
 import java.util.UUID
@@ -81,7 +82,7 @@ abstract class NonLeafDominoLifecycle(
                             state = State.Started
                             coordinator.updateStatus(LifecycleStatus.UP)
                         } else if (children().none { it.state() == State.StoppedDueToError }) {
-                            children().forEach { it.start() }
+                            children().filter { it.state() == State.StoppedByParent }.forEach { it.start() }
                         } else {
                             children().forEach { it.stop() }
                         }
@@ -94,6 +95,7 @@ abstract class NonLeafDominoLifecycle(
                         }
                     }
                 }
+                is StartEvent -> {}
                 else -> {
                     logger.warn("Unexpected event $event")
                 }
