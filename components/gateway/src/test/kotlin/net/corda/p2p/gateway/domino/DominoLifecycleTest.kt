@@ -24,34 +24,64 @@ class DominoLifecycleTest {
         a.start()
 
         eventually(1.seconds) {
+            Assertions.assertThat(a.state).isEqualTo(State.Created)
+            Assertions.assertThat(b.state).isEqualTo(State.Created)
+            Assertions.assertThat(c.state).isEqualTo(State.Created)
+        }
+
+        println("B has started!")
+
+        b.correctConfigurationArrived()
+
+        eventually(1.seconds) {
+            Assertions.assertThat(a.state).isEqualTo(State.Created)
+            Assertions.assertThat(b.state).isEqualTo(State.Started)
+            Assertions.assertThat(c.state).isEqualTo(State.Created)
+        }
+
+        println("B gets wrong configuration!")
+
+        b.incorrectConfigurationArrived()
+
+        eventually(1.seconds) {
+            Assertions.assertThat(a.state).isEqualTo(State.Created)
+            Assertions.assertThat(b.state).isEqualTo(State.StoppedDueToError)
+            Assertions.assertThat(c.state).isEqualTo(State.StoppedByParent)
+        }
+
+        println("C has started!")
+
+        c.correctConfigurationArrived()
+
+        eventually(1.seconds) {
+            Assertions.assertThat(a.state).isEqualTo(State.Created)
+            Assertions.assertThat(b.state).isEqualTo(State.StoppedDueToError)
+            Assertions.assertThat(c.state).isEqualTo(State.StoppedByParent)
+        }
+
+        println("B gets correct configuration!")
+
+        b.correctConfigurationArrived()
+
+        eventually(1.seconds) {
             Assertions.assertThat(a.state).isEqualTo(State.Started)
             Assertions.assertThat(b.state).isEqualTo(State.Started)
             Assertions.assertThat(c.state).isEqualTo(State.Started)
         }
 
-        println("Failing B!")
-
-        b.failed()
-
-        eventually(1.seconds) {
-            Assertions.assertThat(a.state).isEqualTo(State.StoppedDueToError)
-            Assertions.assertThat(b.state).isEqualTo(State.StoppedDueToError)
-            Assertions.assertThat(c.state).isEqualTo(State.StoppedByParent)
-        }
-
-        println("Failing C!")
+        println("C failed!")
 
         c.failed()
 
         eventually(1.seconds) {
             Assertions.assertThat(a.state).isEqualTo(State.StoppedDueToError)
-            Assertions.assertThat(b.state).isEqualTo(State.StoppedDueToError)
-            Assertions.assertThat(c.state).isEqualTo(State.StoppedByParent)
+            Assertions.assertThat(b.state).isEqualTo(State.StoppedByParent)
+            Assertions.assertThat(c.state).isEqualTo(State.StoppedDueToError)
         }
 
-        println("B recovered!")
+        println("C recovered!")
 
-        b.recoverFromFailure()
+        c.recoverFromFailure()
 
         eventually(1.seconds) {
             Assertions.assertThat(a.state).isEqualTo(State.Started)
@@ -62,13 +92,35 @@ class DominoLifecycleTest {
 
 }
 
-class C2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLifecycle(lifecycleCoordinatorFactory, "C-${UUID.randomUUID()}") {
-    override fun startSequence() {}
+class C2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLifecycle(lifecycleCoordinatorFactory, UUID.randomUUID().toString()) {
 
-    override fun stopSequence() {}
+    private var correctConfigHasArrived = false
 
-    fun failed() {
-        gotError(RuntimeException("something went wrong!"))
+    override fun startSequence() {
+        println("Start component's resources")
+        if (correctConfigHasArrived) {
+            hasStarted()
+        }
+    }
+
+    override fun stopSequence() {
+        println("Stopping component's resources")
+    }
+
+    fun correctConfigurationArrived() {
+        println("Correct configuration arrived")
+        correctConfigHasArrived = true
+        hasStarted()
+    }
+
+    fun incorrectConfigurationArrived() {
+        println("Correct configuration arrived")
+        correctConfigHasArrived = false
+        failed("Incorrect configuration!")
+    }
+
+    fun failed(error: String = "Something went wrong!") {
+        gotError(RuntimeException(error))
     }
 
     fun recoverFromFailure() {
@@ -79,13 +131,35 @@ class C2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
 
 }
 
-class B2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLifecycle(lifecycleCoordinatorFactory, "B-${UUID.randomUUID()}") {
-    override fun startSequence() {}
+class B2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLifecycle(lifecycleCoordinatorFactory, UUID.randomUUID().toString()) {
 
-    override fun stopSequence() {}
+    private var correctConfigHasArrived = false
 
-    fun failed() {
-        gotError(RuntimeException("something went wrong!"))
+    override fun startSequence() {
+        println("Start component's resources")
+        if (correctConfigHasArrived) {
+            hasStarted()
+        }
+    }
+
+    override fun stopSequence() {
+        println("Stopping component's resources")
+    }
+
+    fun correctConfigurationArrived() {
+        println("Correct configuration arrived")
+        correctConfigHasArrived = true
+        hasStarted()
+    }
+
+    fun incorrectConfigurationArrived() {
+        println("Correct configuration arrived")
+        correctConfigHasArrived = false
+        failed("Incorrect configuration!")
+    }
+
+    fun failed(error: String = "Something went wrong!") {
+        gotError(RuntimeException(error))
     }
 
     fun recoverFromFailure() {
@@ -95,6 +169,6 @@ class B2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
     }
 }
 
-class A2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory, private val b: B2, private val c: C2): NonLeafDominoLifecycle(lifecycleCoordinatorFactory, "B-${UUID.randomUUID()}") {
+class A2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory, private val b: B2, private val c: C2): NonLeafDominoLifecycle(lifecycleCoordinatorFactory, UUID.randomUUID().toString()) {
     override fun children(): List<DominoLifecycle> = listOf(b, c)
 }

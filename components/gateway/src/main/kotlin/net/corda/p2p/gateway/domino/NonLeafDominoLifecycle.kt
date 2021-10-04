@@ -40,10 +40,11 @@ abstract class NonLeafDominoLifecycle(
         logger.info("Starting $name")
         if (!coordinator.isRunning) {
             coordinator.start()
+            children().forEach { coordinator.followStatusChanges(setOf(it.coordinator())) }
         }
         when (state) {
             State.Created, State.StoppedByParent, State.StoppedDueToError -> {
-                children().forEach { coordinator.followStatusChanges(setOf(it.coordinator())) }
+                // trigger start for children and wait for UP signal indicating they have started.
                 children().forEach { it.start() }
             }
             State.Started -> {
@@ -80,10 +81,12 @@ abstract class NonLeafDominoLifecycle(
                             coordinator.updateStatus(LifecycleStatus.UP)
                         } else if (children().none { it.state() == State.StoppedDueToError }) {
                             children().forEach { it.start() }
+                        } else {
+                            children().forEach { it.stop() }
                         }
                     } else {
-                        children().forEach { it.stop() }
                         // one of our children went down.
+                        children().forEach { it.stop() }
                         if (state == State.Started) {
                             state = State.StoppedDueToError
                             coordinator.updateStatus(LifecycleStatus.DOWN)

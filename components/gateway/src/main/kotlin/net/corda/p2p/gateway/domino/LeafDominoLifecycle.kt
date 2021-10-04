@@ -1,6 +1,5 @@
 package net.corda.p2p.gateway.domino
 
-import net.corda.lifecycle.Lifecycle
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleCoordinatorName
@@ -22,6 +21,14 @@ abstract class LeafDominoLifecycle(
     abstract fun startSequence()
 
     abstract fun stopSequence()
+
+    /**
+     * This is supposed to be invoked when start has been completed asynchronously (i.e. proper configuration has arrived).
+     */
+    fun hasStarted() {
+        state = State.Started
+        coordinator.updateStatus(LifecycleStatus.UP)
+    }
 
     val name: LifecycleCoordinatorName = LifecycleCoordinatorName(
         javaClass.simpleName,
@@ -47,8 +54,6 @@ abstract class LeafDominoLifecycle(
             State.Created, State.StoppedByParent, State.StoppedDueToError -> {
                 try {
                     startSequence()
-                    state = State.Started
-                    coordinator.updateStatus(LifecycleStatus.UP)
                 } catch (e: Exception) {
                     state = State.StoppedDueToError
                     coordinator.updateStatus(LifecycleStatus.ERROR, "${e.javaClass.simpleName}: ${e.message ?: "-"}")
