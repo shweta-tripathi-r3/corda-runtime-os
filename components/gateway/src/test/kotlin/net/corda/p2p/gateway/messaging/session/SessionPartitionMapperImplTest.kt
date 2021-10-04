@@ -34,9 +34,6 @@ class SessionPartitionMapperImplTest {
             mock()
         }
     }
-    private val parent = object : LifecycleWithCoordinator(factory, "") {
-        override val children = emptyList<LifecycleWithCoordinator>()
-    }
 
     @Test
     fun `session partition mapping is calculated successfully`() {
@@ -46,7 +43,7 @@ class SessionPartitionMapperImplTest {
             "2" to SessionPartitions(listOf(3, 4))
         )
 
-        val sessionPartitionMapper = SessionPartitionMapperImpl(parent, subscriptionFactory)
+        val sessionPartitionMapper = SessionPartitionMapperImpl(subscriptionFactory, factory)
         sessionPartitionMapper.start()
 
         processor!!.onSnapshot(partitionsMapping)
@@ -63,10 +60,10 @@ class SessionPartitionMapperImplTest {
     @Test
     fun `getPartitions cannot be invoked, when component is not running`() {
         val sessionId = "test-session-id"
-        val sessionPartitionMapper = SessionPartitionMapperImpl(parent, subscriptionFactory)
+        val sessionPartitionMapper = SessionPartitionMapperImpl(subscriptionFactory, factory)
 
         assertThatThrownBy { sessionPartitionMapper.getPartitions(sessionId) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(RuntimeException::class.java)
 
         processor!!.onSnapshot(emptyMap())
 
@@ -75,6 +72,6 @@ class SessionPartitionMapperImplTest {
         sessionPartitionMapper.stop()
 
         assertThatThrownBy { sessionPartitionMapper.getPartitions(sessionId) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(RuntimeException::class.java)
     }
 }

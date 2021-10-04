@@ -1,22 +1,24 @@
 package net.corda.p2p.gateway.messaging.session
 
+import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messaging.api.processor.CompactedProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 import net.corda.messaging.api.subscription.factory.config.SubscriptionConfig
 import net.corda.p2p.SessionPartitions
+import net.corda.p2p.gateway.domino.LeafDominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
 import net.corda.p2p.schema.Schema.Companion.SESSION_OUT_PARTITIONS
 import java.lang.IllegalStateException
+import java.lang.RuntimeException
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionPartitionMapperImpl(
-    parent: LifecycleWithCoordinator,
     subscriptionFactory: SubscriptionFactory,
+    coordinatorFactory: LifecycleCoordinatorFactory
 ) : SessionPartitionMapper,
-    LifecycleWithCoordinator(
-        parent
-    ) {
+    LeafDominoLifecycle(coordinatorFactory) {
+
     companion object {
         const val CONSUMER_GROUP_ID = "session_partitions_mapper"
     }
@@ -28,9 +30,17 @@ class SessionPartitionMapperImpl(
         SessionPartitionProcessor()
     )
 
+    override fun startSequence() {
+        sessionPartitionSubscription.start()
+    }
+
+    override fun stopSequence() {
+        sessionPartitionSubscription.stop()
+    }
+
     override fun getPartitions(sessionId: String): List<Int>? {
         if (!isRunning) {
-            throw IllegalStateException("getPartitions invoked, while session partition mapper is not running.")
+            throw RuntimeException("getPartitions invoked, while session partition mapper is not running.")
         } else {
             return sessionPartitionsMapping[sessionId]
         }
@@ -45,7 +55,7 @@ class SessionPartitionMapperImpl(
 
         override fun onSnapshot(currentData: Map<String, SessionPartitions>) {
             sessionPartitionsMapping.putAll(currentData.map { it.key to it.value.partitions })
-            state = State.Started
+            hasStarted()
         }
 
         override fun onNext(
@@ -60,13 +70,4 @@ class SessionPartitionMapperImpl(
             }
         }
     }
-
-    override fun startSequence() {
-        sessionPartitionSubscription.start()
-        executeBeforeStop {
-            sessionPartitionSubscription.stop()
-        }
-    }
-
-    override val children = emptyList<LifecycleWithCoordinator>()
 }

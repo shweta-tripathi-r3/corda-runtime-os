@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.netty.handler.codec.http.HttpResponseStatus
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.lifecycle.Lifecycle
+import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.publisher.config.PublisherConfig
 import net.corda.messaging.api.publisher.factory.PublisherFactory
@@ -19,7 +20,10 @@ import net.corda.p2p.crypto.ResponderHandshakeMessage
 import net.corda.p2p.crypto.ResponderHelloMessage
 import net.corda.p2p.gateway.Gateway.Companion.PUBLISHER_ID
 import net.corda.p2p.gateway.GatewayConfigurationService
+import net.corda.p2p.gateway.domino.DominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
+import net.corda.p2p.gateway.domino.NonLeafDominoLifecycle
+import net.corda.p2p.gateway.domino.util.PublisherWithDominoLogic
 import net.corda.p2p.gateway.messaging.GatewayConfiguration
 import net.corda.p2p.gateway.messaging.http.HttpEventListener
 import net.corda.p2p.gateway.messaging.http.HttpMessage
@@ -28,6 +32,7 @@ import net.corda.p2p.gateway.messaging.session.SessionPartitionMapperImpl
 import net.corda.p2p.schema.Schema.Companion.LINK_IN_TOPIC
 import net.corda.v5.base.util.contextLogger
 import java.io.IOException
+import java.lang.RuntimeException
 import java.net.SocketAddress
 import java.nio.ByteBuffer
 import java.util.UUID
@@ -39,61 +44,28 @@ import kotlin.concurrent.write
  * This class implements a simple message processor for p2p messages received from other Gateways.
  */
 internal class InboundMessageHandler(
-    parent: LifecycleWithCoordinator,
     configurationReaderService: ConfigurationReadService,
     private val publisherFactory: PublisherFactory,
     subscriptionFactory: SubscriptionFactory,
-) : GatewayConfigurationService.ReconfigurationListener,
-    Lifecycle,
+    lifecycleCoordinatorFactory: LifecycleCoordinatorFactory
+) : Lifecycle,
     HttpEventListener,
-    LifecycleWithCoordinator(parent) {
+    NonLeafDominoLifecycle(lifecycleCoordinatorFactory) {
 
     companion object {
         private val logger = contextLogger()
     }
 
-    private var p2pInPublisher: Publisher? = null
-    private val sessionPartitionMapper = SessionPartitionMapperImpl(this, subscriptionFactory)
-    private val configurationService = GatewayConfigurationService(this, configurationReaderService, this)
+    private var p2pInPublisher = publisherFactory.createPublisher(PublisherConfig(PUBLISHER_ID)).let {
+        PublisherWithDominoLogic(it, lifecycleCoordinatorFactory)
+    }
+    private val sessionPartitionMapper = SessionPartitionMapperImpl(subscriptionFactory, lifecycleCoordinatorFactory)
 
     @Volatile
-    private var httpServer: HttpServer? = null
-    private val serverLock = ReentrantReadWriteLock()
-
-    override fun startSequence() {
-        logger.info("Starting P2P message receiver")
-
-        val publisherConfig = PublisherConfig(PUBLISHER_ID)
-        val publisher = publisherFactory.createPublisher(publisherConfig, ConfigFactory.empty())
-        executeBeforeStop {
-            publisher.close()
-        }
-        p2pInPublisher = publisher
-
-        if (httpServer?.isRunning != true) {
-            serverLock.write {
-                if (httpServer?.isRunning != true) {
-                    logger.info(
-                        "Starting HTTP server for $name to " +
-                            "${configurationService.configuration.hostAddress}:${configurationService.configuration.hostPort}"
-                    )
-                    val newServer = HttpServer(this, configurationService.configuration)
-                    newServer.start()
-                    executeBeforeStop(newServer::stop)
-                    httpServer = newServer
-                }
-            }
-        }
-
-        logger.info("Started P2P message receiver")
-        state = State.Started
-    }
+    private var httpServer: HttpServer = HttpServer(this, configurationReaderService, lifecycleCoordinatorFactory)
 
     private fun writeResponse(status: HttpResponseStatus, address: SocketAddress) {
-        serverLock.read {
-            val server = httpServer ?: throw IllegalStateException("Server is not ready")
-            server.write(status, ByteArray(0), address)
-        }
+        httpServer.write(status, ByteArray(0), address)
     }
 
     /**
@@ -126,7 +98,7 @@ internal class InboundMessageHandler(
         logger.debug("Received message of type ${p2pMessage.schema.name}")
         when (p2pMessage.payload) {
             is UnauthenticatedMessage -> {
-                p2pInPublisher!!.publish(listOf(Record(LINK_IN_TOPIC, generateKey(), p2pMessage)))
+                p2pInPublisher.publish(listOf(Record(LINK_IN_TOPIC, generateKey(), p2pMessage)))
                 writeResponse(HttpResponseStatus.OK, message.source)
             }
             else -> {
@@ -147,7 +119,7 @@ internal class InboundMessageHandler(
             // this is simplistic (stateless) load balancing amongst the partitions owned by the LM that "hosts" the session.
             val selectedPartition = partitions.random()
             val record = Record(LINK_IN_TOPIC, sessionId, p2pMessage)
-            p2pInPublisher?.publishToPartition(listOf(selectedPartition to record))
+            p2pInPublisher.publishToPartition(listOf(selectedPartition to record))
             HttpResponseStatus.OK
         }
     }
@@ -175,31 +147,5 @@ internal class InboundMessageHandler(
         return UUID.randomUUID().toString()
     }
 
-    override fun gotNewConfiguration(newConfiguration: GatewayConfiguration, oldConfiguration: GatewayConfiguration) {
-        if (newConfiguration.hostPort == oldConfiguration.hostPort) {
-            logger.info("New server configuration for $name on the same port, HTTP server will have to go down")
-            serverLock.write {
-                val oldServer = httpServer
-                httpServer = null
-                oldServer?.stop()
-                val newServer = HttpServer(this, newConfiguration)
-                newServer.start()
-                executeBeforeStop(newServer::stop)
-                httpServer = newServer
-            }
-        } else {
-            logger.info("New server configuration, $name will be connected to ${newConfiguration.hostAddress}:${newConfiguration.hostPort}")
-            val newServer = HttpServer(this, newConfiguration)
-            newServer.start()
-            executeBeforeStop(newServer::stop)
-            serverLock.write {
-                val oldServer = httpServer
-                httpServer = null
-                oldServer?.stop()
-                httpServer = newServer
-            }
-        }
-    }
-
-    override val children = listOf(configurationService, sessionPartitionMapper)
+    override fun children(): List<DominoLifecycle> = listOf(p2pInPublisher, sessionPartitionMapper, httpServer)
 }

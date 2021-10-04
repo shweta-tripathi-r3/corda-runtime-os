@@ -8,10 +8,11 @@ import net.corda.lifecycle.LifecycleEventHandler
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.p2p.gateway.domino.DominoLifecycle.*
 import net.corda.v5.base.util.contextLogger
+import java.util.UUID
 
 abstract class LeafDominoLifecycle(
     private val coordinatorFactory: LifecycleCoordinatorFactory,
-    instanceId: String
+    instanceId: String = UUID.randomUUID().toString()
 ): DominoLifecycle {
 
     companion object {
@@ -26,8 +27,11 @@ abstract class LeafDominoLifecycle(
      * This is supposed to be invoked when start has been completed asynchronously (i.e. proper configuration has arrived).
      */
     fun hasStarted() {
-        state = State.Started
-        coordinator.updateStatus(LifecycleStatus.UP)
+        // this might also be called during a restart (e.g. due to new configuration), in which case nothing needs to be done.
+        if (state != State.Started) {
+            state = State.Started
+            coordinator.updateStatus(LifecycleStatus.UP)
+        }
     }
 
     val name: LifecycleCoordinatorName = LifecycleCoordinatorName(

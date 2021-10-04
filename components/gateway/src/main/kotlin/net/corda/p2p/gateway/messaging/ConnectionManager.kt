@@ -1,15 +1,22 @@
 package net.corda.p2p.gateway.messaging
 
+import com.typesafe.config.Config
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.nio.NioEventLoopGroup
+import net.corda.configuration.read.ConfigurationHandler
 import net.corda.configuration.read.ConfigurationReadService
+import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.p2p.gateway.GatewayConfigurationService
+import net.corda.p2p.gateway.domino.DominoLifecycle
+import net.corda.p2p.gateway.domino.LeafDominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
 import net.corda.p2p.gateway.messaging.http.DestinationInfo
 import net.corda.p2p.gateway.messaging.http.HttpClient
 import net.corda.p2p.gateway.messaging.http.HttpEventListener
 import org.slf4j.LoggerFactory
+import java.lang.RuntimeException
 import java.net.URI
+import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -22,11 +29,11 @@ import java.util.concurrent.ConcurrentHashMap
  *
  */
 class ConnectionManager(
-    parent: LifecycleWithCoordinator,
-    configurationReaderService: ConfigurationReadService,
+    private val configurationReaderService: ConfigurationReadService,
     private val listener: HttpEventListener,
-) : LifecycleWithCoordinator(parent),
-    GatewayConfigurationService.ReconfigurationListener {
+    private val lifecycleCoordinatorFactory: LifecycleCoordinatorFactory
+) : LeafDominoLifecycle(lifecycleCoordinatorFactory),
+    ConfigurationHandler {
 
     companion object {
         private val logger = LoggerFactory.getLogger(ConnectionManager::class.java)
@@ -34,58 +41,87 @@ class ConnectionManager(
         private const val NUM_CLIENT_WRITE_THREADS = 2
         private const val NUM_CLIENT_NETTY_THREADS = 2
     }
-    private val configurationService = GatewayConfigurationService(this, configurationReaderService, this)
+
+    private var gatewayConfiguration: GatewayConfiguration? = null
+    private var configRegistration: AutoCloseable? = null
 
     private val clientPool = ConcurrentHashMap<URI, HttpClient>()
     private var writeGroup: EventLoopGroup? = null
     private var nettyGroup: EventLoopGroup? = null
+
+    override fun startSequence() {
+        if (configRegistration == null) {
+            configRegistration = configurationReaderService.registerForUpdates(this)
+        }
+
+        if (gatewayConfiguration != null) {
+            startResources()
+        }
+    }
+
+    override fun stopSequence() {
+        cleanUpConnectionPool()
+    }
+
+    private fun restart() {
+        cleanUpConnectionPool()
+        startResources()
+        hasStarted()
+    }
+
+    private fun cleanUpConnectionPool() {
+        val oldClients = clientPool.toMap()
+        clientPool.clear()
+        oldClients.values.forEach {
+            it.close()
+        }
+    }
+
+    private fun startResources() {
+        writeGroup = NioEventLoopGroup(NUM_CLIENT_WRITE_THREADS)
+        nettyGroup = NioEventLoopGroup(NUM_CLIENT_NETTY_THREADS)
+    }
 
     /**
      * Return an existing or new [HttpClient].
      * @param destinationInfo the [DestinationInfo] object containing the destination's URI, SNI, and legal name
      */
     fun acquire(destinationInfo: DestinationInfo): HttpClient {
+        val gatewayConfiguration = gatewayConfiguration ?: throw RuntimeException("Component is not configured yet.")
+
         return clientPool.computeIfAbsent(destinationInfo.uri) {
             val client = HttpClient(
                 destinationInfo,
-                configurationService.configuration.sslConfig,
+                gatewayConfiguration.sslConfig,
                 writeGroup!!,
                 nettyGroup!!,
                 listener
             )
-            executeBeforeStop(client::close)
             client.start()
             client
         }
     }
 
-    override fun startSequence() {
-        NioEventLoopGroup(NUM_CLIENT_WRITE_THREADS).also {
-            executeBeforeStop {
-                it.shutdownGracefully()
-                it.terminationFuture().sync()
-            }
-        }.also { writeGroup = it }
-        nettyGroup = NioEventLoopGroup(NUM_CLIENT_NETTY_THREADS).also {
-            executeBeforeStop {
-                it.shutdownGracefully()
-                it.terminationFuture().sync()
-            }
-        }
-        executeBeforeStop(clientPool::clear)
-        state = State.Started
-    }
+    override fun onNewConfiguration(changedKeys: Set<String>, config: Map<String, Config>) {
+        // TODO: check for changes needs to be more granular (i.e. changes on host/port are not relevant here).
+        if (config.containsKey("p2p.gateway") && changedKeys.contains("p2p.gateway")) {
+            val configPath = config["p2p.gateway"]!!
+            val keyStore = Base64.getDecoder().decode(configPath.getString("keystore"))
+            val keyStorePassword = configPath.getString("keystorePassword")
+            val trustStore = Base64.getDecoder().decode(configPath.getString("truststore"))
+            val revocationConfigMode = RevocationConfigMode.valueOf(configPath.getString("revocationMode"))
+            val revocationConfig = RevocationConfig(revocationConfigMode)
+            val sslConfiguration = SslConfiguration(keyStore, keyStorePassword, trustStore, "", revocationConfig)
+            gatewayConfiguration = GatewayConfiguration(
+                configPath.getString("serverAddress"),
+                configPath.getInt("serverPort"),
+                sslConfiguration
+            )
 
-    override fun gotNewConfiguration(newConfiguration: GatewayConfiguration, oldConfiguration: GatewayConfiguration) {
-        if (newConfiguration.sslConfig != oldConfiguration.sslConfig) {
-            logger.info("Got new SSL configuration, recreating the clients pool")
-            val oldClients = clientPool.toMap()
-            clientPool.clear()
-            oldClients.values.forEach {
-                it.close()
+            if (state != DominoLifecycle.State.StoppedByParent) {
+                restart()
             }
         }
     }
 
-    override val children = listOf(configurationService)
 }

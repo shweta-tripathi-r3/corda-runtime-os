@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.netty.handler.codec.http.HttpResponseStatus
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.lifecycle.Lifecycle
+import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messaging.api.processor.EventLogProcessor
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.publisher.config.PublisherConfig
@@ -17,7 +18,11 @@ import net.corda.p2p.LinkOutMessage
 import net.corda.p2p.NetworkType
 import net.corda.p2p.gateway.Gateway
 import net.corda.p2p.gateway.Gateway.Companion.PUBLISHER_ID
+import net.corda.p2p.gateway.domino.DominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
+import net.corda.p2p.gateway.domino.NonLeafDominoLifecycle
+import net.corda.p2p.gateway.domino.util.EventLogSubscriptionWithDominoLogic
+import net.corda.p2p.gateway.domino.util.PublisherWithDominoLogic
 import net.corda.p2p.gateway.messaging.ConnectionManager
 import net.corda.p2p.gateway.messaging.http.DestinationInfo
 import net.corda.p2p.gateway.messaging.http.HttpEventListener
@@ -36,42 +41,39 @@ import java.nio.ByteBuffer
  * events are processed and fed into the HTTP pipeline. No records will be produced by this processor as a result.
  */
 internal class OutboundMessageHandler(
-    parent: LifecycleWithCoordinator,
     configurationReaderService: ConfigurationReadService,
     subscriptionFactory: SubscriptionFactory,
     private val publisherFactory: PublisherFactory,
+    private val lifecycleCoordinatorFactory: LifecycleCoordinatorFactory
 ) : EventLogProcessor<String, LinkOutMessage>,
-    Lifecycle,
     HttpEventListener,
-    LifecycleWithCoordinator(parent) {
+    NonLeafDominoLifecycle(lifecycleCoordinatorFactory) {
+
     companion object {
         private val logger = LoggerFactory.getLogger(OutboundMessageHandler::class.java)
     }
 
     private val connectionManager = ConnectionManager(
-        this,
         configurationReaderService,
         this,
+        lifecycleCoordinatorFactory,
     )
     private val p2pMessageSubscription = subscriptionFactory.createEventLogSubscription(
         SubscriptionConfig(Gateway.CONSUMER_GROUP_ID, Schema.LINK_OUT_TOPIC),
         this,
         ConfigFactory.empty(),
         null
-    )
+    ).let { EventLogSubscriptionWithDominoLogic(it, lifecycleCoordinatorFactory) }
 
-    private var p2pInPublisher: Publisher? = null
-
-    override fun startSequence() {
-        logger.info("Starting P2P message sender")
-        p2pInPublisher = publisherFactory.createPublisher(PublisherConfig(PUBLISHER_ID), ConfigFactory.empty()).also {
-            executeBeforeStop(it::close)
-        }
-        p2pMessageSubscription.start()
-        executeBeforeStop(p2pMessageSubscription::stop)
-
-        state = State.Started
+    private var p2pInPublisher = publisherFactory.createPublisher(PublisherConfig(PUBLISHER_ID)).let {
+        PublisherWithDominoLogic(it, lifecycleCoordinatorFactory)
     }
+
+    override fun children(): List<DominoLifecycle> = listOf(
+        connectionManager,
+        p2pMessageSubscription,
+        p2pInPublisher
+    )
 
     @Suppress("NestedBlockDepth")
     override fun onNext(events: List<EventLogRecord<String, LinkOutMessage>>): List<Record<*, *>> {
@@ -117,7 +119,7 @@ internal class OutboundMessageHandler(
                     // Attempt to deserialize as an early check. Shouldn't forward unrecognised message types
                     LinkInMessage.fromByteBuffer(ByteBuffer.wrap(message.payload))
                     val record = Record(LINK_IN_TOPIC, "key", message)
-                    p2pInPublisher?.publish(listOf(record))
+                    p2pInPublisher.publish(listOf(record))
                 } catch (e: IOException) {
                     logger.warn("Invalid message received. Cannot deserialize")
                     logger.debug(e.stackTraceToString())
@@ -132,6 +134,4 @@ internal class OutboundMessageHandler(
         get() = String::class.java
     override val valueClass: Class<LinkOutMessage>
         get() = LinkOutMessage::class.java
-
-    override val children = listOf(connectionManager)
 }

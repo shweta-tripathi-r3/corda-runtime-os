@@ -9,10 +9,11 @@ import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationStatusChangeEvent
 import net.corda.p2p.gateway.domino.DominoLifecycle.*
 import net.corda.v5.base.util.contextLogger
+import java.util.UUID
 
 abstract class NonLeafDominoLifecycle(
     private val coordinatorFactory: LifecycleCoordinatorFactory,
-    instanceId: String
+    instanceId: String = UUID.randomUUID().toString()
 ): DominoLifecycle {
 
     companion object {

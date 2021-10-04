@@ -4,7 +4,9 @@ import net.corda.configuration.read.ConfigurationReadService
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messaging.api.publisher.factory.PublisherFactory
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
+import net.corda.p2p.gateway.domino.DominoLifecycle
 import net.corda.p2p.gateway.domino.LifecycleWithCoordinator
+import net.corda.p2p.gateway.domino.NonLeafDominoLifecycle
 import net.corda.p2p.gateway.messaging.internal.InboundMessageHandler
 import net.corda.p2p.gateway.messaging.internal.OutboundMessageHandler
 import org.osgi.service.component.annotations.Reference
@@ -31,7 +33,7 @@ class Gateway(
     publisherFactory: PublisherFactory,
     @Reference(service = LifecycleCoordinatorFactory::class)
     lifecycleCoordinatorFactory: LifecycleCoordinatorFactory,
-) : LifecycleWithCoordinator(
+) : NonLeafDominoLifecycle(
     lifecycleCoordinatorFactory,
     instanceId.incrementAndGet().toString(),
 ) {
@@ -44,21 +46,17 @@ class Gateway(
     }
 
     private val inboundMessageHandler = InboundMessageHandler(
-        this,
         configurationReaderService,
         publisherFactory,
         subscriptionFactory,
+        lifecycleCoordinatorFactory
     )
     private val outboundMessageProcessor = OutboundMessageHandler(
-        this,
         configurationReaderService,
         subscriptionFactory,
         publisherFactory,
+        lifecycleCoordinatorFactory
     )
 
-    override val children: Collection<LifecycleWithCoordinator> = listOf(inboundMessageHandler, outboundMessageProcessor)
-
-    override fun startSequence() {
-        state = State.Started
-    }
+    override fun children(): List<DominoLifecycle> = listOf(inboundMessageHandler, outboundMessageProcessor)
 }
