@@ -55,7 +55,7 @@ abstract class LeafDominoLifecycle(
             coordinator.start()
         }
         when (state) {
-            State.Created, State.StoppedByParent, State.StoppedDueToError -> {
+            State.Created, State.StoppedByParent -> {
                 try {
                     startSequence()
                 } catch (e: Exception) {
@@ -64,7 +64,7 @@ abstract class LeafDominoLifecycle(
                     coordinator.updateStatus(LifecycleStatus.ERROR, "${e.javaClass.simpleName}: ${e.message ?: "-"}")
                 }
             }
-            State.Started -> {
+            State.Started, State.StoppedDueToError -> {
                 // Do nothing
             }
         }
@@ -90,20 +90,15 @@ abstract class LeafDominoLifecycle(
 
     fun gotError(error: Throwable) {
         logger.warn("Got error in $name", error)
-        when (state) {
-            State.Created -> {
-                // Cannot fail before even being started.
-            }
-            State.Started -> {
-                stopSequence()
-                state = State.StoppedDueToError
+        stopSequence()
+        val oldState = state
+        state = State.StoppedDueToError
+        when (oldState) {
+            State.Created, State.Started, State.StoppedByParent -> {
                 coordinator.updateStatus(LifecycleStatus.ERROR, "${error.javaClass.simpleName}: ${error.message ?: "-"}")
             }
-            State.StoppedByParent -> {
-                // Nothing to do
-            }
             State.StoppedDueToError -> {
-                // Nothing to do
+                // Nothing to do.
             }
         }
     }

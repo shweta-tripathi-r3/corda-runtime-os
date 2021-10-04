@@ -68,12 +68,14 @@ class HttpServer(
     private var gatewayConfiguration: GatewayConfiguration? = null
 
     override fun startSequence() {
-        if (state != State.Started &&  gatewayConfiguration != null) {
-            startResources()
-        }
-
-        if (configRegistration == null) {
-            configurationService.registerForUpdates(this)
+        if (gatewayConfiguration != null) {
+            if (state != State.Started) {
+                startResources()
+            }
+        } else {
+            if (configRegistration == null) {
+                configurationService.registerForUpdates(this)
+            }
         }
     }
 
@@ -105,6 +107,7 @@ class HttpServer(
             logger.info("Listening on port $port")
             hasStarted()
         } else {
+            logger.warn("Failed to bind to $host:$port")
             gotError(channelFuture.cause())
         }
     }

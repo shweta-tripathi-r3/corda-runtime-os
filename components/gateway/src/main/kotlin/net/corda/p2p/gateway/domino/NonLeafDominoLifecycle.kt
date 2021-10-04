@@ -45,11 +45,11 @@ abstract class NonLeafDominoLifecycle(
             children().forEach { coordinator.followStatusChanges(setOf(it.coordinator())) }
         }
         when (state) {
-            State.Created, State.StoppedByParent, State.StoppedDueToError -> {
+            State.Created, State.StoppedByParent -> {
                 // trigger start for children and wait for UP signal indicating they have started.
                 children().forEach { it.start() }
             }
-            State.Started -> {
+            State.Started, State.StoppedDueToError -> {
                 // Do nothing
             }
         }
@@ -58,11 +58,7 @@ abstract class NonLeafDominoLifecycle(
     override fun stop() {
         logger.info("Stopping $name")
         when (state) {
-            State.Created -> {
-                state = State.StoppedByParent
-                coordinator.updateStatus(LifecycleStatus.DOWN)
-            }
-            State.Started -> {
+            State.Created, State.Started -> {
                 children().forEach { it.stop() }
                 state = State.StoppedByParent
                 coordinator.updateStatus(LifecycleStatus.DOWN)

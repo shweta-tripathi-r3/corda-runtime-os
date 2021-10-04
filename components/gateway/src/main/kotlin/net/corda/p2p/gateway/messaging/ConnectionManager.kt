@@ -51,12 +51,14 @@ class ConnectionManager(
     private var nettyGroup: EventLoopGroup? = null
 
     override fun startSequence() {
-        if (state != State.Started && gatewayConfiguration != null) {
-            startResources()
-        }
-
-        if (configRegistration == null) {
-            configRegistration = configurationReaderService.registerForUpdates(this)
+        if (gatewayConfiguration != null) {
+            if (state != State.Started) {
+                startResources()
+            }
+        } else {
+            if (configRegistration == null) {
+                configurationReaderService.registerForUpdates(this)
+            }
         }
     }
 
@@ -120,8 +122,11 @@ class ConnectionManager(
                 sslConfiguration
             )
 
-            if (state != State.StoppedByParent) {
-                restart()
+            when(state) {
+                State.Created -> startResources()
+                State.Started -> restart()
+                State.StoppedByParent -> {}
+                State.StoppedDueToError -> restart()
             }
         }
     }

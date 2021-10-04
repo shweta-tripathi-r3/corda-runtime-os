@@ -9,7 +9,6 @@ import net.corda.p2p.gateway.domino.LeafDominoLifecycle
 import java.lang.IllegalStateException
 import java.util.concurrent.CompletableFuture
 
-// TODO: Ideally we should make [Publisher] a lifecycle, so that we are also able to stop it.
 class PublisherWithDominoLogic(private val publisher: Publisher,
                                coordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLifecycle(coordinatorFactory) {
 
@@ -26,6 +25,10 @@ class PublisherWithDominoLogic(private val publisher: Publisher,
 
     fun publish(records: List<Record<*, *>>): List<CompletableFuture<Unit>> {
         return publisher.publish(records)
+    }
+
+    override fun close() {
+        publisher.close()
     }
 
 }

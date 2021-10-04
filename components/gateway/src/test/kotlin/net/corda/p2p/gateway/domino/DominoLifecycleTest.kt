@@ -114,7 +114,7 @@ class C2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
     }
 
     fun incorrectConfigurationArrived() {
-        println("Correct configuration arrived")
+        println("Bad configuration arrived")
         correctConfigHasArrived = false
         failed("Incorrect configuration!")
     }
@@ -124,9 +124,7 @@ class C2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
     }
 
     fun recoverFromFailure() {
-        if (state == State.StoppedDueToError) {
-            start()
-        }
+        hasStarted()
     }
 
 }
@@ -153,7 +151,7 @@ class B2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
     }
 
     fun incorrectConfigurationArrived() {
-        println("Correct configuration arrived")
+        println("Bad configuration arrived")
         correctConfigHasArrived = false
         failed("Incorrect configuration!")
     }
@@ -163,9 +161,7 @@ class B2(lifecycleCoordinatorFactory: LifecycleCoordinatorFactory): LeafDominoLi
     }
 
     fun recoverFromFailure() {
-        if (state == State.StoppedDueToError) {
-            start()
-        }
+        hasStarted()
     }
 }
 
