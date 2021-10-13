@@ -5,9 +5,15 @@
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
 
-        <File name="App" fileName="logs/app.log">
+        <RollingFile name="App"
+                     fileName="logs/app.log"
+                     filePattern="logs/app-%d{yyyy-MM-dd}-%i.log">
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-        </File>
+            <Policies>
+                <OnStartupTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
     </appenders>
 
     <loggers>
@@ -16,7 +22,7 @@
         </logger>
 
         <root level="debug">
-            <appender-ref ref="App" level="info"/>
+            <appender-ref ref="App" level="debug"/>
         </root>
     </loggers>
 </configuration>

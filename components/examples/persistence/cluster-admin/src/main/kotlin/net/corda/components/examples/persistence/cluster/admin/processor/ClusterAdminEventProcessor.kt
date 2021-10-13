@@ -29,6 +29,7 @@ class ClusterAdminEventProcessor(
                 classLoader = this::class.java.classLoader)
         ))
         schemaMigrator.updateDb(dbConnection, dbChange)
+        logger.info("Schema for ${dbConnection.metaData.url} updated.")
         return emptyList()
     }
 }
