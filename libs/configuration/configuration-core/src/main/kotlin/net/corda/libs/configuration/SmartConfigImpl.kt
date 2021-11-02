@@ -44,14 +44,20 @@ class SmartConfigImpl(
     override fun isSecret(path: String): Boolean =
         typeSafeConfig.hasPath("$path.$SECRETS_INDICATOR")
 
+    override fun convert(config: Config): SmartConfig {
+        return SmartConfigImpl(config, secretsLookupService)
+    }
+
     override fun toSafeConfig(): SmartConfig {
         if(secretsLookupService is MaskedSecretsLookupService)
             return this
         return SmartConfigImpl(typeSafeConfig, maskedSecretsLookupService)
     }
 
-    override fun withFallback(other: ConfigMergeable?): SmartConfig =
-        SmartConfigImpl(typeSafeConfig.withFallback(other), secretsLookupService)
+    override fun withFallback(other: ConfigMergeable?): SmartConfig {
+        val o = if (other is SmartConfigImpl) { other.typeSafeConfig } else { other }
+        return SmartConfigImpl(typeSafeConfig.withFallback(o), secretsLookupService)
+    }
 
     override fun root(): SmartConfigObject =
         SmartConfigObjectImpl(typeSafeConfig.root(), secretsLookupService)

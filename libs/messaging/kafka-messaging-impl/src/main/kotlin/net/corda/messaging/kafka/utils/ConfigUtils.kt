@@ -4,6 +4,8 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValueFactory
+import net.corda.libs.configuration.SmartConfig
+import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.messaging.api.publisher.config.PublisherConfig
 import net.corda.messaging.api.subscription.factory.config.SubscriptionConfig
 import net.corda.messaging.kafka.properties.ConfigProperties
@@ -46,11 +48,12 @@ class ConfigUtils {
 
         fun resolveSubscriptionConfiguration(
             subscriptionConfiguration: Config,
-            nodeConfig: Config,
+            nodeConfig: SmartConfig,
             clientIdCounter: Int,
             pattern: String
         ): Config {
-            return enforced
+            // turn enforced in to a SmartConfig like nodeConfig first so everything is a "smart" config
+            return  nodeConfig.convert(enforced)
                 .withFallback(subscriptionConfiguration)
                 .withValue(ConfigProperties.CLIENT_ID_COUNTER, ConfigValueFactory.fromAnyRef(clientIdCounter))
                 .withFallback(nodeConfig)
