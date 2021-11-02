@@ -48,15 +48,15 @@ class ConfigUtils {
 
         fun resolveSubscriptionConfiguration(
             subscriptionConfiguration: Config,
-            nodeConfig: SmartConfig,
+            kafkaConfig: SmartConfig,
             clientIdCounter: Int,
             pattern: String
         ): Config {
-            // turn enforced in to a SmartConfig like nodeConfig first so everything is a "smart" config
-            return  nodeConfig.convert(enforced)
+            // turn enforced in to a SmartConfig like kafkaConfig first so everything is a "smart" config
+            return  kafkaConfig.convert(enforced)
                 .withFallback(subscriptionConfiguration)
                 .withValue(ConfigProperties.CLIENT_ID_COUNTER, ConfigValueFactory.fromAnyRef(clientIdCounter))
-                .withFallback(nodeConfig)
+                .withFallback(kafkaConfig)
                 .withFallback(defaults)
                 .resolve()
                 .getConfig(pattern)
