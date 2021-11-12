@@ -177,7 +177,7 @@ class Main @Activate constructor(
         consoleLogger.info("Original object: $objB")
         consoleLogger.info("Deserialised object: $deserializeB")
 
-        consoleLogger.info("Check that environments are independent")
+        consoleLogger.info("Check that environments are independent - serialize")
         var worked = false
         try {
             outputA.serialize(objB, contextA)
@@ -192,6 +192,29 @@ class Main @Activate constructor(
 
         try {
             outputB.serialize(objA, contextB)
+        } catch (e: MissingSerializerException) {
+            consoleLogger.info("SUCCESS - Environment B does not have serializer from environment A")
+            worked = true
+        } finally {
+            if (!worked)
+                consoleLogger.info("FAIL - Environment B has serializer from environment A")
+        }
+
+        consoleLogger.info("Check that environments are independent - deserialize")
+        worked = false
+        try {
+            inputA.deserialize(serializedBytesB, contextA)
+        } catch (e: MissingSerializerException) {
+            consoleLogger.info("SUCCESS - Environment A does not have serializer from environment B")
+            worked = true
+        } finally {
+            if (!worked)
+                consoleLogger.info("FAIL - Environment A has serializer from environment B")
+            worked = false
+        }
+
+        try {
+            inputB.deserialize(serializedBytesA, contextB)
         } catch (e: MissingSerializerException) {
             consoleLogger.info("SUCCESS - Environment B does not have serializer from environment A")
             worked = true
