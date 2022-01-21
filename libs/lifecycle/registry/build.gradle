@@ -13,7 +13,4 @@ dependencies {
     implementation 'net.corda:corda-base'
     implementation 'org.slf4j:slf4j-api'
     implementation project(":libs:lifecycle:lifecycle")
-
-    testImplementation "org.mockito:mockito-inline:$mockitoInlineVersion"
-    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
