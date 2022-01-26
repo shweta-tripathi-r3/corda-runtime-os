@@ -12,6 +12,8 @@ dependencies {
     implementation "org.apache.servicemix.bundles:org.apache.servicemix.bundles.kafka-clients:$kafkaClientVersion"
     implementation "net.corda:corda-base"
     implementation project(":libs:kafka-utils:topic-admin")
+
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
 
 description 'Kafka topic admin impl'
