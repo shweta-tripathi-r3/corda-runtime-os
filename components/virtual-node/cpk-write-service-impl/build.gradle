@@ -36,8 +36,6 @@ dependencies {
     testImplementation project(":components:virtual-node:cpk-service-common")
 
     testImplementation "org.assertj:assertj-core:$assertjVersion"
-    testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     testImplementation "com.google.jimfs:jimfs:$jimfsVersion"
 
 }
