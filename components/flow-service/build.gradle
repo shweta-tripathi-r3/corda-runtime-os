@@ -35,7 +35,6 @@ dependencies {
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
     implementation "co.paralleluniverse:quasar-core-osgi:$quasarVersion"
 
-    testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     testImplementation project(":libs:lifecycle:lifecycle-impl")
     testImplementation project(":libs:lifecycle:registry")
