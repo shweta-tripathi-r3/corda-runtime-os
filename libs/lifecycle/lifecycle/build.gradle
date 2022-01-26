@@ -12,4 +12,6 @@ dependencies {
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
     implementation 'net.corda:corda-base'
     implementation 'org.slf4j:slf4j-api'
+
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
