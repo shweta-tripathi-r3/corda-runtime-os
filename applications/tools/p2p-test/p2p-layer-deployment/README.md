@@ -17,7 +17,7 @@ telepresence connect
 ```bash
 ./gradlew :applications:tools:p2p-test:p2p-layer-deployment:install
 ```
-8. Login into [TinyCert](https://www.tinycert.org/login) and make sure you have those environment variables:
+8. Login into [TinyCert](https://www.tinycert.org/login) and make sure you have these environment variables:
   * `TINYCERT_API_KEY` the API key (You can get it [here](https://www.tinycert.org/docs/api))
   * `TINYCERT_PASS_PHRASE` Your pass phrase.
   * `TINYCERT_EMAIL` Your email address as it's registered in TinyCert.
@@ -34,17 +34,17 @@ To deploy a new cluster run:
 ```bash
 p2p-layer-deployment deploy -n <namespace>
 ```
-This will deploy a cluster named `<namespace>` on you minikube (it will destroy any running cluster with that name). 
+This will deploy a cluster named `<namespace>` on your minikube (it will destroy any running cluster with that name). 
 It will also configure the gateway and link manager.
-To view additional options, run 
+To view additional options, run: 
 ```bash
 p2p-layer-deployment deploy --help
 ```
 ### Accessing to Kafka UI in a deployed cluster
-By default, a Kafka UI is accessible using http://kafka-ui.<namespace>/ from the browser.   If you want to disable it, you can use the flag `--disable-kafka-ui`.
+By default, a Kafka UI is accessible using http://kafka-ui.<namespace>/ from the browser. If you want to disable it, you can use the flag `--disable-kafka-ui`.
 
 ### Debugging a process
-If the `--debug` flag was set, one can debug the gateway/link manager with port 8002. The hos name is the format `app.namespace`, for example, to debug the first gateway in namespace `sender` use host `p2p-gateway-1.sender`
+If the `--debug` flag was set, one can debug the gateway/link manager with port 8002. The host name is in the format `app.namespace`, for example, to debug the first gateway in namespace `sender` use host `p2p-gateway-1.sender`
 
 ## Destroying a cluster
 To delete a cluster named `namespace` run the command:
@@ -52,7 +52,7 @@ To delete a cluster named `namespace` run the command:
 p2p-layer-deployment destroy -n namespace
 ```
 
-To delete all the clusters you have created run the command
+To delete all the clusters you have created run the command:
 ```bash
 p2p-layer-deployment destroy --all
 ```
@@ -71,7 +71,7 @@ p2p-layer-deployment bash -p p2p-gateway-2 -n test-sender -- sh
 ## View logs
 To view logs of pods in the cluster use:
 ```bash
-p2p-layer-deployment logs -n <namespace> [-p <pod-regex>]
+p2p-layer-deployment log -n <namespace> [-p <pod-regex>]
 ```
 
 
@@ -98,7 +98,7 @@ gateway \
 --trustStore ./components/gateway/src/integration-test/resources/truststore.jks \
 --port 1433 \
 ```
-Please note, the port number need to be 1433, the host name should be one of the host names from the deploy (default to www.alice.net).
+Please note, the port number needs to be 1433, the host name should be one of the host names from the deployment (default to www.alice.net).
 
 ### Link Manager Example:
 ```bash
@@ -109,10 +109,10 @@ linkmanager \
 --locallyHostedIdentity=O=Alice,L=London,C=GB:group1
 ```
 
-## Managing a the simulator
+## Managing the simulator
 Use the `simulator` command to manage the simulator application.
 ### Managing the simulator databases
-The simulator needs a database to save the messages it has sent and received. This can be manage by the `simulator db` command.
+The simulator needs a database to save the messages it has sent and received. This can be managed by the `simulator db` command.
 
 #### Starting a new database
 Run the command:
@@ -120,10 +120,10 @@ Run the command:
 p2p-layer-deployment simulator db start [-n <db-namespace>]
 ```
 To create a new namespace named `<db-namespace>` with a database pod. By default, the name of the database namespace will be your name with `p2p-db2` postfix.
-Use `--help` to view more option on setting up a database.
+Use `--help` to view more options on setting up a database.
 
-#### Accessing to the PostGreSQL Client
-To access to the database client use:
+#### Accessing the PostGreSQL Client
+To access the database client use:
 ```bash
 p2p-layer-deployment simulator db psql [-n <db-namespace>] 
 ```
@@ -168,7 +168,7 @@ p2p-layer-deployment simulator receiver status -n <namespace>
 ```
 
 ### Managing the simulator senders
-The simulator needs to simulate something to send new messages and add keep in the database. To manage this we have the `sender` sub command.
+The simulator needs to simulate something to send new messages and keep adding to the database. To manage this we have the `sender` sub command.
 
 #### Send one off batch of messages
 To send one off batch of messages use the `send` command. i.e.
