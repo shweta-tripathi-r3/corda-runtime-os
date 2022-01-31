@@ -22,6 +22,8 @@ dependencies {
     implementation "net.corda:corda-avro-schema"
     implementation project(":libs:schema-registry:schema-registry")
 
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
+
     testRuntimeOnly 'org.osgi:osgi.core'
 }
 

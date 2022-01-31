@@ -25,6 +25,7 @@ dependencies {
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
 
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
 
     integrationTestImplementation project(":testing:test-utilities")
     integrationTestImplementation project(":libs:lifecycle:registry")

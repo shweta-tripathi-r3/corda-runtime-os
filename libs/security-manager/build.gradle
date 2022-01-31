@@ -32,6 +32,7 @@ dependencies {
     integrationTestImplementation project(":libs:security-manager")
     integrationTestImplementation "net.corda:corda-application"
     integrationTestImplementation 'org.slf4j:slf4j-api'
+    integrationTestImplementation "org.assertj:assertj-core:$assertjVersion"
     integrationTestRuntimeOnly "org.apache.felix:org.apache.felix.framework.security:$felixSecurityVersion"
 
     // This is just the CPK's "main" jar.
