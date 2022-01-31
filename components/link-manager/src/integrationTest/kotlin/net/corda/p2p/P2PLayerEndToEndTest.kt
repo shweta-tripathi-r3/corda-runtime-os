@@ -58,6 +58,7 @@ import net.corda.v5.base.util.seconds
 import net.corda.v5.base.util.toBase64
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import java.nio.ByteBuffer
@@ -153,6 +154,7 @@ class P2PLayerEndToEndTest {
 
     @Test
     @Timeout(60)
+    @Disabled
     fun `two hosts can exchange data messages over p2p with ECDSA keys`() {
         Host(
             "www.receiver.net",
