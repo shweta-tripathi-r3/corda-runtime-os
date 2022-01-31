@@ -1,5 +1,6 @@
 package net.corda.processors.db.internal
 
+import net.corda.chunking.read.ChunkReadService
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.configuration.write.ConfigWriteService
 import net.corda.db.admin.LiquibaseSchemaMigrator
@@ -71,6 +72,8 @@ class DBProcessorImpl @Activate constructor(
     private val schemaMigrator: LiquibaseSchemaMigrator,
     @Reference(service = DbAdmin::class)
     private val dbAdmin: DbAdmin,
+    @Reference(service = ChunkReadService::class)
+    private val chunkReadService: ChunkReadService,
 ) : DBProcessor {
     init {
         // define the different DB Entity Sets
@@ -93,7 +96,8 @@ class DBProcessorImpl @Activate constructor(
         ::permissionCacheService,
         ::permissionStorageReaderService,
         ::permissionStorageWriterService,
-        ::virtualNodeWriteService
+        ::virtualNodeWriteService,
+        ::chunkReadService
     )
     // keeping track of the DB Managers registration handler specifically because the bootstrap process needs to be split
     //  into 2 parts.
@@ -136,6 +140,10 @@ class DBProcessorImpl @Activate constructor(
                         dbConnectionManager.clusterDbEntityManagerFactory)
 
                     configurationReadService.bootstrapConfig(bootstrapConfig!!)
+
+                    chunkReadService.startProcessing(bootstrapConfig!!,
+                        bootstrapConfig!!.getInt(CONFIG_INSTANCE_ID),
+                        dbConnectionManager.clusterDbEntityManagerFactory)
                 } else {
                     log.info("DB processor is ${event.status}")
                     coordinator.updateStatus(event.status)
