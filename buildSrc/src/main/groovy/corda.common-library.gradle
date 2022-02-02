@@ -10,15 +10,6 @@ pluginManager.withPlugin('net.corda.plugins.cordapp-cpk') {
 }
 
 configurations {
-    testArtifacts {
-        canBeResolved = false
-    }
-    testCompileOnly.extendsFrom compileOnly
-
-    integrationTestApi.extendsFrom testApi
-    integrationTestCompileOnly.extendsFrom testCompileOnly
-    integrationTestImplementation.extendsFrom testImplementation
-
     all {
         resolutionStrategy {
             dependencySubstitution {

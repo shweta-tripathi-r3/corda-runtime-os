@@ -21,4 +21,6 @@ dependencies {
     runtimeOnly "org.osgi:org.osgi.util.promise:$osgiUtilPromiseVersion"
 
     testImplementation 'org.osgi:osgi.core'
+
+    testCompileOnly project(":osgi-framework-api")
 }

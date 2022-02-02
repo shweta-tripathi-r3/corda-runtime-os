@@ -22,6 +22,5 @@ dependencies {
     implementation 'org.slf4j:slf4j-api'
 
     testImplementation "org.assertj:assertj-core:$assertjVersion"
-    testImplementation "com.google.jimfs:jimfs:$jimfsVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
