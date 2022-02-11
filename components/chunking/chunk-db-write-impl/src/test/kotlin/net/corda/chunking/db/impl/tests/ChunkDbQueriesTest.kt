@@ -13,6 +13,7 @@ import net.corda.db.schema.DbSchema
 import net.corda.db.testkit.DbUtils
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
 import net.corda.orm.utils.transaction
+import net.corda.orm.utils.use
 import net.corda.v5.crypto.SecureHash
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -238,5 +239,49 @@ internal class ChunkDbQueriesTest {
 
         assertThat(queries.haveReceivedAllParts(requestId)).isTrue
         assertThat(queries.checksumIsValid(requestId)).isFalse
+    }
+
+    @Test
+    fun `check and get chunks in one query`() {
+        val someFile = randomFileName()
+        val chunks = createChunks(someFile)
+        assertThat(chunks.isEmpty()).isFalse
+        val requestId = chunks.first().requestId
+        chunks.shuffle()
+
+        chunks.take(chunks.size - 1).forEach { queries.persist(it) }
+
+        val actual = entityManagerFactory.createEntityManager().use {
+            it.createQuery("""
+                SELECT p FROM ${ChunkEntity::class.simpleName} p WHERE p.requestId = 
+                (SELECT c1.requestId FROM ${ChunkEntity::class.simpleName} c1
+                INNER JOIN ${ChunkEntity::class.simpleName} c2 ON c1.requestId = c2.requestId AND c2.data IS NULL
+                WHERE c1.requestId = :requestId AND c1.data IS NOT NULL
+                GROUP BY c1.requestId, c2.partNumber
+                HAVING COUNT(c1.requestId) = c2.partNumber) AND p.data IS NOT NULL
+                """.trimMargin())
+                .setParameter("requestId", requestId)
+                .resultList
+        }
+
+        assertThat(actual.size).isEqualTo(0)
+
+        queries.persist(chunks.last())
+
+
+        val actual2 = entityManagerFactory.createEntityManager().use {
+            it.createQuery("""
+                SELECT p FROM ${ChunkEntity::class.simpleName} p WHERE p.requestId = 
+                (SELECT c1.requestId FROM ${ChunkEntity::class.simpleName} c1
+                INNER JOIN ${ChunkEntity::class.simpleName} c2 ON c1.requestId = c2.requestId AND c2.data IS NULL
+                WHERE c1.requestId = :requestId AND c1.data IS NOT NULL
+                GROUP BY c1.requestId, c2.partNumber
+                HAVING COUNT(c1.requestId) = c2.partNumber) AND p.data IS NOT NULL
+                """.trimMargin())
+                .setParameter("requestId", requestId)
+                .resultList
+        }
+
+        assertThat(actual2.size).isEqualTo(11)
     }
 }
