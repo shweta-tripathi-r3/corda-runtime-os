@@ -1,9 +1,8 @@
 import aQute.bnd.gradle.Bundle
 
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
-    id 'corda.osgi-test-conventions'
     id 'corda.common-library'
+    id 'corda.osgi-test-conventions'
 }
 
 description "Sandbox Context Group Service"

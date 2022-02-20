@@ -1,5 +1,4 @@
 import static org.gradle.api.JavaVersion.VERSION_11
-import static org.gradle.jvm.toolchain.JavaLanguageVersion.of
 
 buildscript {
     configurations.classpath {
@@ -11,12 +10,10 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.plugin.allopen' apply false
     id 'org.jetbrains.kotlin.plugin.jpa' apply false
     id 'biz.aQute.bnd.builder' apply false
     id 'idea'
-    id 'application'
     id 'net.corda.cordapp.cordapp-configuration'
     id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish'
     id 'maven-publish'
@@ -38,68 +35,6 @@ allprojects {
 
     if (!project.hasProperty('cordaArtifactoryPassword')) {
         ext.cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
-    }
-
-    pluginManager.withPlugin('java') {
-        java {
-            toolchain {
-                languageVersion = of(javaVersion.majorVersion.toInteger())
-            }
-        }
-    }
-
-    apply plugin: 'org.jetbrains.kotlin.jvm'
-
-    tasks.withType(JavaCompile).configureEach {
-        options.encoding = 'UTF-8'
-        options.compilerArgs += [ '-XDenableSunApiLintControl', '-parameters' ]
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            allWarningsAsErrors = true
-            languageVersion = '1.4'
-            apiVersion = '1.4'
-            jvmTarget = javaVersion
-            javaParameters = true   // Useful for reflection.
-            freeCompilerArgs += [
-                    // Prevent Kotlin from warning about kotlin.* classes inside the OSGi bundle.
-                    "-Xskip-runtime-version-check",
-                    "-java-parameters",
-                    "-Xjvm-default=all"
-            ]
-        }
-    }
-
-    configurations {
-        [ compileClasspath, testCompileClasspath, runtimeClasspath, testRuntimeClasspath ].forEach { cfg ->
-            configureKotlinForOSGi(cfg)
-        }
-    }
-
-    tasks.withType(Test).configureEach {
-        useJUnitPlatform(){
-            excludeTags project.hasProperty('runUnstableTests') ? 'runAllTestsNoExclusions' : 'Unstable'
-        }
-
-        doFirst {
-            systemProperty 'java.io.tmpdir', buildDir.absolutePath
-        }
-    }
-
-    pluginManager.withPlugin('biz.aQute.bnd.builder') {
-        tasks.withType(aQute.bnd.gradle.Bndrun).configureEach {
-            javaLauncher = javaToolchains.launcherFor {
-                languageVersion = of(javaVersion.getMajorVersion().toInteger())
-            }
-        }
-    }
-
-    tasks.register('compileAll') { task ->
-        description = "Compiles all the Kotlin and Java classes, including all of the test classes."
-        group = "verification"
-
-        task.dependsOn tasks.withType(AbstractCompile)
     }
 
     repositories {
@@ -166,79 +101,6 @@ allprojects {
             }
         }
     }
-
-    sourceSets {
-        integrationTest {
-            java {
-                srcDirs += [ 'src/integrationTest/java' ]
-            }
-            kotlin {
-                srcDirs += [ 'src/integrationTest/kotlin' ]
-            }
-            resources {
-                srcDirs = [ 'src/integrationTest/resources' ]
-            }
-            compileClasspath += main.output + test.output
-            runtimeClasspath += main.output + test.output
-        }
-    }
-
-    kotlin {
-        target {
-            java
-            compilations.integrationTest {
-                associateWith compilations.main
-                associateWith compilations.test
-
-                configurations {
-                    integrationTestApi.extendsFrom testApi
-                    integrationTestImplementation.extendsFrom testImplementation
-                    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
-
-                    [ integrationTestCompileClasspath, integrationTestRuntimeClasspath ].forEach { cfg ->
-                        configureKotlinForOSGi(cfg)
-                    }
-                }
-            }
-        }
-    }
-
-    tasks.register('integrationTest', Test) {
-        description = "Runs integration tests."
-        group = "verification"
-
-        testClassesDirs = project.sourceSets["integrationTest"].output.classesDirs
-        classpath = project.sourceSets["integrationTest"].runtimeClasspath
-
-        systemProperty "postgresHost", project.getProperty("postgresHost")
-        systemProperty "postgresDb", project.getProperty("postgresDb")
-        systemProperty "postgresPort", project.getProperty("postgresPort")
-        systemProperty "postgresUser", project.getProperty("postgresUser")
-        systemProperty "postgresPassword", project.getProperty("postgresPassword")
-
-        shouldRunAfter tasks.named('test')
-    }
-
-    dependencies {
-        // Test utilities
-        testImplementation "org.assertj:assertj-core:$assertjVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$junit5Version"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit5Version"
-    }
-}
-
-// Ensure that we both compile and run using Kotlin OSGi bundles.
-// We must ONLY invoke this for Kotlin's classpath configurations.
-void configureKotlinForOSGi(Configuration configuration) {
-    configuration.resolutionStrategy {
-        dependencySubstitution {
-            substitute module('org.jetbrains.kotlin:kotlin-stdlib-jdk8') with module("net.corda.kotlin:kotlin-stdlib-jdk8-osgi:$kotlinVersion")
-            substitute module('org.jetbrains.kotlin:kotlin-stdlib-jdk7') with module("net.corda.kotlin:kotlin-stdlib-jdk7-osgi:$kotlinVersion")
-            substitute module('org.jetbrains.kotlin:kotlin-stdlib-common') with module("org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion")
-            substitute module('org.jetbrains.kotlin:kotlin-stdlib') with module("org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion")
-            substitute module('org.jetbrains.kotlin:kotlin-reflect') with module("org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion")
-        }
-    }
 }
 
 logger.quiet("********************** CORDA FLOW WORKER BUILD **********************")
@@ -276,7 +138,6 @@ subprojects {
         }
     }
 
-    apply plugin: 'java-library'
     apply plugin: 'idea'
     apply plugin: 'kotlin-allopen'
     apply plugin: 'kotlin-jpa'
@@ -289,20 +150,6 @@ subprojects {
         module {
             downloadJavadoc = true
             downloadSources = true
-        }
-    }
-
-    configurations {
-        all {
-            resolutionStrategy {
-                // FORCE Gradle to use latest dynamic versions.
-                cacheDynamicVersionsFor 0, 'seconds'
-
-                dependencySubstitution {
-                    substitute module("antlr:antlr") using module("antlr:antlr.osgi:$antlrVersion")
-                    substitute module("org.dom4j:dom4j") using module("org.apache.servicemix.bundles:org.apache.servicemix.bundles.dom4j:$dom4jOsgiVersion")
-                }
-            }
         }
     }
 

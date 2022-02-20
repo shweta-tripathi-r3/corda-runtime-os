@@ -1,6 +1,5 @@
 plugins {
     id 'corda.build-conventions'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
     id 'net.corda.plugins.cordapp-cpb'
 }
 

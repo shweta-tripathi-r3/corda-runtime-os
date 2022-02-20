@@ -1,6 +1,7 @@
 import static aQute.bnd.version.MavenVersion.parseMavenString
 
 plugins {
+    id 'corda.build-conventions'
     id 'biz.aQute.bnd.builder'
     id 'com.jfrog.artifactory'
     id 'maven-publish'

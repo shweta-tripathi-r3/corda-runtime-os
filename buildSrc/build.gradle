@@ -12,6 +12,7 @@ def artifactoryContextUrl = constants.getProperty('artifactoryContextUrl')
 def jibCoreVersion = constants.getProperty('jibCoreVersion')
 def kotlinVersion = constants.getProperty('kotlinVersion')
 def detektVersion = constants.getProperty('detektPluginVersion')
+def internalPublishVersion = constants.getProperty('internalPublishVersion')
 
 dependencies {
     implementation "biz.aQute.bnd:biz.aQute.bnd.gradle:$bndVersion"
@@ -22,6 +23,7 @@ dependencies {
     implementation "com.google.cloud.tools:jib-core:$jibCoreVersion"
     implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     implementation "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:$detektVersion"
+    implementation "com.r3.internal.gradle.plugins.r3Publish:com.r3.internal.gradle.plugins.r3Publish.gradle.plugin:$internalPublishVersion"
 }
 
 repositories {
@@ -50,5 +52,15 @@ repositories {
             }
         }
         gradlePluginPortal()
+        maven {
+            url "${artifactoryContextUrl}/engineering-tools-maven"
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                username = findProperty('cordaArtifactoryUsername') ?: System.getenv('CORDA_ARTIFACTORY_USERNAME')
+                password = findProperty('cordaArtifactoryPassword') ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+            }
+        }
     }
 }

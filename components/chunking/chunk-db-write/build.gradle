@@ -1,6 +1,5 @@
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
-    id 'corda.common-library'
+        id 'corda.common-library'
 }
 
 description "Chunk data base writer"

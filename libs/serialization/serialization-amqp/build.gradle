@@ -1,9 +1,8 @@
 import aQute.bnd.gradle.Bundle
 
 plugins {
-    id 'corda.osgi-test-conventions'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
     id 'corda.common-library'
+    id 'corda.osgi-test-conventions'
 }
 
 description 'Corda AMQP serialization library'

@@ -3,7 +3,6 @@ import aQute.bnd.gradle.Bundle
 plugins {
     id 'corda.common-library'
     id 'corda.osgi-test-conventions'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
 }
 
 description 'Corda Kryo Serialization Library'
