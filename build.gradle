@@ -16,7 +16,6 @@ plugins {
     id 'idea'
     id 'net.corda.cordapp.cordapp-configuration'
     id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish'
-    id 'maven-publish'
     id 'jacoco'
     id 'com.github.ben-manes.versions' // discover possible dependency version upgrades
 }

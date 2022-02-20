@@ -6,7 +6,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'io.gitlab.arturbosch.detekt'
     id 'application'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
 }
 
 def javaVersion = VERSION_11

@@ -3,7 +3,7 @@
 plugins {
     id 'java-library'
     id 'biz.aQute.bnd.builder'
-    id 'corda.build-conventions'
+    id 'corda.build-and-publish-conventions'
 }
 
 pluginManager.withPlugin('net.corda.plugins.cordapp-cpk') {
