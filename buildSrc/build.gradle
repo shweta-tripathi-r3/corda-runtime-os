@@ -22,6 +22,8 @@ dependencies {
     implementation "net.corda.plugins:flask:$cordaGradlePluginsVersion"
     implementation "com.google.cloud.tools:jib-core:$jibCoreVersion"
     implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-noarg:$kotlinVersion"
     implementation "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:$detektVersion"
     implementation "com.r3.internal.gradle.plugins.r3Publish:com.r3.internal.gradle.plugins.r3Publish.gradle.plugin:$internalPublishVersion"
 }

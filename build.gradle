@@ -10,13 +10,9 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.plugin.allopen' apply false
-    id 'org.jetbrains.kotlin.plugin.jpa' apply false
     id 'biz.aQute.bnd.builder' apply false
-    id 'idea'
     id 'net.corda.cordapp.cordapp-configuration'
     id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish'
-    id 'jacoco'
     id 'com.github.ben-manes.versions' // discover possible dependency version upgrades
 }
 
@@ -135,29 +131,6 @@ subprojects {
             // FORCE Gradle to use latest dynamic-version plugins.
             resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
         }
-    }
-
-    apply plugin: 'idea'
-    apply plugin: 'kotlin-allopen'
-    apply plugin: 'kotlin-jpa'
-    apply plugin: 'jacoco'
-
-    version rootProject.version
-    group 'net.corda'
-
-    idea{
-        module {
-            downloadJavadoc = true
-            downloadSources = true
-        }
-    }
-
-    allOpen {
-        annotations(
-            "javax.persistence.Entity",
-            "javax.persistence.Embeddable",
-            "javax.persistence.MappedSuperclass"
-        )
     }
 }
 

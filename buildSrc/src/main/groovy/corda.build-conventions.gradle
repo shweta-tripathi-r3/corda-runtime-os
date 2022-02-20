@@ -6,9 +6,15 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'io.gitlab.arturbosch.detekt'
     id 'application'
+    id 'org.jetbrains.kotlin.plugin.allopen'
+    id 'org.jetbrains.kotlin.plugin.jpa'
+    id 'jacoco'
+    id 'idea'
 }
 
 def javaVersion = VERSION_11
+version rootProject.version
+group 'net.corda'
 
 dependencies {
     // Test utilities
@@ -72,6 +78,14 @@ kotlin {
     }
 }
 
+allOpen {
+    annotations(
+            "javax.persistence.Entity",
+            "javax.persistence.Embeddable",
+            "javax.persistence.MappedSuperclass"
+    )
+}
+
 // Ensure that we both compile and run using Kotlin OSGi bundles.
 // We must ONLY invoke this for Kotlin's classpath configurations.
 void configureKotlinForOSGi(Configuration configuration) {
@@ -83,6 +97,13 @@ void configureKotlinForOSGi(Configuration configuration) {
             substitute module('org.jetbrains.kotlin:kotlin-stdlib') with module("org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion")
             substitute module('org.jetbrains.kotlin:kotlin-reflect') with module("org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion")
         }
+    }
+}
+
+idea{
+    module {
+        downloadJavadoc = true
+        downloadSources = true
     }
 }
 
