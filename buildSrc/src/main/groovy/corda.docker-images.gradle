@@ -1,0 +1,23 @@
+// Provides a standardised OSGi image publishing mechanism for projects that provide an app.
+
+tasks.register('publishOSGiImage', net.corda.gradle.DeployableContainerBuilder) {
+    if (project.hasProperty('jibRemotePublish')) {
+        remotePublish = jibRemotePublish.toBoolean()
+    }
+
+    if (project.hasProperty('isReleaseCandidate')) {
+        releaseCandidate = isReleaseCandidate.toBoolean()
+    }
+
+    if (project.hasProperty('isNightly')) {
+        nightlyBuild = isNightly.toBoolean()
+    }
+
+    if (project.hasProperty('isPreTest')) {
+        preTest = isPreTest.toBoolean()
+    }
+
+    if (project.hasProperty('baseImage')) {
+        baseImageName = baseImage
+    }
+}

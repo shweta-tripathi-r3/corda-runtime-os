@@ -1,6 +1,7 @@
 plugins {
     id 'com.r3.internal.gradle.plugins.r3Publish'
     id 'corda.common-app'
+    id 'corda.docker-images'
 }
 
 description "P2P Testing tools - Application-level simulator"

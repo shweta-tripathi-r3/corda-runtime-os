@@ -1,6 +1,7 @@
 plugins {
     id 'com.r3.internal.gradle.plugins.r3Publish'
     id 'corda.quasar-app'
+    id 'corda.docker-images'
 }
 
 description 'Flow Worker'

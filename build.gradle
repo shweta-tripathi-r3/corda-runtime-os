@@ -340,33 +340,6 @@ subprojects {
             "javax.persistence.MappedSuperclass"
         )
     }
-
-    // apply docker publishing to workers and select testing applications
-    def nonWorkerImages = ['p2p-gateway', 'p2p-link-manager', 'app-simulator', 'configuration-publisher']
-    if (it.toString().contains(":applications:workers:release:") || nonWorkerImages.contains(it.name)) {
-
-        tasks.register('publishOSGiImage', net.corda.gradle.DeployableContainerBuilder) {
-            if (project.hasProperty('jibRemotePublish')) {
-                remotePublish = jibRemotePublish.toBoolean()
-            }
-
-            if (project.hasProperty('isReleaseCandidate')) {
-                releaseCandidate = isReleaseCandidate.toBoolean()
-            }
-
-            if (project.hasProperty('isNightly')) {
-                nightlyBuild = isNightly.toBoolean()
-            }
-
-            if (project.hasProperty('isPreTest')) {
-                preTest = isPreTest.toBoolean()
-            }
-
-            if (project.hasProperty('baseImage')) {
-                baseImageName = baseImage
-            }
-        }
-    }
 }
 
 // report updatable dependencies: gradle dependencyUpdates
