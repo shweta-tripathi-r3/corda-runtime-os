@@ -281,7 +281,6 @@ subprojects {
     apply plugin: 'idea'
     apply plugin: 'kotlin-allopen'
     apply plugin: 'kotlin-jpa'
-    apply plugin: 'io.gitlab.arturbosch.detekt'
     apply plugin: 'jacoco'
 
     version rootProject.version
@@ -292,28 +291,6 @@ subprojects {
             downloadJavadoc = true
             downloadSources = true
         }
-    }
-
-    detekt {
-        baseline = file("$projectDir/detekt-baseline.xml")
-        config.setFrom(files("$rootDir/detekt-config.yml"))
-        parallel = true
-        reports {
-            xml {
-                enabled = true
-                destination = file("$projectDir/build/detekt-report.xml")
-            }
-            html {
-                enabled = false
-            }
-            txt {
-                enabled = false
-            }
-        }
-    }
-
-    dependencies {
-        detektPlugins "io.gitlab.arturbosch.detekt:detekt-formatting:$detektPluginVersion"
     }
 
     task allDependencyInsight(type: DependencyInsightReportTask) {}

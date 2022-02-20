@@ -1,0 +1,26 @@
+plugins {
+    id 'io.gitlab.arturbosch.detekt'
+}
+
+dependencies {
+    detektPlugins "io.gitlab.arturbosch.detekt:detekt-formatting:$detektPluginVersion"
+}
+
+detekt {
+    baseline = file("$projectDir/detekt-baseline.xml")
+    config.setFrom(files("$rootDir/detekt-config.yml"))
+    parallel = true
+    reports {
+        xml {
+            enabled = true
+            destination = file("$projectDir/build/detekt-report.xml")
+        }
+        html {
+            enabled = false
+        }
+        txt {
+            enabled = false
+        }
+    }
+}
+

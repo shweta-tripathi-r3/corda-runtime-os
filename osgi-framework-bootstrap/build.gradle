@@ -1,6 +1,10 @@
 import java.nio.file.Files
 import java.util.jar.JarFile
 
+plugins {
+    id 'corda.build-conventions'
+}
+
 description("OSGi Framework Bootstrap")
 
 dependencies {
