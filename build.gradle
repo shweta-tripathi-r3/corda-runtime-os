@@ -14,7 +14,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.plugin.allopen' apply false
     id 'org.jetbrains.kotlin.plugin.jpa' apply false
-    id 'io.gitlab.arturbosch.detekt' apply false
     id 'biz.aQute.bnd.builder' apply false
     id 'idea'
     id 'application'
@@ -292,9 +291,6 @@ subprojects {
             downloadSources = true
         }
     }
-
-    task allDependencyInsight(type: DependencyInsightReportTask) {}
-    task allDependencies(type: DependencyReportTask) {}
 
     configurations {
         all {

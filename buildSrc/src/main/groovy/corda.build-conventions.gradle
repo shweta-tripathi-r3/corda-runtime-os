@@ -24,3 +24,6 @@ detekt {
     }
 }
 
+task allDependencyInsight(type: DependencyInsightReportTask) {}
+task allDependencies(type: DependencyReportTask) {}
+
