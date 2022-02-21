@@ -1,5 +1,5 @@
 plugins {
-        id 'corda.common-library'
+    id 'corda.common-library'
     id 'application'
 }
 
