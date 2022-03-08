@@ -1,6 +1,7 @@
 plugins {
     id 'corda.common-library'
-    }
+    id 'corda.jpa-conventions'
+}
 
 description 'Database Message Bus Datamodel'
 

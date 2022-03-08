@@ -1,0 +1,12 @@
+plugins {
+    id 'org.jetbrains.kotlin.plugin.allopen'
+    id 'org.jetbrains.kotlin.plugin.jpa'
+}
+
+allOpen {
+    annotations(
+            "javax.persistence.Entity",
+            "javax.persistence.Embeddable",
+            "javax.persistence.MappedSuperclass"
+    )
+}
