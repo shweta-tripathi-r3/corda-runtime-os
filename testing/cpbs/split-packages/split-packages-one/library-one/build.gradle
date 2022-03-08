@@ -1,6 +1,5 @@
 plugins {
     id 'corda.build-conventions'
-    id 'org.jetbrains.kotlin.jvm'
     id 'biz.aQute.bnd.builder'
 }
 

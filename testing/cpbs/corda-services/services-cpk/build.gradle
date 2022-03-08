@@ -1,6 +1,6 @@
 plugins {
+    id 'corda.build-conventions'
     id 'net.corda.plugins.cordapp-cpk'
-    id 'org.jetbrains.kotlin.jvm'
 }
 
 cordapp {

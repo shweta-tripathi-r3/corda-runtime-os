@@ -1,7 +1,6 @@
 plugins {
     id 'corda.build-conventions'
     id 'net.corda.plugins.cordapp-cpb'
-    id 'org.jetbrains.kotlin.jvm'
 }
 
 description 'Corda Crypto Custom Digest Consumer Two'
