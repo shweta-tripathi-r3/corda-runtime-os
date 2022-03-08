@@ -100,6 +100,9 @@ detekt {
     baseline = file("$projectDir/detekt-baseline.xml")
     config.setFrom(files("$rootDir/detekt-config.yml"))
     parallel = true
+}
+
+tasks.named("detekt").configure {
     reports {
         xml {
             enabled = true

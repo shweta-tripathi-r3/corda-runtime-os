@@ -1,19 +1,19 @@
 import static org.gradle.api.JavaVersion.VERSION_11
 
-//buildscript {
-//    configurations.classpath {
-//        resolutionStrategy {
+buildscript {
+    configurations.classpath {
+        resolutionStrategy {
 //             FORCE Gradle to use latest dynamic-version plugins.
-//            cacheDynamicVersionsFor 0, 'seconds'
-//        }
-//    }
-//}
+            cacheDynamicVersionsFor 0, 'seconds'
+        }
+    }
+}
 
 plugins {
     id 'biz.aQute.bnd.builder' apply false
     id 'net.corda.cordapp.cordapp-configuration'
     id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish'
-//    id 'com.github.ben-manes.versions' // discover possible dependency version upgrades
+    id 'com.github.ben-manes.versions' // discover possible dependency version upgrades
 }
 
 wrapper {
@@ -136,13 +136,13 @@ subprojects {
 }
 
 // report updatable dependencies: gradle dependencyUpdates
-//def isNonStable = { String version ->
-//    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
-//    def regex = /^[0-9,.v-]+(-r)?$/
-//    return !stableKeyword && !(version ==~ regex)
-//}
-//tasks.named("dependencyUpdates").configure {
-//    rejectVersionIf {
-//        isNonStable(it.candidate.version) && !isNonStable(it.currentVersion)
-//    }
-//}
+def isNonStable = { String version ->
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
+    def regex = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ regex)
+}
+tasks.named("dependencyUpdates").configure {
+    rejectVersionIf {
+        isNonStable(it.candidate.version) && !isNonStable(it.currentVersion)
+    }
+}
