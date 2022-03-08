@@ -125,14 +125,15 @@ if ("${compositeBuild}".toBoolean() && file("${cordaApiLocation}").exists()) {
     logger.quiet( "Corda-Api project exists on disk in the expected location and Gradle composite build is enabled, corda-api binaries will be substituted with source code")
 }
 
-//subprojects {
-//    buildscript {
-//        configurations.classpath {
+subprojects {
+    buildscript {
+        configurations.classpath {
 //             FORCE Gradle to use latest dynamic-version plugins.
-//            resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
-//        }
-//    }
-//}
+            resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+            resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+        }
+    }
+}
 
 // report updatable dependencies: gradle dependencyUpdates
 //def isNonStable = { String version ->
