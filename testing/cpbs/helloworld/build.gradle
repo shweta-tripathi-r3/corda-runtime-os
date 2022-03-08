@@ -14,10 +14,6 @@ cordapp {
 }
 
 dependencies {
-    cordaProvided platform(group: "net.corda", name: "corda-api", version: cordaApiVersion)
-    cordaProvided group: 'net.corda', name: 'corda-application'
-}
-
-tasks.named('jar', Jar) {
-    archiveBaseName = 'corda-helloworld-cpb'
+    cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
+    cordaProvided 'net.corda:corda-application'
 }
