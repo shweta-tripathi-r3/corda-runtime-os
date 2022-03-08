@@ -120,7 +120,7 @@ class MemberProcessorTestUtils {
                 assertNotEquals(new, it)
             }
             Assertions.assertEquals(groupId, new.groupId)
-            Assertions.assertEquals(6, new.keys.size)
+            Assertions.assertEquals(5, new.keys.size)
         }
 
         fun assertSecondGroupPolicy(new: GroupPolicy, old: GroupPolicy) {
