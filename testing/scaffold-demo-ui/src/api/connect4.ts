@@ -6,7 +6,6 @@ export const requestStartFlow = async (
     flowType: FlowTypes,
     payload: any
 ) => {
-    console.log('REQUESTING');
     return axiosInstance.post(`/api/v1/flow/start/${holderShortId}/${clientRequestId}/${flowType}`, payload);
 };
 

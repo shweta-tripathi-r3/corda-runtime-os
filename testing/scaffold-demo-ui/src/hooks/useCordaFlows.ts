@@ -91,6 +91,7 @@ const useCordaFlows = ({ updateBoard }: HookArgs) => {
         setTimeout(() => {
             requestIds.forEach((req) => getFlowStatus(req));
         }, 2000);
+        // eslint-disable-next-line
     }, [requestIds]);
 
     return { requestIds, startGameFlow, queueResponse };

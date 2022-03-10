@@ -53,6 +53,26 @@ export const useAppStyles = makeStyles(
             shadowSmall: {
                 boxShadow: '0px 0px 30px -3px #dc354523',
             },
+            contrastText: {
+                color: theme.palette.primary.contrastText,
+            },
+            secondaryText: {
+                color: theme.palette.secondary.main,
+            },
+            textInput: {
+                borderColor: theme.palette.secondary.main,
+                width: '100%',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                '& input': {
+                    backgroundColor: 'white',
+                    borderRadius: theme.shape.borderRadius,
+                },
+            },
+            button: {
+                height: 40,
+                maxWidth: 150,
+            },
         }),
     { index: 1 }
 );

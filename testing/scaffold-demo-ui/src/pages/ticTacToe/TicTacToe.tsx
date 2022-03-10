@@ -1,24 +1,15 @@
-import { CSSProperties, useState } from 'react';
-import { IconButton, Paper, Typography } from '@material-ui/core';
+import { Paper, Typography } from '@material-ui/core';
 
+import { CSSProperties } from 'react';
 import CloseRoundedIcon from '@material-ui/icons/CloseRounded';
 import { GameProps } from 'model/common';
 import RadioButtonUncheckedRoundedIcon from '@material-ui/icons/RadioButtonUncheckedRounded';
-import RefreshRoundedIcon from '@material-ui/icons/RefreshRounded';
 import RequestTable from 'components/requestTable';
 import { TTT_BOARD_SIZE } from 'constants/tictactoe';
 import useCordaFlows from 'hooks/useCordaFlows';
 import useGameWrapperStyles from 'materialStyles/gameWrapperStyles';
 import useSharedConnect4BoardContext from 'contexts/SharedConnect4BoardContext';
 import useTicTacToeStyles from 'materialStyles/ticTacToeStyles';
-
-type State = 'X' | 'O' | null;
-
-const initialState = (): State[][] => {
-    return Array.from({ length: TTT_BOARD_SIZE }, () => Array.from({ length: TTT_BOARD_SIZE }, () => null));
-};
-
-const turnStates: State[] = ['X', 'O'];
 
 const getClickableBoxStyle = (colIndex: number, rowIndex: number): CSSProperties => {
     const style: CSSProperties = {};
@@ -32,8 +23,6 @@ const getClickableBoxStyle = (colIndex: number, rowIndex: number): CSSProperties
 const TicTacToe: React.FunctionComponent<GameProps> = ({ holderShortId, playerName, opponentX500Name }) => {
     const classes = useTicTacToeStyles();
     const gameWrapperClasses = useGameWrapperStyles();
-    // const [turnCount, setTurnCount] = useState<number>(0);
-    //const [gameState, setGameState] = useState<State[][]>(initialState());
     const { gameState, updateBoard, currentPlayerTurn, playerOne } = useSharedConnect4BoardContext();
     const { requestIds, queueResponse, startGameFlow } = useCordaFlows({ updateBoard: updateBoard });
 
