@@ -12,6 +12,5 @@ export const getCpiList = async () => {
 };
 
 export const getCpiStatus = async (id: string) => {
-    //96f6bd8d-64a0-4dfb-aa26-cdcc7c6a2d7c
     return axiosInstance.get(`/api/v1/cpi/status/${id}`);
 };

@@ -6,6 +6,7 @@ import { Cpi } from 'model/cpi';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import useAppDataContext from 'contexts/AppDataContext';
 import { useAppStyles } from 'materialStyles/appStyles';
+import useListStyles from 'materialStyles/listStyles';
 
 const CustomToolTip = withStyles((theme) => ({
     tooltip: {
@@ -22,6 +23,7 @@ type Props = {
 
 const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
     const appClasses = useAppStyles();
+    const listClasses = useListStyles();
     const { cpiList, refreshCpiList } = useAppDataContext();
     return (
         <>
@@ -29,45 +31,44 @@ const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
                 <Typography variant="h4" className={appClasses.contrastText} style={{ marginBottom: 16 }}>
                     CPIs List
                 </Typography>
-                <IconButton
-                    onClick={refreshCpiList}
-                    style={{ marginRight: 6, marginLeft: 'auto', width: 32, height: 32 }}
-                >
+                <IconButton onClick={refreshCpiList} className={listClasses.refreshListButton}>
                     <RefreshIcon color="secondary" style={{ width: 32, height: 32 }} />
                 </IconButton>
             </div>
             {cpiList.length === 0 && (
-                <Typography
-                    variant="h6"
-                    className={appClasses.contrastText}
-                    style={{ marginBottom: 16, marginLeft: 6, opacity: 0.8 }}
-                >
+                <Typography variant="h6" className={`${appClasses.contrastText} ${listClasses.emptyListText}`}>
                     No CPIs Uploaded
                 </Typography>
             )}
             {cpiList.map((cpi) => {
                 return (
-                    <div style={{ border: '1px grey solid', padding: 8, borderRadius: 8, display: 'flex' }}>
+                    <div className={listClasses.item}>
                         <div>
-                            <Typography className={appClasses.contrastText}>Name: {cpi.id.cpiName}</Typography>
-                            <Typography className={appClasses.contrastText}>Version: {cpi.id.cpiVersion}</Typography>
-                            <Divider
-                                color="secondary"
-                                style={{ backgroundColor: 'white', width: '80%', marginTop: 8, marginBottom: 8 }}
-                            />
-                            <Typography className={appClasses.contrastText}>CPKS:</Typography>
+                            <Typography className={appClasses.contrastText}>
+                                {' '}
+                                <strong>Name: </strong> {cpi.id.cpiName}
+                            </Typography>
+                            <Typography className={appClasses.contrastText}>
+                                <strong>Version:</strong> {cpi.id.cpiVersion}
+                            </Typography>
+                            <Divider className={listClasses.divider} />
+                            <Typography className={appClasses.contrastText}>
+                                <strong>CPKS:</strong>
+                            </Typography>
                             {cpi.cpks.map((cpk) => (
                                 <div style={{ border: '1px grey', padding: 8, borderRadius: 8 }}>
-                                    <Typography className={appClasses.contrastText}>Name: {cpk.id.name}</Typography>
                                     <Typography className={appClasses.contrastText}>
-                                        Main Bundle: {cpk.mainBundle}
+                                        <strong>Name:</strong> {cpk.id.name}
+                                    </Typography>
+                                    <Typography className={appClasses.contrastText}>
+                                        <strong> Main Bundle:</strong> {cpk.mainBundle}
                                     </Typography>
                                 </div>
                             ))}
                         </div>
                         <CustomToolTip title={'Create V Node'} placement={'top'}>
                             <IconButton
-                                style={{ height: 'fit-content' }}
+                                style={{ height: 20, marginTop: 6 }}
                                 onClick={() => {
                                     selectCpi(cpi);
                                 }}

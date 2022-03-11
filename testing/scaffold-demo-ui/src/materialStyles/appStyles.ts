@@ -59,6 +59,9 @@ export const useAppStyles = makeStyles(
             secondaryText: {
                 color: theme.palette.secondary.main,
             },
+            secondaryLightText: {
+                color: theme.palette.secondary.light,
+            },
             textInput: {
                 borderColor: theme.palette.secondary.main,
                 width: '100%',
