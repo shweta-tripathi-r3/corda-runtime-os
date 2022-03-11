@@ -23,13 +23,15 @@ function App() {
                     navButtons={<NavButtons />}
                     icon={<VideogameAssetIcon color="secondary" style={{ width: 50, height: 50 }} />}
                 />
-                <AppDataContextProvider>
-                    <Routes>
-                        <Route path="/" element={<Configuration />} />
-                        <Route path="/tic-tac-toe" element={<TicTacToeWrapper />} />
-                        <Route path="/connect4" element={<ConnectFourWrapper />} />
-                    </Routes>
-                </AppDataContextProvider>
+                <div style={{ marginBottom: 120 }}>
+                    <AppDataContextProvider>
+                        <Routes>
+                            <Route path="/" element={<Configuration />} />
+                            <Route path="/tic-tac-toe" element={<TicTacToeWrapper />} />
+                            <Route path="/connect4" element={<ConnectFourWrapper />} />
+                        </Routes>
+                    </AppDataContextProvider>
+                </div>
                 <Footer copyright={'© 2022 R3. All rights reserved.'} />
             </Router>
         </ThemeProvider>

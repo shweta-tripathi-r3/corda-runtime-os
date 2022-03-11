@@ -14,7 +14,7 @@ const ConnectFourWrapper = () => {
     const { vNodes, refreshVNodes } = useAppDataContext();
     useEffect(() => {
         refreshVNodes();
-    }, [refreshVNodes]);
+    }, []);
 
     useEffect(() => {
         const players = vNodes.filter((vNode) => vNode.cpiIdentifier.name === 'connect4');

@@ -14,7 +14,7 @@ const VNodeList = () => {
         <div style={{ width: 400, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', width: '100%' }}>
                 <Typography variant="h4" className={appClasses.contrastText} style={{ marginBottom: 16 }}>
-                    V Nodes List
+                    V Node List
                 </Typography>
                 <IconButton onClick={refreshVNodes} className={listClasses.refreshListButton}>
                     <RefreshIcon color="secondary" style={{ width: 32, height: 32 }} />

@@ -14,7 +14,7 @@ const TicTacToeWrapper = () => {
     const { vNodes, refreshVNodes } = useAppDataContext();
     useEffect(() => {
         refreshVNodes();
-    }, [refreshVNodes]);
+    }, []);
 
     useEffect(() => {
         const players = vNodes.filter((vNode) => vNode.cpiIdentifier.name === 'tic-tac-toe');

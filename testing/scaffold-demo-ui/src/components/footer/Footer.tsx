@@ -9,7 +9,7 @@ const useStyles = makeStyles(
     (theme: Theme) =>
         createStyles({
             footer: {
-                position: 'absolute',
+                position: 'fixed',
                 width: '100%',
                 textAlign: 'center',
                 backgroundColor: theme.palette.primary.dark,
@@ -19,6 +19,8 @@ const useStyles = makeStyles(
                 paddingTop: 20,
                 borderBottomLeftRadius: 0,
                 borderBottomRightRadius: 0,
+                
+                bottom: 0,
             },
             children: {
                 marginLeft: 'auto',

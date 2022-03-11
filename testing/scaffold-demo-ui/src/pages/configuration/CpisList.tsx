@@ -29,7 +29,7 @@ const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
         <>
             <div style={{ display: 'flex', width: '100%' }}>
                 <Typography variant="h4" className={appClasses.contrastText} style={{ marginBottom: 16 }}>
-                    CPIs List
+                    CPI List
                 </Typography>
                 <IconButton onClick={refreshCpiList} className={listClasses.refreshListButton}>
                     <RefreshIcon color="secondary" style={{ width: 32, height: 32 }} />
