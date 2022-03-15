@@ -16,11 +16,12 @@ type StartGameFlowArgs = {
     gameState: BoardState[][];
     holderShortId: string;
     opponentX500Name: string;
-    queueResponse: (response: any) => void;
 };
 
 const useCordaFlows = ({ updateBoard }: HookArgs) => {
+    const [pollCount, setPollCount] = useState<number>(0);
     const [requestIds, setRequestIds] = useState<PollRequest[]>([]);
+    const [pollingRequests, setPollingRequests] = useState<PollRequest[]>([]);
 
     const startGameFlow = async ({
         flowName,
@@ -29,7 +30,6 @@ const useCordaFlows = ({ updateBoard }: HookArgs) => {
         gameState,
         holderShortId,
         opponentX500Name,
-        queueResponse,
     }: StartGameFlowArgs) => {
         const boardState: number[][] = [];
 
@@ -51,50 +51,45 @@ const useCordaFlows = ({ updateBoard }: HookArgs) => {
         const response = await requestStartFlow(holderShortId, requestId, flowName, {
             requestBody: JSON.stringify(requestBody),
         });
-        queueResponse(response.data.flowStatus);
+
+        setRequestIds((prev) => prev.concat({ requestId: requestId, flowStatus: response.data.flowStatus }));
+        setPollingRequests((prev) => prev.concat({ requestId: requestId, flowStatus: response.data.flowStatus }));
     };
 
-    function queueResponse(initialStatus) {
-        const requestId = initialStatus.clientRequestId;
-        const existingItem = requestIds.find((req) => requestId === req.requestId);
-
-        if (!existingItem && initialStatus.flowStatus === 'START_REQUESTED') {
-            setRequestIds((prev) => prev.concat({ requestId: requestId, flowStatus: initialStatus }));
-            return initialStatus;
+    const getFlowStatus = async ({ flowStatus, requestId }: PollRequest) => {
+        const completed = requestIds.find(
+            (req) => req.requestId === requestId && req.flowStatus.flowStatus === 'COMPLETED'
+        );
+        if (completed) return;
+        const response = await requestFlowStatus(flowStatus.holdingShortId, flowStatus.clientRequestId);
+        if (response.data.flowStatus === 'COMPLETED') {
+            updateBoard(JSON.parse(response.data.flowResult) as FlowResult);
         }
-
-        // Nothing to do if the status has not changed
-        if (existingItem?.flowStatus === initialStatus.flowStatus) {
-            return null;
+        const existingItem = requestIds.find(
+            (req) => req.flowStatus.flowStatus === response.data.flowStatus && req.requestId === requestId
+        );
+        if (!existingItem) {
+            setRequestIds((prev) => prev.concat({ requestId: requestId, flowStatus: response.data }));
         }
-
-        setRequestIds((prev) => prev.concat({ requestId: requestId, flowStatus: initialStatus }));
-        return initialStatus;
-    }
+    };
 
     useEffect(() => {
-        const getFlowStatus = async ({ flowStatus, requestId }: PollRequest) => {
-            const response = await requestFlowStatus(flowStatus.holdingShortId, flowStatus.clientRequestId);
-            if (response.data.flowStatus === 'COMPLETED') {
-                updateBoard(JSON.parse(response.data.flowResult) as FlowResult);
-            }
+        if (pollingRequests.length === 0) return;
+        pollingRequests.forEach((req) => getFlowStatus(req));
+    }, [pollCount]);
 
-            const startRequested = requestIds.find(
-                (req) => req.requestId === requestId && req.flowStatus.flowStatus === 'START_REQUESTED'
-            );
-            const completed = requestIds.find(
-                (req) => req.requestId === requestId && req.flowStatus.flowStatus === 'COMPLETED'
-            );
-            if (startRequested && completed) return;
-            queueResponse(response.data);
-        };
-        setTimeout(() => {
-            requestIds.forEach((req) => getFlowStatus(req));
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPollCount((prev) => prev + 1);
         }, 2000);
-        // eslint-disable-next-line
-    }, [requestIds]);
 
-    return { requestIds, startGameFlow, queueResponse };
+        return () => {
+            clearInterval(interval);
+        };
+        // eslint-disable-next-line
+    }, []);
+
+    return { requestIds, startGameFlow };
 };
 
 export default useCordaFlows;

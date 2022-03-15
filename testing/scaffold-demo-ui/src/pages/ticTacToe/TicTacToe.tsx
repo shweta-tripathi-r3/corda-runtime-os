@@ -24,7 +24,7 @@ const TicTacToe: React.FunctionComponent<GameProps> = ({ holderShortId, playerNa
     const classes = useTicTacToeStyles();
     const gameWrapperClasses = useGameWrapperStyles();
     const { gameState, updateBoard, currentPlayerTurn, playerOne } = useSharedConnect4BoardContext();
-    const { requestIds, queueResponse, startGameFlow } = useCordaFlows({ updateBoard: updateBoard });
+    const { requestIds, startGameFlow } = useCordaFlows({ updateBoard: updateBoard });
 
     const getBoxRender = (colIndex: number, rowIndex: number) => {
         switch (gameState[colIndex][rowIndex]) {
@@ -53,7 +53,6 @@ const TicTacToe: React.FunctionComponent<GameProps> = ({ holderShortId, playerNa
             gameState: gameState,
             holderShortId: holderShortId,
             opponentX500Name: opponentX500Name,
-            queueResponse: queueResponse,
         });
     };
 

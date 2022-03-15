@@ -14,7 +14,7 @@ const ConnectFour: React.FunctionComponent<GameProps> = ({ holderShortId, player
     const classes = useConnect4Styles();
     const gameWrapperClasses = useGameWrapperStyles();
     const { gameState, updateBoard, currentPlayerTurn, playerOne } = useSharedConnect4BoardContext();
-    const { requestIds, queueResponse, startGameFlow } = useCordaFlows({ updateBoard: updateBoard });
+    const { requestIds, startGameFlow } = useCordaFlows({ updateBoard: updateBoard });
 
     const handleClick = async (rowIndex: number) => {
         let colIndex: number | null = null;
@@ -32,7 +32,6 @@ const ConnectFour: React.FunctionComponent<GameProps> = ({ holderShortId, player
             gameState: gameState,
             holderShortId: holderShortId,
             opponentX500Name: opponentX500Name,
-            queueResponse: queueResponse,
         });
     };
 
