@@ -42,7 +42,7 @@ const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
             )}
             {cpiList.map((cpi) => {
                 return (
-                    <div className={listClasses.item}>
+                    <div key={cpi.id.cpiName} className={listClasses.item}>
                         <div>
                             <Typography className={appClasses.contrastText}>
                                 {' '}
@@ -56,7 +56,7 @@ const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
                                 <strong>CPKS:</strong>
                             </Typography>
                             {cpi.cpks.map((cpk) => (
-                                <div style={{ border: '1px grey', padding: 8, borderRadius: 8 }}>
+                                <div key={cpk.id.name} style={{ border: '1px grey', padding: 8, borderRadius: 8 }}>
                                     <Typography className={appClasses.contrastText}>
                                         <strong>Name:</strong> {cpk.id.name}
                                     </Typography>
@@ -68,6 +68,7 @@ const CpisList: React.FunctionComponent<Props> = ({ selectCpi }) => {
                         </div>
                         <CustomToolTip title={'Create V Node'} placement={'top'}>
                             <IconButton
+                                className={'createVNode'}
                                 style={{ height: 20, marginTop: 6 }}
                                 onClick={() => {
                                     selectCpi(cpi);

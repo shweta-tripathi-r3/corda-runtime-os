@@ -1,15 +1,17 @@
 import { Button, Typography } from '@material-ui/core';
 import { ChangeEvent, useRef, useState } from 'react';
+import { getCpiStatus, uploadCpi } from 'api/cpi';
 
-import { uploadCpi } from 'api/cpi';
 import useAppDataContext from 'contexts/AppDataContext';
 import { useAppStyles } from 'materialStyles/appStyles';
+import { useSnackbar } from 'notistack';
 
 const UploadCpi = () => {
     const appClasses = useAppStyles();
     const inputRef = useRef<HTMLDivElement>(null);
     const [file, setFile] = useState<File | undefined>(undefined);
-    const { refreshCpiList, refreshVNodes } = useAppDataContext();
+    const { refreshCpiList } = useAppDataContext();
+    const { enqueueSnackbar } = useSnackbar();
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -19,12 +21,27 @@ const UploadCpi = () => {
 
     const upload = async () => {
         if (!file) return;
+        const response = await uploadCpi(file?.name, file);
+        let cpiId: string | undefined = undefined;
+        if (response.data) {
+            cpiId = response.data.id;
+            enqueueSnackbar(`Cpi Uploaded with ID ${response.data.id}.`, { variant: 'success' });
+        } else {
+        }
 
-        //Might want to store the returned cpi id to poll for its status at some point?
-        const cpiUploadResponse = await uploadCpi(file?.name, file);
+        setTimeout(() => {
+            const fetchCpiStatus = async (id: string) => {
+                const response = await getCpiStatus(id);
+                if (response.data.status) {
+                    enqueueSnackbar(`Cpi upload status: ${response.data.status}.`, { variant: 'success' });
+                }
+            };
 
-        refreshCpiList();
-        refreshVNodes();
+            if (cpiId) {
+                fetchCpiStatus(cpiId);
+            }
+            refreshCpiList();
+        }, 2000);
     };
 
     return (

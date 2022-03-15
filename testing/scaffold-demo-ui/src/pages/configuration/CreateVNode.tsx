@@ -3,7 +3,9 @@ import { ChangeEvent, useState } from 'react';
 
 import { Cpi } from 'model/cpi';
 import { requestCreateNode } from 'api/vnode';
+import useAppDataContext from 'contexts/AppDataContext';
 import { useAppStyles } from 'materialStyles/appStyles';
+import { useSnackbar } from 'notistack';
 
 type Props = {
     cpi: Cpi;
@@ -13,10 +15,22 @@ type Props = {
 const CreateVNode: React.FunctionComponent<Props> = ({ cpi, handleBackButton }) => {
     const appClasses = useAppStyles();
     const [x500, setX500] = useState<string>('');
+    const { refreshVNodes } = useAppDataContext();
+    const { enqueueSnackbar } = useSnackbar();
 
     const createNode = async () => {
         const response = await requestCreateNode(cpi.fileChecksum, x500);
+
+        if (response.data) {
+            enqueueSnackbar(`V Node ${response.data.x500Name} successfully created.`, { variant: 'success' });
+        }
+        if (response.error) {
+            enqueueSnackbar(`Failed to create V Node, Error: ${response.error}.`, { variant: 'error' });
+        }
         handleBackButton();
+        setTimeout(() => {
+            refreshVNodes();
+        }, 2000);
     };
 
     const handleNodeNameChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +47,7 @@ const CreateVNode: React.FunctionComponent<Props> = ({ cpi, handleBackButton }) 
             </Typography>
             <Typography className={appClasses.contrastText}>V Node x500 Name</Typography>
             <TextField
+                id={'x500Name'}
                 color="secondary"
                 className={appClasses.textInput}
                 variant="outlined"
@@ -44,6 +59,7 @@ const CreateVNode: React.FunctionComponent<Props> = ({ cpi, handleBackButton }) 
                     Back
                 </Button>
                 <Button
+                    id={'createVNodeSubmit'}
                     className={appClasses.button}
                     variant="outlined"
                     color="secondary"

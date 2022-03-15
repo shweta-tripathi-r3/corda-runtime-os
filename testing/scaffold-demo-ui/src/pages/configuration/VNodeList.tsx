@@ -1,4 +1,4 @@
-import { Divider, IconButton, Typography } from '@material-ui/core';
+import { IconButton, Typography } from '@material-ui/core';
 
 import RefreshIcon from '@material-ui/icons/Refresh';
 import useAppDataContext from 'contexts/AppDataContext';

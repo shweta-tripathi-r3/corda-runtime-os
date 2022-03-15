@@ -37,7 +37,6 @@ export const SharedConnect4BoardContextProvider = ({
     const [currentPlayerTurn, setCurrentPlayerTurn] = useState<string>(playerOne);
 
     const updateBoard = ({ boardState, player1X500Name }: FlowResult) => {
-        console.log(player1X500Name);
         const tempBoardState = [...gameState];
         let colIndexToUpdate = 100;
         let rowIndexToUpdate = 100;

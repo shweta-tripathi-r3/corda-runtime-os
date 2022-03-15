@@ -1,9 +1,9 @@
-import { getCpiList, getCpiStatus } from 'api/cpi';
 import { useEffect, useState } from 'react';
 
 import { Cpi } from 'model/cpi';
 import { VirtualNode } from 'model/virtualnode';
 import { createCtx } from './createCtx';
+import { getCpiList } from 'api/cpi';
 import { getVNodeList } from 'api/vnode';
 
 type AppDataContextProps = {
@@ -31,6 +31,7 @@ export const AppDataContextProvider = ({ children }) => {
 
     useEffect(() => {
         refreshCpiList();
+        refreshVNodes();
     }, []);
 
     return <Provider value={{ cpiList, vNodes, refreshCpiList, refreshVNodes }}>{children}</Provider>;

@@ -18,7 +18,7 @@ const TicTacToeWrapper = () => {
 
     useEffect(() => {
         const players = vNodes.filter((vNode) => vNode.cpiIdentifier.name === 'tic-tac-toe');
-        if (players.length === 2) {
+        if (players.length >= 2) {
             setPlayerOne({ playerName: players[0].holdingIdentity.x500Name, shortId: players[0].holdingIdentity.id });
             setPlayerTwo({ playerName: players[1].holdingIdentity.x500Name, shortId: players[1].holdingIdentity.id });
         }
