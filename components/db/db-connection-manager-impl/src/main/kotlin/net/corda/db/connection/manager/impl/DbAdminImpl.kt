@@ -73,11 +73,7 @@ class DbAdminImpl @Activate constructor(
         //  for other DBs. So we may need to wrap this in a factory.
         log.info("Creating $schemaName $privilege User: $user")
         val permissions = if (privilege == DbPrivilege.DML) {
-            if (grantee != null) {
-                "ALTER DEFAULT PRIVILEGES FOR ROLE $grantee IN SCHEMA $schemaName GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES"
-            } else {
-                "ALTER DEFAULT PRIVILEGES IN SCHEMA $schemaName GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES"
-            }
+          "ALTER DEFAULT PRIVILEGES IN SCHEMA $schemaName GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES"
         } else {
             "GRANT ALL ON SCHEMA $schemaName"
         }
