@@ -31,21 +31,21 @@ class StartTicTacToeGameFlow(private val jsonArg: String) : Flow<String> {
         try {
             val startGame = jsonMarshallingService.parseJson<StartGameMessage>(jsonArg)
 
-            val startingColumn = checkNotNull(startGame.startingColumnPlayed) { "No starting column specified" }
-            val startingRow = checkNotNull(startGame.startingRowPlayed) { "No starting row specified" }
+            val column = checkNotNull(startGame.column) { "No starting column specified" }
+            val row = checkNotNull(startGame.row) { "No starting row specified" }
+            val boardState = checkNotNull(startGame.boardState) { "No board state specified "}
             val player2 = checkNotNull(startGame.opponentX500Name) { "No opponent specified" }
             val player1 = flowIdentity.ourIdentity.name.toString()
 
-            val board = Array(3) { IntArray(3) { 0 } }
-            board[startingColumn][startingRow] = 1
+            boardState[column][row] = 1
 
             val gameState = GameStateMessage(
                 gameStatus = GameStates.Playing,
                 player1X500Name = player1,
                 player2X500Name = player2,
                 nextPlayersTurn = 2,
-                boardState = board,
-                lastMove = Move(player1, startingColumn,startingRow)
+                boardState = boardState,
+                lastMove = Move(player1, column,row)
             )
             log.info("Game Started for player 1 = '${player1}' player 2 ='${player2}'.")
             return jsonMarshallingService.formatJson(gameState)
