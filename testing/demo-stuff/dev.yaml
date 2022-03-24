@@ -1,0 +1,16 @@
+imagePullPolicy: IfNotPresent
+
+image:
+    registry: corda-os-docker-dev.software.r3.com
+    tag: latest-local
+
+
+workers:
+    db:
+        replicaCount: 1
+        debug:
+            enabled: true
+    flow:
+        replicaCount: 1
+        debug:
+            enabled: true

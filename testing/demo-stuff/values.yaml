@@ -1,0 +1,20 @@
+imagePullSecrets: 
+- docker-registry-cred
+
+kafka:
+  bootstrapServers: prereqs-kafka:9092
+
+db:
+  cluster:
+    host: prereqs-postgresql 
+    existingSecret: prereqs-postgresql
+
+workers:
+  crypto:
+    replicaCount: 1
+  db:
+    replicaCount: 1
+  flow:
+    replicaCount: 1
+  rpc:
+    replicaCount: 1
