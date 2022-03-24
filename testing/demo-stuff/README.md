@@ -14,12 +14,10 @@ important that 2 different CPIs have different group ids!
 
 The `values.yaml` and `dev.yaml` checked in here allow running up a cluster from local builds (from this branch).
 
-- First set the docker environment correctly (not required when using Docker desktop as k8s context).
+- First start minikube and set the docker environment correctly (not required when using Docker desktop as k8s context).
     ```
-    $Env:DOCKER_TLS_VERIFY = "1"
-    $Env:DOCKER_HOST = "tcp://127.0.0.1:57300"
-    $Env:DOCKER_CERT_PATH = "C:\Users\ChristianSailer\.minikube\certs"
-    $Env:MINIKUBE_ACTIVE_DOCKERD = "minikube"
+    minikube start --memory 8000 --cpus 6
+    minikube docker-env --shell=powershell | Invoke-Expression
   ```
 - Building and publishing OSGi images using:
   ```
