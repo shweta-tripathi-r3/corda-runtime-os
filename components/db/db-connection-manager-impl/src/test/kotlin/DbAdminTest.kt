@@ -111,23 +111,23 @@ class DbAdminTest {
                     && this.contains("ALTER DEFAULT PRIVILEGES IN SCHEMA test-schema GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES") })
     }
 
-    @Test
-    fun `when create DML with grantee provided then limited grant`() {
-        val dba = DbAdminImpl(dbConnectionManager)
-
-        dba.createDbAndUser(
-            "test-schema",
-            "test-user",
-            "test-password",
-            DbPrivilege.DML,
-            "test-grantee"
-        )
-
-        verify(statement).execute(argThat {
-            this.contains("CREATE SCHEMA IF NOT EXISTS")
-                    && this.contains("CREATE USER test-user WITH PASSWORD 'test-password'")
-                    && this.contains("GRANT USAGE ON SCHEMA test-schema to test-user;")
-                    && this.contains("ALTER DEFAULT PRIVILEGES FOR ROLE test-grantee IN SCHEMA test-schema " +
-                        "GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES") })
-    }
+//    @Test
+//    fun `when create DML with grantee provided then limited grant`() {
+//        val dba = DbAdminImpl(dbConnectionManager)
+//
+//        dba.createDbAndUser(
+//            "test-schema",
+//            "test-user",
+//            "test-password",
+//            DbPrivilege.DML,
+//            "test-grantee"
+//        )
+//
+//        verify(statement).execute(argThat {
+//            this.contains("CREATE SCHEMA IF NOT EXISTS")
+//                    && this.contains("CREATE USER test-user WITH PASSWORD 'test-password'")
+//                    && this.contains("GRANT USAGE ON SCHEMA test-schema to test-user;")
+//                    && this.contains("ALTER DEFAULT PRIVILEGES FOR ROLE test-grantee IN SCHEMA test-schema " +
+//                        "GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES") })
+//    }
 }
