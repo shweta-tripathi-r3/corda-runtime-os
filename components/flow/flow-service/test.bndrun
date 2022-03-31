@@ -5,6 +5,9 @@
 
 -resolve.effective: resolve,active
 
+-runsystemcapabilities: \
+osgi.service;objectClass:List<String>='org.osgi.service.condpermadmin.ConditionalPermissionAdmin';effective:=active
+
 -runvm: \
     -Djava.io.tmpdir=${task.temporaryDir},\
     --add-opens, 'java.base/java.net=ALL-UNNAMED'

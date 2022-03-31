@@ -31,7 +31,6 @@ dependencies {
     implementation project(":libs:lifecycle:lifecycle")
     implementation project(":libs:messaging:messaging")
     implementation project(":libs:sandbox")
-    implementation project(':libs:security-manager')
     implementation project(":libs:serialization:serialization-checkpoint-api")
     implementation project(":libs:serialization:serialization-amqp")
     implementation project(":libs:serialization:serialization-internal")
@@ -67,13 +66,10 @@ dependencies {
 
     testRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
 
-    testRuntimeOnly("org.apache.felix:org.apache.felix.framework.security:$felixSecurityVersion") {
-        exclude group: 'org.osgi'
-    }
-
     cpks project(path: ':testing:cpbs:sandbox-cpk-inject', configuration: 'cordaCPB')
 
     integrationTestImplementation project(':testing:sandboxes')
+    integrationTestImplementation project(':libs:security-manager')
     integrationTestRuntimeOnly project(':libs:application:application-impl')
     integrationTestRuntimeOnly project(':libs:flows:session-manager-impl')
     integrationTestRuntimeOnly project(':libs:messaging:inmemory-messaging-impl')
