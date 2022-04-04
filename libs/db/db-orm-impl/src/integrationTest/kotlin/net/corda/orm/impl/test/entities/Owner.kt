@@ -1,9 +1,9 @@
 package net.corda.orm.impl.test.entities
 
 import java.util.UUID
-import javax.persistence.Column
-import javax.persistence.Entity
-import javax.persistence.Id
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
 
 @Entity
 data class Owner(

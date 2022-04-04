@@ -10,7 +10,7 @@ import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
-import javax.persistence.EntityManagerFactory
+import jakarta.persistence.EntityManagerFactory
 
 class EntityManagerUtilsTest {
 

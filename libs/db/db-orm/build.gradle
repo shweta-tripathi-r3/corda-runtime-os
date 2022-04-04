@@ -12,5 +12,7 @@ dependencies {
     implementation project(":libs:db:db-core")
 
     compileOnly "org.osgi:osgi.annotation"
-    api "javax.persistence:javax.persistence-api"
+//    api "javax.persistence:javax.persistence-api"
+    api 'jakarta.persistence:jakarta.persistence-api:3.0.0'
+
 }

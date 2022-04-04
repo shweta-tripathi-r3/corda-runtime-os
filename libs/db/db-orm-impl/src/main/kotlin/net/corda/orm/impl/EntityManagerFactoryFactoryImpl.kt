@@ -10,8 +10,8 @@ import org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl
 import org.hibernate.jpa.boot.internal.PersistenceUnitInfoDescriptor
 import org.hibernate.jpa.boot.spi.EntityManagerFactoryBuilder
 import org.osgi.service.component.annotations.Component
-import javax.persistence.EntityManagerFactory
-import javax.persistence.spi.PersistenceUnitInfo
+import jakarta.persistence.EntityManagerFactory
+import jakarta.persistence.spi.PersistenceUnitInfo
 
 /**
  * Hibernate implementation of [EntityManagerFactoryFactory]
@@ -22,7 +22,7 @@ import javax.persistence.spi.PersistenceUnitInfo
 class EntityManagerFactoryFactoryImpl(
     private val entityManagerFactoryBuilderFactory:
         (p: PersistenceUnitInfo) -> EntityManagerFactoryBuilder = { p ->
-            EntityManagerFactoryBuilderImpl(PersistenceUnitInfoDescriptor(p), emptyMap<Any, Any>())
+            EntityManagerFactoryBuilderImpl(PersistenceUnitInfoDescriptor(p), emptyMap<String, Any>())
         }
 ) : EntityManagerFactoryFactory {
     companion object {

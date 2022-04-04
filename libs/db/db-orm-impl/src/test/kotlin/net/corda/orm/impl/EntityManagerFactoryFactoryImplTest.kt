@@ -13,7 +13,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import java.net.URLClassLoader
-import javax.persistence.spi.PersistenceUnitInfo
+import jakarta.persistence.spi.PersistenceUnitInfo
 
 class EntityManagerFactoryFactoryImplTest {
     data class TestEntity(val name: String)

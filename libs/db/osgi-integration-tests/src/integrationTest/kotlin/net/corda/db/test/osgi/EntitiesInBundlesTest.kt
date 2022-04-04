@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory
 import java.io.StringWriter
 import java.time.LocalDate
 import java.util.UUID
-import javax.persistence.EntityManagerFactory
+import jakarta.persistence.EntityManagerFactory
 
 /**
  * These tests are here to prove that we can persist JPA annotated entities from separate bundles.

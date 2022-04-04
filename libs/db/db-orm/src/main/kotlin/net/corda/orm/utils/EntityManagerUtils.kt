@@ -1,7 +1,7 @@
 package net.corda.orm.utils
 
-import javax.persistence.EntityManager
-import javax.persistence.EntityManagerFactory
+import jakarta.persistence.EntityManager
+import jakarta.persistence.EntityManagerFactory
 
 /**
  * Creates an [EntityManager], executes the [block] and closes the [EntityManager].

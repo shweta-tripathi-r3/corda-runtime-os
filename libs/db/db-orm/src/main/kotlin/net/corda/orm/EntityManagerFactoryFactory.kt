@@ -1,6 +1,6 @@
 package net.corda.orm
 
-import javax.persistence.EntityManagerFactory
+import jakarta.persistence.EntityManagerFactory
 
 /**
  * EntityManagerFactory factory

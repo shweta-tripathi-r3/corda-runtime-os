@@ -1,14 +1,15 @@
 package net.corda.orm.impl
 
-import org.hibernate.osgi.OsgiClassLoader
-import org.hibernate.osgi.OsgiPersistenceProvider
+//import org.hibernate.osgi.OsgiClassLoader
+//import org.hibernate.osgi.OsgiPersistenceProvider
+import org.hibernate.jpa.HibernatePersistenceProvider
 import java.net.URL
 import java.util.Properties
-import javax.persistence.SharedCacheMode
-import javax.persistence.ValidationMode
-import javax.persistence.spi.ClassTransformer
-import javax.persistence.spi.PersistenceUnitInfo
-import javax.persistence.spi.PersistenceUnitTransactionType
+import jakarta.persistence.SharedCacheMode
+import jakarta.persistence.ValidationMode
+import jakarta.persistence.spi.ClassTransformer
+import jakarta.persistence.spi.PersistenceUnitInfo
+import jakarta.persistence.spi.PersistenceUnitTransactionType
 import javax.sql.DataSource
 
 @Suppress("TooManyFunctions")
@@ -35,7 +36,8 @@ class CustomPersistenceUnitInfo(
      * implementation class
      */
     override fun getPersistenceProviderClassName(): String {
-        return OsgiPersistenceProvider::class.java.name
+//        return OsgiPersistenceProvider::class.java.name
+        return HibernatePersistenceProvider::class.java.name
     }
 
     /**
@@ -204,7 +206,8 @@ class CustomPersistenceUnitInfo(
      * classes, resources, or open URLs
      */
     override fun getClassLoader(): ClassLoader {
-        return OsgiClassLoader.getPlatformClassLoader()
+//        return OsgiClassLoader.getPlatformClassLoader()
+        return CustomPersistenceUnitInfo::class.java.classLoader
     }
 
     /**
