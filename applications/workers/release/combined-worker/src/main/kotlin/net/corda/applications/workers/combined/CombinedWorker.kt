@@ -2,12 +2,12 @@ package net.corda.applications.workers.combined
 
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
 import net.corda.applications.workers.workercommon.HealthMonitor
+import net.corda.applications.workers.workercommon.JavaSerialisationFilter
 import net.corda.applications.workers.workercommon.PathAndConfig
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBootstrapConfig
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setUpHealthMonitor
-import net.corda.applications.workers.workercommon.JavaSerialisationFilter
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.processors.crypto.CryptoProcessor
@@ -15,6 +15,7 @@ import net.corda.processors.db.DBProcessor
 import net.corda.processors.flow.FlowProcessor
 import net.corda.processors.member.MemberProcessor
 import net.corda.processors.rpc.RPCProcessor
+import net.corda.schema.configuration.ConfigKeys
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -57,15 +58,33 @@ class CombinedWorker @Activate constructor(
         if (printHelpOrVersion(params.defaultParams, CombinedWorker::class.java, shutDownService)) return
         setUpHealthMonitor(healthMonitor, params.defaultParams)
 
-        val databaseConfig = PathAndConfig(DB_CONFIG_PATH, params.databaseParams)
+        val databaseConfig = PathAndConfig(ConfigKeys.DB_CONFIG, params.databaseParams)
+        // val databaseConfig = PathAndConfig(DB_CONFIG_PATH, params.databaseParams)
         val rpcConfig = PathAndConfig(RPC_CONFIG_PATH, params.rpcParams)
         val config = getBootstrapConfig(params.defaultParams, listOf(databaseConfig, rpcConfig))
 
-        cryptoProcessor.start(config)
-        dbProcessor.start(config)
-        flowProcessor.start(config)
-        memberProcessor.start(config)
-        rpcProcessor.start(config)
+
+
+        if (params.runProcs == emptySet<String>()) {
+            cryptoProcessor.start(config)
+            dbProcessor.start(config)
+            flowProcessor.start(config)
+            memberProcessor.start(config)
+            rpcProcessor.start(config)
+        } else {
+            params.runProcs.forEach {
+                when (it) {
+                    "crypto" -> cryptoProcessor.start(config)
+                    "db" -> dbProcessor.start(config)
+                    "flow" -> flowProcessor.start(config)
+                    "mem" -> memberProcessor.start(config)
+                    "rpc" -> rpcProcessor.start(config)
+                    else -> {
+                        throw Exception("Unknown processor type $it")
+                    }
+                }
+            }
+        }
     }
 
     override fun shutdown() {
@@ -91,4 +110,7 @@ private class CombinedWorkerParams {
 
     @Option(names = ["-r", "--rpcParams"], description = ["RPC parameters for the worker."])
     var rpcParams = emptyMap<String, String>()
+
+    @Option(names = ["--proc"], description = ["Specify which processors to use {crypto, db, flow, mem, rpc}"])
+    var runProcs = emptySet<String>()
 }
