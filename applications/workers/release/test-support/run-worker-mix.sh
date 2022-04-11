@@ -9,7 +9,7 @@ java    -Dlog4j.configurationFile=log4j2-console.xml \
 	--databaseParams database.pass.configSecret.encryptedSecret="4LNuCvt+NhGIBwL7gRRhvAZh3k6JRN9NHv0aG3pi1xM=" \
 	--databaseParams database.jdbc.url=jdbc:postgresql://127.0.0.1:5432/allinonecluster \
         --proc db --proc rpc \
-        | tee -a mixed-worker-$(date "+%Y-%m-%dT%H:%M:%S").log
+        | tee -a mixed-worker-$(date "+%Y-%m-%dT%H:%M:%S").log &
 
 
 #java -jar ./db-worker/build/bin/corda-db-worker-5.0.0.0-SNAPSHOT.jar \
