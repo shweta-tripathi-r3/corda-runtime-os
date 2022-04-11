@@ -16,7 +16,8 @@ import net.corda.processors.db.DBProcessor
 import net.corda.processors.flow.FlowProcessor
 import net.corda.processors.member.MemberProcessor
 import net.corda.processors.rpc.RPCProcessor
-import net.corda.schema.configuration.ConfigKeys
+import net.corda.schema.configuration.ConfigKeys.DB_CONFIG
+import net.corda.schema.configuration.ConfigKeys.RPC_CONFIG
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -46,8 +47,6 @@ class CombinedWorker @Activate constructor(
 
     private companion object {
         private val logger = contextLogger()
-        private const val DB_CONFIG_PATH = "database"
-        private const val RPC_CONFIG_PATH = "rpc"
     }
 
     //private fun createConfig(params: CombinedWorkerParams, M ) : SmartConfig
@@ -62,9 +61,12 @@ class CombinedWorker @Activate constructor(
         val params = getParams(args, CombinedWorkerParams())
         if (printHelpOrVersion(params.defaultParams, CombinedWorker::class.java, shutDownService)) return
 
+        /*
         val databaseConfig = PathAndConfig(ConfigKeys.DB_CONFIG, params.databaseParams)
         val rpcConfig = PathAndConfig(RPC_CONFIG_PATH, params.rpcParams)
-
+        */
+        val databaseConfig = PathAndConfig(DB_CONFIG, params.databaseParams)
+        val rpcConfig = PathAndConfig(RPC_CONFIG, params.rpcParams)
         val config = getBootstrapConfig(params.defaultParams, listOf(databaseConfig, rpcConfig))
 
 
