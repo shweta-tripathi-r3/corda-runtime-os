@@ -8,6 +8,7 @@ import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBo
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setUpHealthMonitor
+import net.corda.libs.configuration.SmartConfig
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.processors.crypto.CryptoProcessor
@@ -49,21 +50,26 @@ class CombinedWorker @Activate constructor(
         private const val RPC_CONFIG_PATH = "rpc"
     }
 
+    //private fun createConfig(params: CombinedWorkerParams, M ) : SmartConfig
+
+
     /** Parses the arguments, then initialises and starts the processors. */
     override fun startup(args: Array<String>) {
         logger.info("Combined worker starting.")
         JavaSerialisationFilter.install()
 
+
         val params = getParams(args, CombinedWorkerParams())
         if (printHelpOrVersion(params.defaultParams, CombinedWorker::class.java, shutDownService)) return
-        setUpHealthMonitor(healthMonitor, params.defaultParams)
 
         val databaseConfig = PathAndConfig(ConfigKeys.DB_CONFIG, params.databaseParams)
-        // val databaseConfig = PathAndConfig(DB_CONFIG_PATH, params.databaseParams)
         val rpcConfig = PathAndConfig(RPC_CONFIG_PATH, params.rpcParams)
+
         val config = getBootstrapConfig(params.defaultParams, listOf(databaseConfig, rpcConfig))
 
 
+        // TODO - Not sure which instance ID the healthMonitor should have.
+        setUpHealthMonitor(healthMonitor, params.defaultParams)
 
         if (params.runProcs == emptySet<String>()) {
             cryptoProcessor.start(config)
