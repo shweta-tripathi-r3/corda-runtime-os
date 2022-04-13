@@ -6,7 +6,6 @@ import net.corda.packaging.CPK
 import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.sandboxgroupcontext.VirtualNodeContext
-import net.corda.sandboxgroupcontext.getUniqueObject
 import net.corda.sandboxgroupcontext.putUniqueObject
 import net.corda.sandboxgroupcontext.service.impl.SandboxGroupContextCache
 import net.corda.sandboxgroupcontext.service.impl.CloseableSandboxGroupContext
