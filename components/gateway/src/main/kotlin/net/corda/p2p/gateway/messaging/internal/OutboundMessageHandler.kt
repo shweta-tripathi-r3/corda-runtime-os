@@ -99,7 +99,6 @@ internal class OutboundMessageHandler(
                         peerMessage.header.address
                     )
                     val messageId = UUID.randomUUID().toString()
-                    logger.info("Sending message with $messageId")
                     val gatewayMessage = GatewayMessage(messageId, peerMessage.payload)
                     val expectedX500Name = if (NetworkType.CORDA_4 == peerMessage.header.destinationNetworkType) {
                         X500Name(peerMessage.header.destinationIdentity.x500Name)
@@ -124,7 +123,6 @@ internal class OutboundMessageHandler(
 
     private fun scheduleHandleResponse(pendingRequest: PendingRequest) {
         threadPool.schedule({
-            logger.info("Handle response.")
             val (response, error) = try {
                 val response = pendingRequest.future.get(0, TimeUnit.MILLISECONDS)
                 response to null
