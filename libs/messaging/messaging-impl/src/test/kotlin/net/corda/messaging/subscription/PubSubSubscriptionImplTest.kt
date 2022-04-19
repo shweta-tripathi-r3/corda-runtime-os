@@ -16,11 +16,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -126,48 +123,6 @@ class PubSubSubscriptionImplTest {
         kafkaPubSubSubscription.stop()
         assertThat(latch.count).isEqualTo(0)
         verify(cordaConsumerBuilder, times(1)).createPubSubConsumer<String, ByteBuffer>(
-            any(),
-            any(),
-            any(),
-            any()
-        )
-    }
-
-
-    /**
-     * Test commitSyncOffsets is called
-     */
-    @Test
-    fun testPubSubConsumerCommitSyncOffset() {
-        doAnswer {
-            if (builderInvocationCount == 0) {
-                builderInvocationCount++
-                mockCordaConsumer
-            } else {
-                CordaMessageAPIFatalException("Consumer Create Fatal Error", Exception())
-            }
-        }.whenever(cordaConsumerBuilder).createPubSubConsumer<String, ByteBuffer>(any(), any(), any(), any())
-        doReturn(mockConsumerRecords).whenever(mockCordaConsumer).poll()
-
-        doThrow(CordaMessageAPIFatalException::class).whenever(mockCordaConsumer).commitSyncOffsets(any(), anyOrNull())
-        kafkaPubSubSubscription =
-            PubSubSubscriptionImpl(
-                config,
-                cordaConsumerBuilder,
-                processor,
-                executorService,
-                lifecycleCoordinatorFactory
-            )
-
-        kafkaPubSubSubscription.start()
-        @Suppress("EmptyWhileBlock")
-        while (kafkaPubSubSubscription.isRunning) {
-        }
-
-        assertThat(latch.count).isEqualTo(1)
-        verify(mockCordaConsumer, times(consumerPollAndProcessRetriesCount + 1)).poll()
-        verify(mockCordaConsumer, times(consumerPollAndProcessRetriesCount + 1)).commitSyncOffsets(any(), isNull())
-        verify(cordaConsumerBuilder, times(2)).createPubSubConsumer<String, ByteBuffer>(
             any(),
             any(),
             any(),
