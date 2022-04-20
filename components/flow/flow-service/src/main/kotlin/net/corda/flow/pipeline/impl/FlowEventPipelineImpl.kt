@@ -33,6 +33,7 @@ data class FlowEventPipelineImpl(
     val flowRequestHandlers: Map<Class<out FlowIORequest<*>>, FlowRequestHandler<out FlowIORequest<*>>>,
     val flowRunner: FlowRunner,
     val flowGlobalPostProcessor: FlowGlobalPostProcessor,
+    val callback: (flowId: String, FlowContinuation) -> Unit,
     val context: FlowEventContext<Any>,
     val output: FlowIORequest<*>? = null
 ) : FlowEventPipeline {
@@ -54,10 +55,12 @@ data class FlowEventPipelineImpl(
 
         log.info("Run or continue using ${handler::class.java.name} when flow is waiting for $waitingFor")
 
-        return when (val outcome = handler.runOrContinue(context, waitingFor)) {
-            is FlowContinuation.Run, is FlowContinuation.Error -> {
-                updateContextFromFlowExecution(outcome)
-            }
+        val outcome = handler.runOrContinue(context, waitingFor)
+
+        callback(context.checkpoint.flowId, outcome)
+
+        return when (outcome) {
+            is FlowContinuation.Run, is FlowContinuation.Error -> updateContextFromFlowExecution(outcome)
             is FlowContinuation.Continue -> this
         }
     }

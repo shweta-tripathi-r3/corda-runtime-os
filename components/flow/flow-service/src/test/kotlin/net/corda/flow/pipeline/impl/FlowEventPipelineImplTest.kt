@@ -39,6 +39,7 @@ class FlowEventPipelineImplTest {
     private val avroCheckpoint  = Checkpoint()
 
     private val checkpoint = mock<FlowCheckpoint>().apply {
+        whenever(flowId).thenReturn("flow id")
         whenever(waitingFor).thenReturn(waitingForWakeup)
         whenever(toAvro()).thenReturn(avroCheckpoint)
     }
@@ -75,6 +76,7 @@ class FlowEventPipelineImplTest {
         mapOf(FlowIORequest.ForceCheckpoint::class.java to flowRequestHandler),
         flowRunner,
         flowGlobalPostProcessor,
+        { _, _ -> },
         inputContext
     )
 

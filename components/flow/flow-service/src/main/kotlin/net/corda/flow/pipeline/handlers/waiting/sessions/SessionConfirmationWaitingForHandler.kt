@@ -23,7 +23,8 @@ class SessionConfirmationWaitingForHandler @Activate constructor(
 ) : FlowWaitingForHandler<SessionConfirmation> {
 
     private companion object {
-        val CLOSED_STATUSES = listOf(SessionStateType.CLOSED)
+        // why did i not do this in the first place?
+        val CLOSED_STATUSES = listOf(SessionStateType.CLOSED, SessionStateType.WAIT_FOR_FINAL_ACK)
     }
 
     override val type = SessionConfirmation::class.java

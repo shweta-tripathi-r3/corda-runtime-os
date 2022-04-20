@@ -99,5 +99,6 @@ interface FlowSessionManager {
      *
      * @throws FlowProcessingException If a session does not exist within the flow's [FlowCheckpoint].
      */
+    // Change to all sessions are closed?
     fun areAllSessionsInStatuses(checkpoint: FlowCheckpoint, sessionIds: List<String>, statuses: List<SessionStateType>): Boolean
 }

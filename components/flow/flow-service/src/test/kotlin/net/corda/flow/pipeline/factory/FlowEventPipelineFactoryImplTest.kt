@@ -67,6 +67,7 @@ class FlowEventPipelineFactoryImplTest {
             mapOf(FlowIORequest.ForceCheckpoint::class.java to flowRequestHandler),
             flowRunner,
             flowGlobalPostProcessor,
+            {_, _ -> },
             buildFlowEventContext(flowCheckpoint, flowEvent.payload, config)
         )
 

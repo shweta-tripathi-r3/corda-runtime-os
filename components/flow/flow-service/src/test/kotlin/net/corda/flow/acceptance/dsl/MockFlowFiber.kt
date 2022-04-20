@@ -1,10 +1,13 @@
 package net.corda.flow.acceptance.dsl
 
+import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.fiber.FlowIORequest
 import java.nio.ByteBuffer
 import java.util.UUID
 
 class MockFlowFiber(val flowId: String = UUID.randomUUID().toString()) {
+
+    var lastFlowContinuation: FlowContinuation? = null
 
     private var requests = mutableListOf<FlowIORequest<*>>()
 

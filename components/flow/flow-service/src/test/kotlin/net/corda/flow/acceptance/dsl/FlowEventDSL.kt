@@ -6,8 +6,10 @@ import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.event.StartFlow
 import net.corda.data.flow.state.Checkpoint
 import net.corda.flow.acceptance.getBasicFlowStartContext
+import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.fiber.FlowIORequest
 import net.corda.flow.pipeline.factory.impl.FlowEventPipelineFactoryImpl
+import net.corda.flow.pipeline.factory.impl.FlowMessageFactoryImpl
 import net.corda.flow.pipeline.factory.impl.FlowRecordFactoryImpl
 import net.corda.flow.pipeline.handlers.events.SessionEventHandler
 import net.corda.flow.pipeline.handlers.events.StartFlowEventHandler
@@ -15,6 +17,7 @@ import net.corda.flow.pipeline.handlers.events.WakeupEventHandler
 import net.corda.flow.pipeline.handlers.requests.FlowFailedRequestHandler
 import net.corda.flow.pipeline.handlers.requests.FlowFinishedRequestHandler
 import net.corda.flow.pipeline.handlers.requests.ForceCheckpointRequestHandler
+import net.corda.flow.pipeline.handlers.requests.InitialCheckpointRequestHandler
 import net.corda.flow.pipeline.handlers.requests.SleepRequestHandler
 import net.corda.flow.pipeline.handlers.requests.SubFlowFailedRequestHandler
 import net.corda.flow.pipeline.handlers.requests.SubFlowFinishedRequestHandler
@@ -45,6 +48,8 @@ import net.corda.session.manager.impl.SessionManagerImpl
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import java.nio.ByteBuffer
+import java.time.Instant
 import java.util.UUID
 
 fun flowEventDSL(dsl: FlowEventDSL.() -> Unit) {
@@ -53,111 +58,78 @@ fun flowEventDSL(dsl: FlowEventDSL.() -> Unit) {
 
 class FlowEventDSL {
 
-    private val flowRunner = MockFlowRunner()
-    private val processor =
-        FlowEventProcessorImpl(
-            FlowEventPipelineFactoryImpl(
-                flowRunner,
-                flowGlobalPostProcessor,
-                FlowCheckpointFactoryImpl(),
-                flowEventHandlers,
-                flowWaitingForHandlers,
-                flowRequestHandlers
-            ),
-            testSmartConfig
-        )
+    private val flowsToLastContinuations = mutableMapOf<String, FlowContinuation>()
 
-    private val inputFlowEvents = mutableListOf<Any>()
+    private val flowRunner = MockFlowRunner()
+    private val flowEventPipelineFactory = FlowEventPipelineFactoryImpl(
+        flowRunner,
+        flowGlobalPostProcessor,
+        FlowCheckpointFactoryImpl(),
+        flowEventHandlers,
+        flowWaitingForHandlers,
+        flowRequestHandlers
+    ).apply {
+        registerRunOrContinueCallback { flowId, flowContinuation -> flowsToLastContinuations[flowId] = flowContinuation }
+    }
+    private val processor = FlowEventProcessorImpl(flowEventPipelineFactory, testSmartConfig)
+
+    class PipelineOutput(val response: StateAndEventProcessor.Response<Checkpoint>, val lastContinuation: FlowContinuation)
 
     private var checkpoints = mutableMapOf<String, Checkpoint>()
-    private var outputFlowEvents = mutableListOf<FlowEvent>()
 
-    fun input(event: FlowEvent) {
-        inputFlowEvents += event
-    }
-
-    fun inputLastOutputEvent() {
-        inputFlowEvents += ProcessLastOutputFlowEvent
-    }
-
-    fun flowFiber(fiber: MockFlowFiber): MockFlowFiber {
-        flowRunner.addFlowFiber(fiber)
-        return fiber
-    }
-
-    fun flowFiber(flowId: String = UUID.randomUUID().toString(), fiber: MockFlowFiber.() -> Unit): MockFlowFiber {
-        return MockFlowFiber(flowId).apply {
-            fiber(this)
-            flowRunner.addFlowFiber(this)
-        }
-    }
-
-    fun startedFlowFiber(
-        flowId: String = UUID.randomUUID().toString(),
-        fiber: MockFlowFiber.() -> Unit
-    ): MockFlowFiber {
-        val (mockFlowFiber, response) = startFlow(flowId)
-        updateDSLStateWithEventResponse(flowId, response)
-        fiber(mockFlowFiber)
-        return mockFlowFiber
-    }
-
-    fun processOne(): StateAndEventProcessor.Response<Checkpoint> {
-        val input = checkNotNull(inputFlowEvents.removeFirstOrNull()) { "No input flow events have been setup" }
-        val event = when (input) {
-            ProcessLastOutputFlowEvent -> {
-                checkNotNull(outputFlowEvents.removeFirstOrNull()) {
-                    "Trying to process an output flow event returned from the processor but none exist"
-                }
-            }
-            is FlowEvent -> input
-            else -> {
-                throw IllegalStateException("Must be a ${FlowEvent::class.simpleName} or ${ProcessLastOutputFlowEvent::class.simpleName}")
-            }
-        }
+    fun input(event: FlowEvent): PipelineOutput {
         val flowId = event.flowId
-        return processor.onNext(
+        val response = processor.onNext(
             state = checkpoints[flowId],
             event = Record(Schemas.Flow.FLOW_EVENT_TOPIC, event.flowId, event)
-        ).also { updateDSLStateWithEventResponse(flowId, it) }
+        )
+        updateDSLStateWithEventResponse(flowId, response)
+        return PipelineOutput(response, flowsToLastContinuations[flowId]!!)
     }
 
-    fun processAll(): List<StateAndEventProcessor.Response<Checkpoint>> {
-        check(inputFlowEvents.isNotEmpty()) { "No input flow events have been setup" }
-        return inputFlowEvents.toList().map { processOne() }
+    fun input(event: FlowEvent, nextSuspension: FlowIORequest<*>): PipelineOutput {
+        val flowId = event.flowId
+        setNextSuspension(flowId, nextSuspension)
+        val response = processor.onNext(
+            state = checkpoints[flowId],
+            event = Record(Schemas.Flow.FLOW_EVENT_TOPIC, event.flowId, event)
+        )
+        updateDSLStateWithEventResponse(flowId, response)
+        return PipelineOutput(response, flowsToLastContinuations[flowId]!!)
     }
 
-    private fun startFlow(flowId: String): Pair<MockFlowFiber, StateAndEventProcessor.Response<Checkpoint>> {
+    fun startFlow(flowId: String = UUID.randomUUID().toString()): String {
         val startRPCFlowPayload = StartFlow.newBuilder()
             .setStartContext(getBasicFlowStartContext())
             .setFlowStartArgs(" { \"json\": \"args\" }")
             .build()
+        input(FlowEvent(flowId, startRPCFlowPayload), FlowIORequest.ForceCheckpoint)
+        return flowId
+    }
 
-        val key = flowId
-
-        val event = FlowEvent(key, startRPCFlowPayload)
-
-        val fiber = MockFlowFiber(flowId).apply {
-            queueSuspension(FlowIORequest.ForceCheckpoint)
-            flowRunner.addFlowFiber(this)
-        }
-        return fiber to processor.onNext(state = null, event = Record(Schemas.Flow.FLOW_EVENT_TOPIC, key, event))
+    private fun setNextSuspension(flowId: String, nextSuspension: FlowIORequest<*>) {
+        flowRunner.setNextSuspension(
+            flowId,
+            nextSuspension = when (nextSuspension) {
+                is FlowIORequest.FlowFinished -> nextSuspension
+                is FlowIORequest.FlowFailed -> nextSuspension
+                else -> FlowIORequest.FlowSuspended(ByteBuffer.wrap(byteArrayOf(0)), nextSuspension)
+            }
+        )
     }
 
     private fun updateDSLStateWithEventResponse(flowId: String, response: StateAndEventProcessor.Response<Checkpoint>) {
         response.updatedState?.let { checkpoint -> checkpoints[flowId] = checkpoint } ?: checkpoints.remove(flowId)
-        outputFlowEvents.addAll(response.filterOutputFlowTopicEvents())
     }
-
-    private object ProcessLastOutputFlowEvent
 }
 
 private val sessionManager = SessionManagerImpl()
-private val recordFactory = FlowRecordFactoryImpl()
+private val flowRecordFactory = FlowRecordFactoryImpl()
+private val flowMessageFactory = FlowMessageFactoryImpl { Instant.now() }
 
 private val flowSessionManager = FlowSessionManagerImpl(sessionManager)
 
-private val flowGlobalPostProcessor = FlowGlobalPostProcessorImpl(sessionManager, recordFactory)
+private val flowGlobalPostProcessor = FlowGlobalPostProcessorImpl(sessionManager, flowRecordFactory)
 
 private val sandboxGroupContext = mock<SandboxGroupContext>()
 
@@ -182,18 +154,19 @@ private val flowWaitingForHandlers = listOf(
 
 // Must be updated when new flow request handlers are added
 private val flowRequestHandlers = listOf(
-    CloseSessionsRequestHandler(flowSessionManager, recordFactory),
-    FlowFailedRequestHandler(mock(), recordFactory),
-    FlowFinishedRequestHandler(mock(), recordFactory),
-    ForceCheckpointRequestHandler(recordFactory),
+    CloseSessionsRequestHandler(flowSessionManager, flowRecordFactory),
+    FlowFailedRequestHandler(flowMessageFactory, flowRecordFactory),
+    FlowFinishedRequestHandler(flowMessageFactory, flowRecordFactory),
+    ForceCheckpointRequestHandler(flowRecordFactory),
     GetFlowInfoRequestHandler(),
+    InitialCheckpointRequestHandler(flowMessageFactory, flowRecordFactory),
     InitiateFlowRequestHandler(flowSessionManager),
-    ReceiveRequestHandler(flowSessionManager, recordFactory),
-    SendAndReceiveRequestHandler(flowSessionManager, recordFactory),
-    SendRequestHandler(flowSessionManager, recordFactory),
+    ReceiveRequestHandler(flowSessionManager, flowRecordFactory),
+    SendAndReceiveRequestHandler(flowSessionManager, flowRecordFactory),
+    SendRequestHandler(flowSessionManager, flowRecordFactory),
     SleepRequestHandler(),
     SubFlowFailedRequestHandler(),
-    SubFlowFinishedRequestHandler(flowSessionManager, recordFactory),
+    SubFlowFinishedRequestHandler(flowSessionManager, flowRecordFactory),
     WaitForSessionConfirmationsRequestHandler()
 )
 

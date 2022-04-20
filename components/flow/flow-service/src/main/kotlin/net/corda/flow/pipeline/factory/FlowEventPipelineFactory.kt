@@ -2,6 +2,7 @@ package net.corda.flow.pipeline.factory
 
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.Checkpoint
+import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.pipeline.FlowEventPipeline
 import net.corda.libs.configuration.SmartConfig
 
@@ -19,4 +20,6 @@ interface FlowEventPipelineFactory {
      * @return A new [FlowEventPipeline] instance.
      */
     fun create(checkpoint: Checkpoint?, event: FlowEvent, config: SmartConfig): FlowEventPipeline
+
+    fun registerRunOrContinueCallback(callback: (flowId: String, FlowContinuation) -> Unit)
 }

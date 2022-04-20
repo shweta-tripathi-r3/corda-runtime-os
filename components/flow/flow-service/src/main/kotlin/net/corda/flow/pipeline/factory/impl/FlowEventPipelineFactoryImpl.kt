@@ -2,6 +2,7 @@ package net.corda.flow.pipeline.factory.impl
 
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.state.Checkpoint
+import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.fiber.FlowIORequest
 import net.corda.flow.pipeline.FlowEventContext
 import net.corda.flow.pipeline.FlowEventPipeline
@@ -57,6 +58,8 @@ class FlowEventPipelineFactoryImpl(
         flowRequestHandlers.associateBy(FlowRequestHandler<*>::type)
     }
 
+    private var callback: (flowId: String, FlowContinuation) -> Unit = { _, _ ->  }
+
     @Activate
     constructor(
         @Reference(service = FlowRunner::class)
@@ -81,8 +84,13 @@ class FlowEventPipelineFactoryImpl(
             flowRequestHandlerMap,
             flowRunner,
             flowGlobalPostProcessor,
+            callback,
             context
         )
+    }
+
+    override fun registerRunOrContinueCallback(callback: (flowId: String, FlowContinuation) -> Unit) {
+        this.callback = callback
     }
 
     private fun getFlowEventHandler(event: FlowEvent): FlowEventHandler<Any> {
