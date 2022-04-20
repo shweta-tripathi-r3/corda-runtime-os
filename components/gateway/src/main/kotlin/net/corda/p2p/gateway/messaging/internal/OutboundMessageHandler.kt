@@ -24,10 +24,13 @@ import net.corda.v5.base.util.debug
 import org.bouncycastle.asn1.x500.X500Name
 import org.slf4j.LoggerFactory
 import java.net.URI
+import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
@@ -42,11 +45,13 @@ internal class OutboundMessageHandler(
     subscriptionFactory: SubscriptionFactory,
     nodeConfiguration: SmartConfig,
     instanceId: Int,
-    private val threadPool: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val threadPool: ExecutorService = Executors.newFixedThreadPool(1),
+    private val retryThreadPool: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
 ) : PubSubProcessor<String, LinkOutMessage>, LifecycleWithDominoTile {
     companion object {
         private val logger = LoggerFactory.getLogger(OutboundMessageHandler::class.java)
         const val MAX_RETRIES = 1
+        val responseTimeout = Duration.ofSeconds(1)
     }
 
     private val connectionConfigReader = ConnectionConfigReader(lifecycleCoordinatorFactory, configurationReaderService)
@@ -83,13 +88,17 @@ internal class OutboundMessageHandler(
         managedChildren = listOf(outboundSubscriptionTile, trustStoresMap.dominoTile)
     )
 
-    override fun onNext(event: Record<String, LinkOutMessage>) {
-        dominoTile.withLifecycleLock {
+    override fun onNext(event: Record<String, LinkOutMessage>): Future<Unit> {
+        return dominoTile.withLifecycleLock {
             if (!isRunning) {
-                throw IllegalStateException("Can not handle events")
+                return@withLifecycleLock CompletableFuture.failedFuture(IllegalStateException("Can not handle events"))
             }
 
-            event.value?.let { peerMessage ->
+            if (event.value == null) {
+                return@withLifecycleLock CompletableFuture.completedFuture(Unit)
+            }
+
+            return@withLifecycleLock event.value!!.let { peerMessage ->
                 try {
                     val trustStore = trustStoresMap.getTrustStore(peerMessage.header.destinationIdentity.groupId)
 
@@ -112,41 +121,34 @@ internal class OutboundMessageHandler(
                         trustStore,
                     )
                     val responseFuture = sendMessage(destinationInfo, gatewayMessage)
-                    scheduleHandleResponse(PendingRequest(gatewayMessage, destinationInfo, responseFuture))
+                    responseFuture.whenCompleteAsync({ response, error ->
+                        handleResponse(PendingRequest(gatewayMessage, destinationInfo, responseFuture), response, error, MAX_RETRIES)
+                    }, retryThreadPool)
+                    responseFuture.thenApply { Unit }
                 } catch (e: IllegalArgumentException) {
                     logger.warn("Can't send message to destination ${peerMessage.header.address}. ${e.message}")
-                    null
+                    CompletableFuture.completedFuture(Unit)
                 }
             }
         }
     }
 
-    private fun scheduleHandleResponse(pendingRequest: PendingRequest, remainingAttempts: Int = MAX_RETRIES) {
-        threadPool.schedule({
-            val (response, error) = try {
-                val response = pendingRequest.future.get(0, TimeUnit.MILLISECONDS)
-                response to null
-            } catch (error: Exception) {
-                when {
-                    error is ExecutionException && error.cause != null -> null to error.cause
-                    else -> null to error
+    private fun scheduleReplayMessage(destinationInfo: DestinationInfo, gatewayMessage: GatewayMessage, remainingAttempts: Int) {
+        retryThreadPool.schedule({
+            val future = sendMessage(destinationInfo, gatewayMessage)
+            val pendingRequest = PendingRequest(gatewayMessage, destinationInfo, future)
+            future.orTimeout(responseTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                .whenCompleteAsync { response, error ->
+                    handleResponse(pendingRequest, response, error, remainingAttempts - 1)
                 }
-            }
-            handleResponse(pendingRequest, response, error, remainingAttempts)
         }, connectionConfig().retryDelay.toMillis(), TimeUnit.MILLISECONDS)
-    }
-
-    private fun replayMessage(destinationInfo: DestinationInfo, gatewayMessage: GatewayMessage, remainingAttempts: Int) {
-        val future = sendMessage(destinationInfo, gatewayMessage)
-        val pendingRequest = PendingRequest(gatewayMessage, destinationInfo, future)
-        scheduleHandleResponse(pendingRequest, remainingAttempts - 1)
     }
 
     private fun handleResponse(pendingRequest: PendingRequest, response: HttpResponse?, error: Throwable?, remainingAttempts: Int) {
         if (error != null) {
             if (remainingAttempts > 0) {
                 logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed, it will be retried later.", error)
-                replayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
+                scheduleReplayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
             } else {
                 logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed.", error)
             }
@@ -157,7 +159,7 @@ internal class OutboundMessageHandler(
                         "Request (${pendingRequest.gatewayMessage.id}) failed with status code ${response.statusCode}, " +
                             "it will be retried later."
                     )
-                    replayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
+                    scheduleReplayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
                 } else {
                     logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed with status code ${response.statusCode}.")
                 }

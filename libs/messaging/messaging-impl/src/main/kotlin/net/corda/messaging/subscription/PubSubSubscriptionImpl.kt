@@ -215,7 +215,7 @@ class PubSubSubscriptionImpl<K : Any, V : Any>(
      */
     private fun processPubSubRecords(cordaConsumerRecords: List<CordaConsumerRecord<K, V>>) {
         if (executor != null) {
-            val futures = cordaConsumerRecords.map{ executor.submit { processor.onNext(it.toRecord()) } }
+            val futures = cordaConsumerRecords.map { processor.onNext(it.toRecord()) }
             futures.forEach { it.get() }
         } else {
             cordaConsumerRecords.forEach { processor.onNext(it.toRecord()) }

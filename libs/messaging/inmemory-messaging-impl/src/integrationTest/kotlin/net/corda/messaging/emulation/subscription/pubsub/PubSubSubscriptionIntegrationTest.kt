@@ -12,9 +12,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.osgi.test.common.annotation.InjectService
 import org.osgi.test.junit5.service.ServiceExtension
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -49,9 +51,10 @@ class PubSubSubscriptionIntegrationTest {
 
             override val keyClass = String::class.java
             override val valueClass = Event::class.java
-            override fun onNext(event: Record<String, Event>) {
+            override fun onNext(event: Record<String, Event>): Future<Unit> {
                 processed.add(event)
                 waitForProcessed.get().countDown()
+                return CompletableFuture.completedFuture(Unit)
             }
         }
         subscriptionFactory.createPubSubSubscription(
