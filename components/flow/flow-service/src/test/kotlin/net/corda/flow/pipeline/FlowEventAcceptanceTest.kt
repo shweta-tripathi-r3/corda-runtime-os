@@ -16,7 +16,7 @@ Session tests
 {Given} {when} {expect}
 
 - Sending
-    - (Send) Calling 'send' on an initiated and sends a session data event and schedules a wakeup event to resume the flow
+    - (Send) Calling 'send' on an initiated session sends a session data event and schedules a wakeup event to resume the flow
     - (Send) Calling 'send' on a closed session schedules an error event (not fully implemented, assert CLOSING, CLOSED, WAIT_FOR_FINAL_ACK states)
     - (Send) Calling 'send' multiple times on an initiated session resumes the flow and sends a session data event each time
 
@@ -29,32 +29,48 @@ Session tests
     - (Receive) Receiving a session data event for a closing session resumes the flow and sends a session ack (not fully implemented)
     - (Receive) Receiving a session data event for a closed session resumes the flow with an error (not fully implemented, assert WAIT_FOR_FINAL_ACK session as well)
     - (Receive) Receiving an out-of-order message does not resume the flow and sends a session ack
-    - (Receive) Receiving a wakeup event while waiting to receive does not resume the flow and resends any unacknowledged events (any non session event?)
-    - (Receive) Receiving a session close does not resume the flow and sends a session ack
+    - (Receive) Receiving a wakeup event does not resume the flow and resends any unacknowledged events (any non session event?)
+    - (Receive) Receiving a session close resumes the flow with an error
     - (Receive) Receiving a session data event for an unrelated session does not resume the flow and sends a session ack
     - (Receive) Given a session has already received a session data event when the flow calls 'receive' for that session it should resume the flow
+    - (Receive) Given two sessions have already received their session data events when the flow calls 'receive' for each session the flow should resume each time
     - (Receive) Receiving a session close event for an unrelated session does not resume the flow and sends a session ack
-    - (Receive) Given a session has already received a session close event when the flow calls 'close' for that session it should resume the flow
+    - (Receive) Given a session has already received a session data event when the flow calls 'receive' for that session it should resume the flow
     - (Receive-multiple) Receiving a single session data event does not resume the flow and sends a session ack
     - (Receive-multiple) Receiving all session data events resumes the flow and sends session acks
     - (Receive-multiple) Receiving a session data event for one session and a close for another resumes the flow with an error
+    - (Receive-multiple) Given two sessions have already received their session data events when the flow calls 'receive' for the sessions the flow should resume
     - (Any-non-receive-request-type) Receiving session data events does not resume the flow and send session acks
     - (Any-non-receive-request-type) Receiving session close events does not resume the flow and send session acks (can this be combined with the test above?)
-    - Communicating with other sessions and receiving data from peer which the flow then suspends to receive from
 
 - Closing
-    - Closing an initiated session
-    - Closing a closed session - closed by local session
-    - Closing a closed session - closed by peer session
-    - Closing an uninitiated session (not possible because of code in the fiber)?
-    - Receiving an ack?
-    - Receiving an out-of-order message
-    - Receiving a close message in response
-    - Receiving a data message in response
-    - Receiving a wakeup event while waiting for close (could be any non session data event really)
-    - Closing multiple sessions at once
-    - Closing multiple sessions at once with one already closed
-    - Closing multiple closed sessions at once
+    - (CloseSessions) Calling 'close' on an initiated session sends a session close event
+    - (CloseSessions) Calling 'close' on a locally closed session schedules a wakeup event to resume the flow
+    - (CloseSessions) Calling 'close' on a session closed by a peer sends a session close event
+    - (CloseSessions) Receiving a session close event resumes the flow and sends a session ack
+    - (CloseSessions) Receiving a session data event resume the flow with an error
+    - (CloseSessions) Receiving a wakeup event does not resume the flow and resends any unacknowledged events (any non session event?)
+    - (CloseSessions) Given a session has a state of 'WAIT_FOR_FINAL_ACK' receiving a session ack resumes the flow (is this correct, not sure sequence of events to get here)
+    - (CloseSessions) Receiving an out-of-order message does not resume the flow and sends a session ack
+    - (CloseSessions) Given a session has already received a session close event when the flow calls 'close' for that session it should resume the flow
+    - (CloseSessions-multiple) Calling 'close' on an initiated sessions sends session close events
+    - (CloseSessions-multiple) Calling 'close' on an initiated and closed session sends a session close event to the initiated session
+    - (CloseSessions-multiple) Receiving a single session close event does not resume the flow and sends a session ack
+    - (CloseSessions-multiple) Receiving all session close events resumes the flow and sends session acks
+    - (CloseSessions-multiple) Receiving a session close event for one session and a data for another resumes the flow with an error
+    - (CloseSessions-multiple) Given two sessions where one has already received a session close event receiving a session close event for the other session resumes the flow and sends a session ack
+    - (CloseSessions-multiple) Given two sessions have already received their session close events when the flow calls 'close' for the sessions the flow should resume
+
+    - (SubFlowFinished) Given a subFlow contains only initiated sessions when the subFlow finishes session closes are sent
+    - (SubFlowFinished) Given a subFlow contains an initiated and closed session when the subFlow finishes a single session close is sent
+    - (SubFlowFinished) Given a subFlow contains only closed sessions when the subFlow finishes a wakeup event is scheduled to resume the flow
+    == Tests below are the same as (CloseSessions-multiple) but with a different request type ==
+    - (SubFlowFinished) Receiving a single session close event does not resume the flow and sends a session ack
+    - (SubFlowFinished) Receiving all session close events resumes the flow and sends session acks
+    - (SubFlowFinished) Receiving a session close event for one session and a data for another resumes the flow with an error
+    - (SubFlowFinished) Given two sessions where one has already received a session close event receiving a session close event for the other session resumes the flow and sends a session ack
+    - (SubFlowFinished) Given two sessions have already received their session close events when the flow calls 'close' for the sessions the flow should resume
+
     - Sessions closed when subflow finishes
     - Receiving a data message for an unrelated session while waiting for some sessions to close
     - Receiving a close message for an unrelated session while waiting for some sessions to close
