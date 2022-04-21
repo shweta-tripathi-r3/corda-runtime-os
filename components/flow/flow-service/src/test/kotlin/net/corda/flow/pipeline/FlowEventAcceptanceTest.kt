@@ -25,11 +25,10 @@ Session tests
     - (SendAndReceive) Calling 'sendAndReceive` on a closed session schedules an error event
 
 - Receiving (can use parameterised tests to assert the same behaviour for `sendAndReceive`)
-    - (Receive) Receiving a session data event resumes the flow and sends a session ack
     - (Receive) Receiving a session data event for a closing session resumes the flow and sends a session ack (not fully implemented)
     - (Receive) Receiving a session data event for a closed session resumes the flow with an error (not fully implemented, assert WAIT_FOR_FINAL_ACK session as well)
     - (Receive) Receiving an out-of-order message does not resume the flow and sends a session ack
-    - (Receive) Receiving a wakeup event does not resume the flow and resends any unacknowledged events (any non session event?)
+    - (Receive-multiple) Receiving a wakeup event does not resume the flow and resends any unacknowledged events (any non session event?)
     - (Receive) Receiving a session close resumes the flow with an error
     - (Receive) Receiving a session data event for an unrelated session does not resume the flow and sends a session ack
     - (Receive) Given a session has already received a session data event when the flow calls 'receive' for that session it should resume the flow
