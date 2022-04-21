@@ -27,6 +27,7 @@ import java.net.URI
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -42,11 +43,13 @@ internal class OutboundMessageHandler(
     subscriptionFactory: SubscriptionFactory,
     nodeConfiguration: SmartConfig,
     instanceId: Int,
-    private val threadPool: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val retryThreadPool: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(),
+    processorThreadPool: ExecutorService = Executors.newFixedThreadPool(NUM_THREADS)
 ) : PubSubProcessor<String, LinkOutMessage>, LifecycleWithDominoTile {
     companion object {
         private val logger = LoggerFactory.getLogger(OutboundMessageHandler::class.java)
         const val MAX_RETRIES = 1
+        const val NUM_THREADS = 10
     }
 
     private val connectionConfigReader = ConnectionConfigReader(lifecycleCoordinatorFactory, configurationReaderService)
@@ -66,7 +69,7 @@ internal class OutboundMessageHandler(
     private val outboundSubscription = subscriptionFactory.createPubSubSubscription(
         SubscriptionConfig("outbound-message-handler", LINK_OUT_TOPIC, instanceId),
         this,
-        threadPool,
+        processorThreadPool,
         nodeConfiguration,
     )
     private val outboundSubscriptionTile = SubscriptionDominoTile(
@@ -112,7 +115,9 @@ internal class OutboundMessageHandler(
                         trustStore,
                     )
                     val responseFuture = sendMessage(destinationInfo, gatewayMessage)
-                    scheduleHandleResponse(PendingRequest(gatewayMessage, destinationInfo, responseFuture))
+                    val request = PendingRequest(gatewayMessage, destinationInfo, responseFuture)
+                    val (response, error) = waitForResponseOrError(request)
+                    handleResponse(request, response, error, MAX_RETRIES)
                 } catch (e: IllegalArgumentException) {
                     logger.warn("Can't send message to destination ${peerMessage.header.address}. ${e.message}")
                     null
@@ -121,32 +126,34 @@ internal class OutboundMessageHandler(
         }
     }
 
-    private fun scheduleHandleResponse(pendingRequest: PendingRequest, remainingAttempts: Int = MAX_RETRIES) {
-        threadPool.schedule({
-            val (response, error) = try {
-                val response = pendingRequest.future.get(0, TimeUnit.MILLISECONDS)
-                response to null
-            } catch (error: Exception) {
-                when {
-                    error is ExecutionException && error.cause != null -> null to error.cause
-                    else -> null to error
-                }
+    private fun waitForResponseOrError(pendingRequest: PendingRequest): Pair<HttpResponse?, Throwable?> {
+        return try {
+            val response = pendingRequest.future.get(connectionConfig().responseTimeout.toMillis(), TimeUnit.MILLISECONDS)
+            response to null
+        } catch (error: Exception) {
+            when {
+                error is ExecutionException && error.cause != null -> null to error.cause
+                else -> null to error
             }
-            handleResponse(pendingRequest, response, error, remainingAttempts)
-        }, connectionConfig().retryDelay.toMillis(), TimeUnit.MILLISECONDS)
+        }
     }
 
-    private fun replayMessage(destinationInfo: DestinationInfo, gatewayMessage: GatewayMessage, remainingAttempts: Int) {
-        val future = sendMessage(destinationInfo, gatewayMessage)
-        val pendingRequest = PendingRequest(gatewayMessage, destinationInfo, future)
-        scheduleHandleResponse(pendingRequest, remainingAttempts - 1)
+    private fun scheduleMessageReplay(destinationInfo: DestinationInfo, gatewayMessage: GatewayMessage, remainingAttempts: Int) {
+        retryThreadPool.schedule({
+            val future = sendMessage(destinationInfo, gatewayMessage)
+            val pendingRequest = PendingRequest(gatewayMessage, destinationInfo, future)
+            future.orTimeout(connectionConfig().responseTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                .whenCompleteAsync { response, error ->
+                    handleResponse(pendingRequest, response, error, remainingAttempts - 1)
+                }
+        }, connectionConfig().retryDelay.toMillis(), TimeUnit.MILLISECONDS)
     }
 
     private fun handleResponse(pendingRequest: PendingRequest, response: HttpResponse?, error: Throwable?, remainingAttempts: Int) {
         if (error != null) {
             if (remainingAttempts > 0) {
                 logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed, it will be retried later.", error)
-                replayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
+                scheduleMessageReplay(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
             } else {
                 logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed.", error)
             }
@@ -157,7 +164,7 @@ internal class OutboundMessageHandler(
                         "Request (${pendingRequest.gatewayMessage.id}) failed with status code ${response.statusCode}, " +
                             "it will be retried later."
                     )
-                    replayMessage(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
+                    scheduleMessageReplay(pendingRequest.destinationInfo, pendingRequest.gatewayMessage, remainingAttempts)
                 } else {
                     logger.warn("Request (${pendingRequest.gatewayMessage.id}) failed with status code ${response.statusCode}.")
                 }
