@@ -44,7 +44,7 @@ internal class OutboundMessageHandler(
     nodeConfiguration: SmartConfig,
     instanceId: Int,
     private val retryThreadPool: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(),
-    processorThreadPool: ExecutorService = Executors.newFixedThreadPool(NUM_THREADS)
+    subscriptionThreadPool: ExecutorService = Executors.newFixedThreadPool(NUM_THREADS)
 ) : PubSubProcessor<String, LinkOutMessage>, LifecycleWithDominoTile {
     companion object {
         private val logger = LoggerFactory.getLogger(OutboundMessageHandler::class.java)
@@ -69,7 +69,7 @@ internal class OutboundMessageHandler(
     private val outboundSubscription = subscriptionFactory.createPubSubSubscription(
         SubscriptionConfig("outbound-message-handler", LINK_OUT_TOPIC, instanceId),
         this,
-        processorThreadPool,
+        subscriptionThreadPool,
         nodeConfiguration,
     )
     private val outboundSubscriptionTile = SubscriptionDominoTile(
