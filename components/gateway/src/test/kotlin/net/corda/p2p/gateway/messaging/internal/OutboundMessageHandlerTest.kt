@@ -48,6 +48,7 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.security.KeyStore
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 
 class OutboundMessageHandlerTest {
     companion object {
@@ -116,7 +117,6 @@ class OutboundMessageHandlerTest {
         SmartConfigImpl.empty(),
         2,
         mockTimeFacilitiesProvider.mockScheduledExecutor,
-        mockTimeFacilitiesProvider.mockScheduledExecutor
     )
 
     @AfterEach
@@ -325,8 +325,10 @@ class OutboundMessageHandlerTest {
         val message = LinkOutMessage(headers, msgPayload)
         whenever(connectionManager.constructed().first().acquire(any())).doReturn(client)
 
-        handler.onNext(Record("", "", message))
-        handler.onNext(Record("", "", null))
+        val record1Future = handler.onNext(Record("", "", message))
+        val record2Future = handler.onNext(Record("", "", null))
+        assertThrows<ExecutionException> { record1Future.get() }
+        record2Future.get()
 
         mockTimeFacilitiesProvider.advanceTime(connectionConfig.retryDelay)
         assertThat(sentMessages).hasSize(2)
@@ -364,8 +366,10 @@ class OutboundMessageHandlerTest {
         val message = LinkOutMessage(headers, msgPayload)
         whenever(connectionManager.constructed().first().acquire(any())).doReturn(client)
 
-        handler.onNext(Record("", "", message))
-        handler.onNext(Record("", "", null))
+        val record1Future = handler.onNext(Record("", "", message))
+        val record2Future = handler.onNext(Record("", "", null))
+        assertThrows<ExecutionException> { record1Future.get() }
+        record2Future.get()
 
         mockTimeFacilitiesProvider.advanceTime(connectionConfig.retryDelay)
         assertThat(sentMessages).hasSize(2)
@@ -408,7 +412,6 @@ class OutboundMessageHandlerTest {
 
         handler.onNext(Record("", "", message))
         handler.onNext(Record("", "", null))
-
         mockTimeFacilitiesProvider.advanceTime(connectionConfig.retryDelay)
         assertThat(sentMessages).hasSize(2)
         sentMessages.forEach {

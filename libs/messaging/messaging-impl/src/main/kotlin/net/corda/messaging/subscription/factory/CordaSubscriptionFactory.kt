@@ -74,7 +74,6 @@ class CordaSubscriptionFactory @Activate constructor(
     override fun <K : Any, V : Any> createPubSubSubscription(
         subscriptionConfig: SubscriptionConfig,
         processor: PubSubProcessor<K, V>,
-        executor: ExecutorService?,
         nodeConfig: SmartConfig
     ): Subscription<K, V> {
 
@@ -89,7 +88,6 @@ class CordaSubscriptionFactory @Activate constructor(
             config,
             cordaConsumerBuilder,
             processor,
-            executor,
             lifecycleCoordinatorFactory
         )
     }

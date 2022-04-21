@@ -9,10 +9,12 @@ import net.corda.messaging.api.subscription.config.SubscriptionConfig
 import net.corda.messaging.emulation.topic.model.Consumption
 import net.corda.messaging.emulation.topic.model.RecordMetadata
 import net.corda.messaging.emulation.topic.service.TopicService
+import net.corda.v5.base.concurrent.getOrThrow
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.debug
 import net.corda.v5.base.util.uncheckedCast
 import org.slf4j.Logger
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -29,7 +31,6 @@ import kotlin.concurrent.withLock
 class PubSubSubscription<K : Any, V : Any>(
     internal val subscriptionConfig: SubscriptionConfig,
     private val processor: PubSubProcessor<K, V>,
-    private val executor: ExecutorService?,
     private val topicService: TopicService,
     private val lifecycleCoordinatorFactory: LifecycleCoordinatorFactory,
     private val clientIdCounter: String
@@ -105,14 +106,11 @@ class PubSubSubscription<K : Any, V : Any>(
      * [processor] executed using the [executor] if it is not null.
      */
     internal fun processRecords(records: Collection<RecordMetadata>) {
-        val castRecords = records.mapNotNull {
+        val futures = records.mapNotNull {
             it.castToType(processor.keyClass, processor.valueClass)
-        }
-        if (executor != null) {
-            val futures = castRecords.map{ executor.submit { processor.onNext(uncheckedCast(it)) } }
-            futures.forEach { it.get() }
-        } else {
-            castRecords.forEach { processor.onNext(uncheckedCast(it)) }
+        }.map{ processor.onNext(uncheckedCast(it)) }
+        futures.forEach {
+            try { it.get() } catch (_: ExecutionException) { }
         }
     }
 

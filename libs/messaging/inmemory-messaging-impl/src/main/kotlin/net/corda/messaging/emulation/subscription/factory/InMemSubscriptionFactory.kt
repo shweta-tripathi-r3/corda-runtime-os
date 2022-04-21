@@ -50,13 +50,11 @@ class InMemSubscriptionFactory @Activate constructor(
     override fun <K : Any, V : Any> createPubSubSubscription(
         subscriptionConfig: SubscriptionConfig,
         processor: PubSubProcessor<K, V>,
-        executor: ExecutorService?,
         nodeConfig: SmartConfig
     ): Subscription<K, V> {
         return PubSubSubscription(
             subscriptionConfig,
             processor,
-            executor,
             topicService,
             lifecycleCoordinatorFactory,
             clientIdCounter.getAndIncrement().toString()

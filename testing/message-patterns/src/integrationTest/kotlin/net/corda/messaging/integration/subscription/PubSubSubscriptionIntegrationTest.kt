@@ -134,7 +134,6 @@ class PubSubSubscriptionIntegrationTest {
         val pubsubSub = subscriptionFactory.createPubSubSubscription(
             SubscriptionConfig("pubSub1", PUBSUB_TOPIC1),
             TestPubsubProcessor(latch),
-            null,
             kafkaConfig
         )
         coordinator.followStatusChangesByName(setOf(pubsubSub.subscriptionName))
