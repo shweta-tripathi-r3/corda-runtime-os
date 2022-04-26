@@ -326,7 +326,7 @@ class CryptoServiceRefUtilsTests {
         result as SigningPublicKeySaveContext
         assertSame(generatedKey, result.key)
         assertEquals(alias, result.alias)
-        assertEquals(ref.signatureScheme, result.signatureScheme)
+        assertEquals(ref.signatureScheme, result.keyScheme)
         assertEquals(ref.category, result.category)
     }
 
@@ -352,7 +352,7 @@ class CryptoServiceRefUtilsTests {
         result as SigningWrappedKeySaveContext
         assertSame(generatedKey, result.key)
         assertEquals(alias, result.alias)
-        assertEquals(ref.signatureScheme, result.signatureScheme)
+        assertEquals(ref.signatureScheme, result.keyScheme)
         assertEquals(ref.category, result.category)
         assertEquals(ref.masterKeyAlias, result.masterKeyAlias)
         assertEquals(externalId, result.externalId)

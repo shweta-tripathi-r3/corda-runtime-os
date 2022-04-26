@@ -2,10 +2,9 @@ package net.corda.crypto.impl.components
 
 import net.corda.crypto.impl.SignatureInstances
 import net.corda.v5.cipher.suite.CipherSchemeMetadata
-import net.corda.v5.cipher.suite.schemes.SignatureScheme
-import net.corda.v5.crypto.SignatureSpec
 import net.corda.v5.crypto.DigestService
 import net.corda.v5.crypto.SignatureVerificationService
+import net.corda.v5.crypto.signing.EnhancedSignedData
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -23,87 +22,40 @@ class SignatureVerificationServiceImpl @Activate constructor(
 
     private val signatureInstances = SignatureInstances(schemeMetadata.providers)
 
-    override fun verify(
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec,
-        signatureData: ByteArray,
-        clearData: ByteArray
-    ) =
-        doVerify(schemeMetadata.findSignatureScheme(publicKey), signatureSpec, publicKey, signatureData, clearData)
-
-    override fun verify(publicKey: PublicKey, signatureData: ByteArray, clearData: ByteArray) =
-        doVerify(schemeMetadata.findSignatureScheme(publicKey), null, publicKey, signatureData, clearData)
-
-    override fun isValid(
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec,
-        signatureData: ByteArray,
-        clearData: ByteArray
-    ): Boolean =
-        isValid(publicKey, schemeMetadata.findSignatureScheme(publicKey), signatureSpec, signatureData, clearData)
-
-    override fun isValid(publicKey: PublicKey, signatureData: ByteArray, clearData: ByteArray): Boolean =
-        isValid(publicKey, schemeMetadata.findSignatureScheme(publicKey), null, signatureData, clearData)
-
-    @Suppress("ThrowsCount")
-    private fun doVerify(
-        signatureScheme: SignatureScheme,
-        signatureSpec: SignatureSpec?,
-        publicKey: PublicKey,
-        signatureData: ByteArray,
-        clearData: ByteArray
-    ) {
-        require(isSupported(signatureScheme)) {
-            "Unsupported key/algorithm for schemeCodeName: ${signatureScheme.codeName}"
+    override fun verify(publicKey: PublicKey, signedData: EnhancedSignedData) {
+        val signatureScheme = schemeMetadata.signatureSchemes.firstOrNull {
+            it.codeName == signedData.signature.signatureCodeName
         }
-        val verificationResult = isValid(publicKey, signatureScheme, signatureSpec, signatureData, clearData)
-        if (!verificationResult) {
-            throw SignatureException("Signature Verification failed!")
+        val keyScheme = schemeMetadata.findKeyScheme(publicKey)
+        require(signatureScheme != null) {
+            "Unsupported key/algorithm for codeName: ${signedData.signature.signatureCodeName}"
         }
-    }
-
-    private fun isValid(
-        publicKey: PublicKey,
-        signatureScheme: SignatureScheme,
-        signatureSpec: SignatureSpec?,
-        signatureBytes: ByteArray,
-        clearData: ByteArray
-    ): Boolean {
-        require(isSupported(signatureScheme)) {
-            "Unsupported key/algorithm for codeName: ${signatureScheme.codeName}"
-        }
-        require(signatureBytes.isNotEmpty()) {
+        require(signedData.signature.signature.isNotEmpty()) {
             "Signature data is empty!"
         }
-        require(clearData.isNotEmpty()) {
+        require(signedData.bytes.isNotEmpty()) {
             "Clear data is empty, nothing to verify!"
         }
-        val effectiveSignatureScheme = if(signatureSpec != null) {
-            signatureScheme.copy(signatureSpec = signatureSpec)
-        } else {
-            signatureScheme
-        }
-        val signingData = effectiveSignatureScheme.signatureSpec.getSigningData(hashingService, clearData)
-        return if (effectiveSignatureScheme.signatureSpec.precalculateHash && signatureScheme.algorithmName == "RSA") {
+        val signingData = signatureScheme.getSigningData(hashingService, signedData.bytes)
+        val result = if (signatureScheme.precalculateHash && publicKey.algorithm.equals("RSA", true)) {
             val cipher = Cipher.getInstance(
-                effectiveSignatureScheme.signatureSpec.signatureName,
-                    schemeMetadata.providers.getValue(signatureScheme.providerName)
+                signatureScheme.signatureName,
+                schemeMetadata.providers.getValue(keyScheme.providerName)
             )
             cipher.init(Cipher.DECRYPT_MODE, publicKey)
-            cipher.doFinal(signatureBytes).contentEquals(signingData)
+            cipher.doFinal(signedData.signature.signature).contentEquals(signingData)
         } else {
-            signatureInstances.withSignature(effectiveSignatureScheme) {
-                if(effectiveSignatureScheme.signatureSpec.params != null) {
-                    it.setParameter(effectiveSignatureScheme.signatureSpec.params)
+            signatureInstances.withSignature(signatureScheme) {
+                if(signatureScheme.params != null) {
+                    it.setParameter(signatureScheme.params)
                 }
                 it.initVerify(publicKey)
                 it.update(signingData)
-                it.verify(signatureBytes)
+                it.verify(signedData.bytes)
             }
         }
-    }
-
-    private fun isSupported(scheme: SignatureScheme): Boolean {
-        return schemeMetadata.schemes.contains(scheme)
+        if (!result) {
+            throw SignatureException("Signature Verification failed!")
+        }
     }
 }

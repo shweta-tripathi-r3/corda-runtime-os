@@ -11,8 +11,12 @@ import net.corda.v5.cipher.suite.GeneratedWrappedKey
 import net.corda.v5.cipher.suite.KeyGenerationSpec
 import net.corda.v5.cipher.suite.SigningAliasSpec
 import net.corda.v5.cipher.suite.SigningWrappedSpec
-import net.corda.v5.cipher.suite.schemes.SignatureScheme
+import net.corda.v5.cipher.suite.schemes.KeyScheme
+import net.corda.v5.cipher.suite.signing.EnhancedSigningData
+import net.corda.v5.cipher.suite.signing.encode
+import net.corda.v5.crypto.SignatureScheme
 import net.corda.v5.crypto.exceptions.CryptoServiceException
+import java.time.Instant
 
 fun CryptoServiceRef.getSupportedSchemes(): List<String> =
     instance.supportedSchemes().map { it.codeName }
@@ -30,7 +34,7 @@ fun CryptoServiceRef.generateKeyPair(
     instance.generateKeyPair(
         KeyGenerationSpec(
             tenantId = tenantId,
-            signatureScheme = signatureScheme,
+            keyScheme = keyScheme,
             alias = alias,
             masterKeyAlias = masterKeyAlias,
             secret = aliasSecret
@@ -47,7 +51,7 @@ fun CryptoServiceRef.toSaveKeyContext(
         is GeneratedPublicKey -> SigningPublicKeySaveContext(
             key = key,
             alias = alias,
-            signatureScheme = signatureScheme,
+            keyScheme = keyScheme,
             category = category,
             externalId = externalId,
         )
@@ -56,7 +60,7 @@ fun CryptoServiceRef.toSaveKeyContext(
             masterKeyAlias = masterKeyAlias,
             externalId = externalId,
             alias = alias,
-            signatureScheme = signatureScheme,
+            keyScheme = keyScheme,
             category = category
         )
         else -> throw CryptoServiceException("Unknown key generation response: ${key::class.java.name}")
@@ -64,6 +68,7 @@ fun CryptoServiceRef.toSaveKeyContext(
 
 fun CryptoServiceRef.sign(
     record: SigningCachedKey,
+    keyScheme: KeyScheme,
     signatureScheme: SignatureScheme,
     data: ByteArray,
     context: Map<String, String>
@@ -80,6 +85,7 @@ fun CryptoServiceRef.sign(
             keyMaterial = record.keyMaterial!!,
             masterKeyAlias = record.masterKeyAlias,
             encodingVersion = record.encodingVersion!!,
+            keyScheme = keyScheme,
             signatureScheme = signatureScheme
         )
     } else {
@@ -89,8 +95,15 @@ fun CryptoServiceRef.sign(
         SigningAliasSpec(
             tenantId = tenantId,
             hsmAlias = record.hsmAlias!!,
+            keyScheme = keyScheme,
             signatureScheme = signatureScheme
         )
     }
-    return instance.sign(spec, data, context)
+    val signingData = EnhancedSigningData(
+        timestamp = Instant.now(),
+        signatureCodeName = signatureScheme.codeName,
+        bytes = data
+    )
+    val signature = instance.sign(spec, signingData.encoded, context)
+    return signingData.encode(signature)
 }

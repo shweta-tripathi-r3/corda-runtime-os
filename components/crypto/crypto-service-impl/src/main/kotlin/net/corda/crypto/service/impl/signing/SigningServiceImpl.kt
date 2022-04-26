@@ -15,7 +15,7 @@ import net.corda.v5.cipher.suite.CipherSchemeMetadata
 import net.corda.v5.crypto.CompositeKey
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.KEY_LOOKUP_INPUT_ITEMS_LIMIT
-import net.corda.v5.crypto.SignatureSpec
+import net.corda.v5.crypto.SignatureScheme
 import net.corda.v5.crypto.exceptions.CryptoServiceBadRequestException
 import net.corda.v5.crypto.exceptions.CryptoServiceException
 import net.corda.v5.crypto.publicKeyId
@@ -117,19 +117,27 @@ open class SigningServiceImpl(
     override fun sign(
         tenantId: String,
         publicKey: PublicKey,
+        signatureScheme: SignatureScheme,
         data: ByteArray,
         context: Map<String, String>
     ): DigitalSignature.WithKey =
-        doSign(tenantId, publicKey, null, data, context)
-
-    override fun sign(
-        tenantId: String,
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec,
-        data: ByteArray,
-        context: Map<String, String>
-    ): DigitalSignature.WithKey =
-        doSign(tenantId, publicKey, signatureSpec, data, context)
+        try {
+            cache.act(tenantId) {
+                val record = getKeyRecord(tenantId, it, publicKey)
+                logger.info("sign(tenant={}, publicKey={})", tenantId, record.second.id)
+                var keyScheme = schemeMetadata.findKeyScheme(record.second.schemeCodeName)
+                val cryptoService = getCryptoService(tenantId, record.second.category)
+                val signedBytes = cryptoService.sign(record.second, keyScheme, signatureScheme, data, context)
+                DigitalSignature.WithKey(record.first, signedBytes)
+            }
+        } catch (e: CryptoServiceException) {
+            throw e
+        } catch (e: Throwable) {
+            throw CryptoServiceException(
+                "Failed to sign using public key '${publicKey.publicKeyId()}' for tenant $tenantId",
+                e
+            )
+        }
 
     private fun doGenerateKeyPair(
         tenantId: String,
@@ -156,34 +164,6 @@ open class SigningServiceImpl(
         } catch (e: Throwable) {
             throw CryptoServiceException(
                 "Cannot generate key pair for category=$category and alias=$alias, tenant=$tenantId", e
-            )
-        }
-
-    private fun doSign(
-        tenantId: String,
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec?,
-        data: ByteArray,
-        context: Map<String, String>
-    ): DigitalSignature.WithKey =
-        try {
-            cache.act(tenantId) {
-                val record = getKeyRecord(tenantId, it, publicKey)
-                logger.info("sign(tenant={}, publicKey={})", tenantId, record.second.id)
-                var signatureScheme = schemeMetadata.findSignatureScheme(record.second.schemeCodeName)
-                if (signatureSpec != null) {
-                    signatureScheme = signatureScheme.copy(signatureSpec = signatureSpec)
-                }
-                val cryptoService = getCryptoService(tenantId, record.second.category)
-                val signedBytes = cryptoService.sign(record.second, signatureScheme, data, context)
-                DigitalSignature.WithKey(record.first, signedBytes)
-            }
-        } catch (e: CryptoServiceException) {
-            throw e
-        } catch (e: Throwable) {
-            throw CryptoServiceException(
-                "Failed to sign using public key '${publicKey.publicKeyId()}' for tenant $tenantId",
-                e
             )
         }
 

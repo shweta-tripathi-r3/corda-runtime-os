@@ -552,7 +552,7 @@ class SigningServiceGeneralTests {
                 key == generatedKey &&
                         alias == expectedAlias &&
                         externalId == null &&
-                        signatureScheme == ref.signatureScheme &&
+                        keyScheme == ref.signatureScheme &&
                         category == ref.category
             }
         )
@@ -562,7 +562,7 @@ class SigningServiceGeneralTests {
                 key == generatedKey &&
                         alias == expectedAlias &&
                         externalId == expectedExternalId &&
-                        signatureScheme == ref.signatureScheme &&
+                        keyScheme == ref.signatureScheme &&
                         category == ref.category
             }
         )

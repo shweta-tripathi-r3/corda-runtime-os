@@ -7,6 +7,6 @@ class SigningPublicKeySaveContext(
     val key: GeneratedPublicKey,
     override val alias: String?,
     override val category: String,
-    override val signatureScheme: SignatureScheme,
+    override val keyScheme: SignatureScheme,
     override val externalId: String?
 ) : SigningKeySaveContext

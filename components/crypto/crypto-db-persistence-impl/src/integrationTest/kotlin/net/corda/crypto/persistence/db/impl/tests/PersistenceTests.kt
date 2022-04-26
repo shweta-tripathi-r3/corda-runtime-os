@@ -680,7 +680,7 @@ class PersistenceTests {
         assertEquals(expected.key.hsmAlias, actual.hsmAlias)
         assertArrayEquals(expected.key.publicKey.encoded, actual.publicKey)
         assertNull(actual.keyMaterial)
-        assertEquals(expected.signatureScheme.codeName, actual.schemeCodeName)
+        assertEquals(expected.keyScheme.codeName, actual.schemeCodeName)
         assertNull(actual.masterKeyAlias)
         assertEquals(expected.externalId, actual.externalId)
         assertNull(actual.encodingVersion)
@@ -698,7 +698,7 @@ class PersistenceTests {
         assertNull(actual.hsmAlias)
         assertArrayEquals(expected.key.publicKey.encoded, actual.publicKey)
         assertArrayEquals(expected.key.keyMaterial, actual.keyMaterial)
-        assertEquals(expected.signatureScheme.codeName, actual.schemeCodeName)
+        assertEquals(expected.keyScheme.codeName, actual.schemeCodeName)
         assertEquals(expected.masterKeyAlias, actual.masterKeyAlias)
         assertEquals(expected.externalId, actual.externalId)
         assertEquals(expected.key.encodingVersion, actual.encodingVersion)
@@ -782,7 +782,7 @@ class PersistenceTests {
             externalId = UUID.randomUUID().toString(),
             alias = null,
             category = CryptoConsts.HsmCategories.FRESH_KEYS,
-            signatureScheme = schemeMetadata.findSignatureScheme(schemeCodeName)
+            keyScheme = schemeMetadata.findSignatureScheme(schemeCodeName)
         )
     }
 
@@ -798,7 +798,7 @@ class PersistenceTests {
             ),
             alias = UUID.randomUUID().toString(),
             category = category,
-            signatureScheme = schemeMetadata.findSignatureScheme(schemeCodeName),
+            keyScheme = schemeMetadata.findSignatureScheme(schemeCodeName),
             externalId = UUID.randomUUID().toString()
         )
     }
