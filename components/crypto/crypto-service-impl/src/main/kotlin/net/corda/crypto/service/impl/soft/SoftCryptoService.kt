@@ -15,6 +15,7 @@ import net.corda.v5.cipher.suite.schemes.ECDSA_SECP256K1_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.ECDSA_SECP256R1_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.EDDSA_ED25519_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.GOST3410_GOST3411_CODE_NAME
+import net.corda.v5.cipher.suite.schemes.KeyScheme
 import net.corda.v5.cipher.suite.schemes.RSA_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.SM2_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.SPHINCS256_CODE_NAME
@@ -50,7 +51,7 @@ open class SoftCryptoService(
 
     override fun requiresWrappingKey(): Boolean = true
 
-    override fun supportedSchemes(): Array<SignatureScheme> = supportedSchemes.values.toTypedArray()
+    override fun supportedSchemes(): List<KeyScheme> = supportedSchemes.values
 
     override fun createWrappingKey(masterKeyAlias: String, failIfExists: Boolean, context: Map<String, String>) = try {
         logger.debug("createWrappingKey(masterKeyAlias={}, failIfExists={})", masterKeyAlias, failIfExists)
