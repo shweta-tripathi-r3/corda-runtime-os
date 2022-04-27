@@ -12,10 +12,10 @@ import net.corda.v5.cipher.suite.KeyGenerationSpec
 import net.corda.v5.cipher.suite.SigningAliasSpec
 import net.corda.v5.cipher.suite.SigningWrappedSpec
 import net.corda.v5.cipher.suite.schemes.KeyScheme
-import net.corda.v5.cipher.suite.signing.EnhancedSigningData
-import net.corda.v5.cipher.suite.signing.encode
 import net.corda.v5.crypto.SignatureScheme
 import net.corda.v5.crypto.exceptions.CryptoServiceException
+import net.corda.v5.crypto.signing.EnhancedSignature
+import net.corda.v5.crypto.signing.EnhancedSigningData
 import java.time.Instant
 
 fun CryptoServiceRef.getSupportedSchemes(): List<String> =
@@ -104,6 +104,9 @@ fun CryptoServiceRef.sign(
         signatureCodeName = signatureScheme.codeName,
         bytes = data
     )
-    val signature = instance.sign(spec, signingData.encoded, context)
-    return signingData.encode(signature)
+    return EnhancedSignature(
+        timestamp = signingData.timestamp,
+        signatureCodeName = signingData.signatureCodeName,
+        signature = instance.sign(spec, signingData.encoded, context)
+    ).encoded
 }

@@ -13,6 +13,7 @@ import net.corda.crypto.service.SigningService
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.cipher.suite.CipherSchemeMetadata
 import net.corda.v5.crypto.CompositeKey
+import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.KEY_LOOKUP_INPUT_ITEMS_LIMIT
 import net.corda.v5.crypto.SignatureScheme
@@ -138,6 +139,21 @@ open class SigningServiceImpl(
                 e
             )
         }
+
+    override fun sign(
+        tenantId: String,
+        publicKey: PublicKey,
+        signatureDigest: DigestAlgorithmName,
+        data: ByteArray,
+        context: Map<String, String>
+    ): DigitalSignature.WithKey =
+        sign(
+            tenantId = tenantId,
+            publicKey = publicKey,
+            signatureScheme = schemeMetadata.createSignatureScheme(signatureDigest, publicKey),
+            data = data,
+            context = context
+        )
 
     private fun doGenerateKeyPair(
         tenantId: String,

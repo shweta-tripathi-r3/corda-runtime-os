@@ -2,6 +2,7 @@ package net.corda.crypto.service
 
 import net.corda.v5.cipher.suite.CipherSchemeMetadata
 import net.corda.v5.crypto.CompositeKey
+import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.SignatureScheme
 import java.security.KeyPair
@@ -135,6 +136,21 @@ interface SigningService {
         tenantId: String,
         publicKey: PublicKey,
         signatureSpec: SignatureScheme,
+        data: ByteArray,
+        context: Map<String, String> = EMPTY_CONTEXT
+    ): DigitalSignature.WithKey
+
+    /**
+     * Using the provided signing public key internally looks up the matching private key and signs the data.
+     * If the [PublicKey] is actually a [CompositeKey] the first leaf signing key hosted by the node is used.
+     * The [signatureSpec] is used to override the default signature scheme.
+     *
+     * @param tenantId the tenant's id which the key belongs to.
+     */
+    fun sign(
+        tenantId: String,
+        publicKey: PublicKey,
+        signatureDigest: DigestAlgorithmName,
         data: ByteArray,
         context: Map<String, String> = EMPTY_CONTEXT
     ): DigitalSignature.WithKey

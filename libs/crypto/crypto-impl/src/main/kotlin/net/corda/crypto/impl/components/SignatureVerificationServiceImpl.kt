@@ -4,7 +4,8 @@ import net.corda.crypto.impl.SignatureInstances
 import net.corda.v5.cipher.suite.CipherSchemeMetadata
 import net.corda.v5.crypto.DigestService
 import net.corda.v5.crypto.SignatureVerificationService
-import net.corda.v5.crypto.signing.EnhancedSignedData
+import net.corda.v5.crypto.signing.EnhancedSigningData
+import net.corda.v5.crypto.signing.decodeDigitalSignature
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -22,36 +23,42 @@ class SignatureVerificationServiceImpl @Activate constructor(
 
     private val signatureInstances = SignatureInstances(schemeMetadata.providers)
 
-    override fun verify(publicKey: PublicKey, signedData: EnhancedSignedData) {
+    override fun verify(publicKey: PublicKey, signature: ByteArray, clearData: ByteArray) {
+        val sig = signature.decodeDigitalSignature()
         val signatureScheme = schemeMetadata.signatureSchemes.firstOrNull {
-            it.codeName == signedData.signature.signatureCodeName
+            it.codeName == sig.signatureCodeName
         }
         val keyScheme = schemeMetadata.findKeyScheme(publicKey)
         require(signatureScheme != null) {
-            "Unsupported key/algorithm for codeName: ${signedData.signature.signatureCodeName}"
+            "Unsupported key/algorithm for codeName: ${sig.signatureCodeName}"
         }
-        require(signedData.signature.signature.isNotEmpty()) {
+        require(sig.signature.isNotEmpty()) {
             "Signature data is empty!"
         }
-        require(signedData.bytes.isNotEmpty()) {
+        require(clearData.isNotEmpty()) {
             "Clear data is empty, nothing to verify!"
         }
-        val signingData = signatureScheme.getSigningData(hashingService, signedData.bytes)
+        val signingData = EnhancedSigningData(
+            timestamp = sig.timestamp,
+            signatureCodeName = sig.signatureCodeName,
+            bytes = clearData
+        )
+        val signingBytes = signatureScheme.getSigningData(hashingService, signingData.encoded)
         val result = if (signatureScheme.precalculateHash && publicKey.algorithm.equals("RSA", true)) {
             val cipher = Cipher.getInstance(
                 signatureScheme.signatureName,
                 schemeMetadata.providers.getValue(keyScheme.providerName)
             )
             cipher.init(Cipher.DECRYPT_MODE, publicKey)
-            cipher.doFinal(signedData.signature.signature).contentEquals(signingData)
+            cipher.doFinal(sig.signature).contentEquals(signingBytes)
         } else {
             signatureInstances.withSignature(signatureScheme) {
                 if(signatureScheme.params != null) {
                     it.setParameter(signatureScheme.params)
                 }
                 it.initVerify(publicKey)
-                it.update(signingData)
-                it.verify(signedData.bytes)
+                it.update(signingBytes)
+                it.verify(sig.signature)
             }
         }
         if (!result) {

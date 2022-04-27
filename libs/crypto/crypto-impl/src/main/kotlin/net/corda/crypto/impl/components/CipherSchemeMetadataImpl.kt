@@ -16,6 +16,7 @@ import net.corda.v5.cipher.suite.schemes.SM2_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.SPHINCS256_CODE_NAME
 import net.corda.v5.cipher.suite.schemes.SerializedAlgorithmParameterSpec
 import net.corda.v5.crypto.CompositeKey
+import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.crypto.ECDSA_SHA256
 import net.corda.v5.crypto.ECDSA_SHA512
 import net.corda.v5.crypto.EDDSA_ED25519_CUSTOM_SHA256
@@ -181,13 +182,13 @@ class CipherSchemeMetadataImpl : CipherSchemeMetadata {
         GOST3410_GOST3411
     )
 
-    override fun createSignatureScheme(digestAlgorithm: String, key: PublicKey): SignatureScheme {
-        require(allowedDigestAlgorithmsForSignatureSchemeCreation.containsKey(digestAlgorithm)) {
-            "The $digestAlgorithm is not supported to create ${SignatureScheme::class.simpleName}"
+    override fun createSignatureScheme(signatureDigest: DigestAlgorithmName, key: PublicKey): SignatureScheme {
+        require(allowedDigestAlgorithmsForSignatureSchemeCreation.containsKey(signatureDigest.name)) {
+            "The ${signatureDigest.name} is not supported to create ${SignatureScheme::class.simpleName}"
         }
-        val digest = allowedDigestAlgorithmsForSignatureSchemeCreation[digestAlgorithm]
+        val digest = allowedDigestAlgorithmsForSignatureSchemeCreation[signatureDigest.name]
         val keyScheme = findKeyScheme(key)
-        if(digestAlgorithm.equals("NONE", ignoreCase = true)) {
+        if(signatureDigest.name.equals("NONE", ignoreCase = true)) {
             require(keyScheme.codeName == EDDSA_ED25519_CODE_NAME) {
                 "The digest NONE is supported only for EdDSA keys"
             }
@@ -197,7 +198,7 @@ class CipherSchemeMetadataImpl : CipherSchemeMetadata {
                 it.signatureName.equals("${digest}withRSA", true)
             }
             EDDSA_ED25519_CODE_NAME -> {
-                if(digestAlgorithm.equals("NONE", true)) {
+                if(signatureDigest.name.equals("NONE", true)) {
                     signatureSchemes.firstOrNull {
                         it.codeName == EDDSA_ED25519_NONE.codeName
                     }
