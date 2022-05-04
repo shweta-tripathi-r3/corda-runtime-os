@@ -9,7 +9,10 @@ dependencies {
     compileOnly "org.osgi:org.osgi.service.component:$osgiServiceComponentVersion"
     compileOnly "org.osgi:org.osgi.service.component.annotations"
 
+    implementation project(":libs:db:db-orm-impl")
     implementation project(":components:db:db-connection-manager")
+
+    implementation project(":testing:db-testkit")
 
 
     implementation platform("net.corda:corda-api:$cordaApiVersion")
@@ -17,9 +20,6 @@ dependencies {
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
 
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
-
-    implementation "org.mockito:mockito-inline:$mockitoInlineVersion"
-    implementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 
     runtimeOnly "org.hsqldb:hsqldb:$hsqldbVersion"
     runtimeOnly "org.postgresql:postgresql:$postgresDriverVersion"
