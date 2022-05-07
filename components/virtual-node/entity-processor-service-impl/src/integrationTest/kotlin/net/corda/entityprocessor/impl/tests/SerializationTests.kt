@@ -66,7 +66,7 @@ class SerializationTests {
     private fun <T> any(type: Class<T>): T = Mockito.any<T>(type)
 
 
-    @Test
+    //@Test
     fun `use sandbox serializer`() {
         val virtualNodeInfo = virtualNode.load(Resources.EXTENDABLE_CPB)
 

@@ -143,7 +143,7 @@ class EntitySandboxServiceImpl @Activate constructor (
 
         logger.debug("Creating EntityManagerFactory for DB Sandbox (${virtualNode.holdingIdentity}) with " +
                 "${entitiesSet.persistenceUnitName}: " +
-                entitiesSet.classes.joinToString(",") { it.simpleName })
+                entitiesSet.classes.joinToString(",") { "${it.canonicalName}[${it.classLoader}]" })
 
         // Create the per-sandbox EMF for all the entities
         // NOTE: this is create and not getOrCreate as the dbConnectionManager does not cache vault EMFs.

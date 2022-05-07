@@ -42,7 +42,7 @@ class EntityMessageProcessor(
             ?: throw CordaRuntimeException("Entity manager factory not found within the sandbox for identity: ${virtualNodeContext.holdingIdentity}")
 
     override fun onNext(events: List<Record<String, EntityRequest>>): List<Record<*, *>> {
-        log.debug("onNext processing messages")
+        log.debug("onNext processing messages ${events.joinToString(",") { it.key }}")
         val responses = mutableListOf<Record<FlowKey, EntityResponse>>()
         events.forEach {
             try {

@@ -7,6 +7,7 @@ import net.corda.data.virtualnode.PersistEntity
 import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.serialization.SerializedBytes
 import net.corda.virtualnode.HoldingIdentity
+import org.osgi.framework.FrameworkUtil
 import javax.persistence.EntityManager
 
 fun EntitySandboxService.getClass(holdingIdentity: HoldingIdentity, fullyQualifiedClassName: String) =
@@ -42,6 +43,13 @@ class PersistenceServiceInternal(private val entitySandboxService: EntitySandbox
         payload: PersistEntity
     ): SerializedBytes<Any>? {
         val entity = serializationService.deserialize(payload.entity.array(), Any::class.java)
+
+        val bundle = FrameworkUtil.getBundle(entityManager::class.java).bundleContext.bundles.single { bundle ->
+            bundle.symbolicName == "com.r3.testing.testing-dogs-cpk"
+        }
+        val dogz = bundle.loadClass("net.corda.testing.cpks.dogs.Dog")
+        val entity2 = serializationService.deserialize(payload.entity.array(), dogz)
+        entityManager.persist(entity2)
         entityManager.persist(entity)
         return null
     }
