@@ -8,19 +8,21 @@ import net.corda.db.admin.LiquibaseSchemaMigrator
 import net.corda.db.admin.impl.ClassloaderChangeLog
 import net.corda.db.messagebus.testkit.DBSetup
 import net.corda.entityprocessor.impl.internal.EntityMessageProcessor
-import net.corda.entityprocessor.impl.internal.EntitySandboxContextTypes
 import net.corda.entityprocessor.impl.internal.EntitySandboxServiceImpl
+import net.corda.entityprocessor.impl.internal.PersistenceServiceInternal
 import net.corda.entityprocessor.impl.tests.components.VirtualNodeService
 import net.corda.entityprocessor.impl.tests.fake.FakeDbConnectionManager
 import net.corda.entityprocessor.impl.tests.helpers.BasicMocks
+import net.corda.entityprocessor.impl.tests.helpers.SandboxHelper.createDogClass
+import net.corda.entityprocessor.impl.tests.helpers.SandboxHelper.createSerializedDog
+import net.corda.entityprocessor.impl.tests.helpers.SandboxHelper.getSerializer
 import net.corda.messaging.api.records.Record
 import net.corda.orm.JpaEntitiesSet
 import net.corda.orm.utils.use
-import net.corda.sandboxgroupcontext.getObjectByKey
+import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.testing.sandboxes.fetchService
 import net.corda.testing.sandboxes.lifecycle.EachTestLifecycle
-import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.util.contextLogger
 import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
@@ -32,8 +34,8 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.api.io.TempDir
+import org.mockito.Mockito
 import org.osgi.framework.BundleContext
-import org.osgi.framework.FrameworkUtil
 import org.osgi.test.common.annotation.InjectBundleContext
 import org.osgi.test.common.annotation.InjectService
 import org.osgi.test.junit5.context.BundleContextExtension
@@ -41,7 +43,6 @@ import org.osgi.test.junit5.service.ServiceExtension
 import java.nio.ByteBuffer
 import java.nio.file.Path
 import java.time.Instant
-import java.time.LocalDate
 import java.util.UUID
 
 /**
@@ -87,38 +88,35 @@ class PersistenceServiceInternalTests {
         }
     }
 
-    //@Test
-//    fun `persist`() {
-//        val virtualNodeInfo = virtualNode.load(Resources.EXTENDABLE_CPB)
-//
-//        val entitySandboxService =
-//            EntitySandboxServiceImpl(
-//                virtualNode.sandboxGroupContextComponent,
-//                cpiInfoReadService,
-//                virtualNodeInfoReadService,
-//                BasicMocks.dbConnectionManager(),
-//                BasicMocks.componentContext()
-//            )
-//
-//        val sandbox = entitySandboxService.get(virtualNodeInfo.holdingIdentity)
-//
-//        val serializer = sandbox.getObjectByKey<SerializationService>(EntitySandboxContextTypes.SANDBOX_SERIALIZER)
-//        assertThat(serializer).isNotNull
-//
-//        val expectedDog = Dog(UUID.randomUUID(), "rover", Instant.now(), "me")
-//        logger.info("Persisting $expectedDog")
-//        val dogBytes = serializer!!.serialize(expectedDog)
-//
-//        val persistenceService = PersistenceServiceInternal(entitySandboxService)
-//        val payload = PersistEntity(ByteBuffer.wrap(dogBytes.bytes))
-//
-//        val entityManager = BasicMocks.entityManager()
-//
-//        persistenceService.persist(serializer, entityManager, payload)
-//
-//        Mockito.verify(entityManager).persist(Mockito.any())
-//
-//    }
+    @Test
+    fun `persist`() {
+        val virtualNodeInfo = virtualNode.load(Resources.EXTENDABLE_CPB)
+
+        val entitySandboxService =
+            EntitySandboxServiceImpl(
+                virtualNode.sandboxGroupContextComponent,
+                cpiInfoReadService,
+                virtualNodeInfoReadService,
+                BasicMocks.dbConnectionManager(),
+                BasicMocks.componentContext()
+            )
+
+        val sandbox = entitySandboxService.get(virtualNodeInfo.holdingIdentity)
+
+        val dogId = UUID.randomUUID()
+        logger.info("Persisting $dogId/rover")
+
+        val persistenceService = PersistenceServiceInternal(entitySandboxService)
+        val payload = PersistEntity(
+            ByteBuffer.wrap(sandbox.createSerializedDog(dogId, "Rover", Instant.now(), "me")))
+
+        val entityManager = BasicMocks.entityManager()
+
+        persistenceService.persist(sandbox.getSerializer(), entityManager, payload)
+
+        Mockito.verify(entityManager).persist(Mockito.any())
+
+    }
 
     //@Test
 //    fun `persist via message processor`() {
@@ -161,21 +159,6 @@ class PersistenceServiceInternalTests {
         val dogDbConnection = Pair(virtualNodeInfo.vaultDmlConnectionId, "dogs-node")
         val dbConnectionManager = FakeDbConnectionManager(listOf(dogDbConnection))
 
-        // TEST persist outside sandbox
-//        val dog2 = Dog(UUID.randomUUID(), "rover", Instant.now(), "me")
-//        dbConnectionManager.createEntityManagerFactory(
-//            dogDbConnection.first, JpaEntitiesSet.create("Test", setOf(Dog::class.java))).transaction {
-//            it.persist(dog2)
-//        }
-//
-//        val r = dbConnectionManager.createEntityManagerFactory(
-//            dogDbConnection.first, JpaEntitiesSet.create(dogDbConnection.second, setOf(Dog::class.java))
-//        ).createEntityManager().use {
-//            it.find(Dog::class.java, dog2.id)
-//        }
-//
-//        assertThat(r).isNotNull
-
         // set up sandbox
         val entitySandboxService =
             EntitySandboxServiceImpl(
@@ -187,43 +170,30 @@ class PersistenceServiceInternalTests {
             )
 
         val sandbox = entitySandboxService.get(virtualNodeInfo.holdingIdentity)
-        val serializer = sandbox.getObjectByKey<SerializationService>(EntitySandboxContextTypes.SANDBOX_SERIALIZER)!!
 
         // migrate DB schema
 
-        val dogClass = sandbox.sandboxGroup.loadClassFromMainBundles("net.corda.testing.cpks.dogs.Dog")
-
+        val dogClass = sandbox.sandboxGroup.createDogClass()
         val cl = ClassloaderChangeLog(
             linkedSetOf(
                 ClassloaderChangeLog.ChangeLogResourceFiles(
                     dogClass.packageName, listOf("migration/db.changelog-master.xml"),
-                    classLoader = dogClass.classLoader
+                    classLoader = sandbox.sandboxGroup.createDogClass().classLoader
                 )
             )
         )
 
         lbm.updateDb(dbConnectionManager.getDataSource(dogDbConnection.first).connection, cl)
 
-        // more test
-//        val dog3 = Dog(UUID.randomUUID(), "rover", Instant.now(), "me")
-//        val dogBytes = serializer.serialize(dog3)
-//        val dogAgain = serializer.deserialize(dogBytes.bytes, Any::class.java)
-//        dbConnectionManager.createEntityManagerFactory(
-//            dogDbConnection.first, JpaEntitiesSet.create("Test", setOf(Dog::class.java))).transaction {
-//            it.persist(dogAgain)
-//        }
-//
-//        val r2 = dbConnectionManager.createEntityManagerFactory(
-//            dogDbConnection.first, JpaEntitiesSet.create(dogDbConnection.second, setOf(Dog::class.java))
-//        ).createEntityManager().use {
-//            it.find(Dog::class.java, dog3.id)
-//        }
-//        assertThat(r2).isNotNull
-        //
-
         // request persist
         val dogId = UUID.randomUUID()
-        val request = dogRequest(dogId, virtualNodeInfo, serializer, dogClass)
+        val request = dogRequest(
+            virtualNodeInfo,
+            sandbox,
+            dogId,
+            "Rover",
+            Instant.now(),
+            "me")
         val processor = EntityMessageProcessor(entitySandboxService)
         val requestId = UUID.randomUUID().toString() // just needs to be something unique.
         val records = listOf(Record(TOPIC, requestId, request))
@@ -244,17 +214,16 @@ class PersistenceServiceInternalTests {
 
 
     private fun dogRequest(
-        dogId: UUID,
         virtualNodeInfo: VirtualNodeInfo,
-        serializer: SerializationService,
-        dogClass: Class<*>
+        sandbox: SandboxGroupContext,
+        dogId: UUID,
+        name: String,
+        bday: Instant,
+        owner: String,
     ): EntityRequest {
         val flowKey = FlowKey(UUID.randomUUID().toString(), virtualNodeInfo.holdingIdentity.toAvro())
-        val dogCtor = dogClass.getDeclaredConstructor(UUID::class.java, String::class.java, Instant::class.java, String::class.java)
-        val expectedDog = dogCtor.newInstance(dogId, "rover", Instant.now(), "me")
-        val dogBytes = serializer.serialize(expectedDog)
-        val persistEntity = PersistEntity(ByteBuffer.wrap(dogBytes.bytes))
-        logger.info("Entity Request - flow: $flowKey, entity: $expectedDog")
+        val persistEntity = PersistEntity(ByteBuffer.wrap(sandbox.createSerializedDog(dogId, name, bday, owner)))
+        logger.info("Entity Request - flow: $flowKey, entity: $dogId, $name")
         return EntityRequest(Instant.now(), flowKey, persistEntity)
     }
 }
