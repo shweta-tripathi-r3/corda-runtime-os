@@ -4,6 +4,7 @@ import net.corda.components.rbac.RBACSecurityManagerService
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.RpcOps
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
 import net.corda.httprpc.server.HttpRpcServer
 import net.corda.httprpc.server.factory.HttpRpcServerFactory
 import net.corda.httprpc.ssl.SslCertReadService
@@ -39,6 +40,7 @@ internal class HttpRpcGatewayEventHandlerTest {
     private val httpRpcServerFactory = mock<HttpRpcServerFactory>()
     private val rbacSecurityManagerService = mock<RBACSecurityManagerService>()
     private val sslCertReadServiceFactory = mock<SslCertReadServiceFactory>()
+    private val jwtProcessor = mock<HttpRpcTokenProcessor>()
 
     private interface MockEndpoint : PluggableRPCOps<MockEndpoint>, Lifecycle
     private val endpoint = mock<MockEndpoint>()
@@ -50,7 +52,8 @@ internal class HttpRpcGatewayEventHandlerTest {
         httpRpcServerFactory,
         rbacSecurityManagerService,
         sslCertReadServiceFactory,
-        rpcOps
+        rpcOps,
+        jwtProcessor
     )
 
     @BeforeEach

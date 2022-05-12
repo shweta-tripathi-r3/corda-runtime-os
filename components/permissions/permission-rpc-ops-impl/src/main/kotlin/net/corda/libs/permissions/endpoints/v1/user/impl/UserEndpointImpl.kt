@@ -2,6 +2,7 @@ package net.corda.libs.permissions.endpoints.v1.user.impl
 
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.exception.ResourceNotFoundException
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
 import net.corda.libs.permissions.endpoints.common.PermissionEndpointEventHandler
 import net.corda.libs.permissions.endpoints.v1.converter.convertToDto
 import net.corda.libs.permissions.endpoints.v1.converter.convertToEndpointType
@@ -9,6 +10,7 @@ import net.corda.httprpc.security.CURRENT_RPC_CONTEXT
 import net.corda.libs.permissions.endpoints.common.withPermissionManager
 import net.corda.libs.permissions.endpoints.v1.user.UserEndpoint
 import net.corda.libs.permissions.endpoints.v1.user.types.CreateUserType
+import net.corda.libs.permissions.endpoints.v1.user.types.JWTResponseType
 import net.corda.libs.permissions.endpoints.v1.user.types.UserPermissionSummaryResponseType
 import net.corda.libs.permissions.endpoints.v1.user.types.UserResponseType
 import net.corda.libs.permissions.manager.request.AddRoleToUserRequestDto
@@ -33,6 +35,8 @@ class UserEndpointImpl @Activate constructor(
     private val coordinatorFactory: LifecycleCoordinatorFactory,
     @Reference(service = PermissionManagementService::class)
     private val permissionManagementService: PermissionManagementService,
+    @Reference(service = HttpRpcTokenProcessor::class)
+    private val httpRpcTokenProcessor: HttpRpcTokenProcessor
 ) : UserEndpoint, PluggableRPCOps<UserEndpoint>, Lifecycle {
 
     private companion object {
@@ -98,6 +102,11 @@ class UserEndpointImpl @Activate constructor(
             result.permissions.map { it.convertToEndpointType() },
             result.lastUpdateTimestamp
         )
+    }
+
+    override fun generateLocalAuthToken(): JWTResponseType {
+        val principal = getRpcThreadLocalContext()
+        return JWTResponseType(httpRpcTokenProcessor.buildAndSignToken(principal))
     }
 
     private fun getRpcThreadLocalContext(): String {

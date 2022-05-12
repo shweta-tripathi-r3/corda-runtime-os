@@ -4,6 +4,7 @@ import net.corda.components.rbac.RBACSecurityManagerService
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.RpcOps
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
 import net.corda.httprpc.server.HttpRpcServer
 import net.corda.httprpc.server.config.models.AzureAdSettings
 import net.corda.httprpc.server.config.models.HttpRpcContext
@@ -49,6 +50,7 @@ internal class HttpRpcGatewayEventHandler(
     private val rbacSecurityManagerService: RBACSecurityManagerService,
     private val sslCertReadServiceFactory: SslCertReadServiceFactory,
     private val dynamicRpcOps: List<PluggableRPCOps<out RpcOps>>,
+    private val jwtProcessor: HttpRpcTokenProcessor,
     private val tempPathProvider: PathProvider = TempPathProvider()
 ) : LifecycleEventHandler {
 
@@ -168,7 +170,8 @@ internal class HttpRpcGatewayEventHandler(
             rpcOpsImpls = dynamicRpcOps.toList(),
             rpcSecurityManager = rbacSecurityManagerService.securityManager,
             httpRpcSettings = httpRpcSettings,
-            multiPartDir = multiPartDir
+            multiPartDir = multiPartDir,
+            jwtProcessor
         ).also { it.start() }
 
         val numberOfRpcOps = dynamicRpcOps.filterIsInstance<Lifecycle>()

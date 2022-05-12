@@ -19,6 +19,8 @@ import net.corda.v5.base.util.debug
 import net.corda.v5.base.util.trace
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.RpcOps
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
+import net.corda.httprpc.server.impl.security.provider.bearer.local.LocalJwtAuthenticationProvider
 import java.nio.file.Path
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.write
@@ -29,6 +31,7 @@ class HttpRpcServerImpl(
     rpcSecurityManager: RPCSecurityManager,
     httpRpcSettings: HttpRpcSettings,
     multiPartDir: Path,
+    jwtProcessor: HttpRpcTokenProcessor,
     devMode: Boolean
 ) : HttpRpcServer {
     private companion object {
@@ -51,7 +54,7 @@ class HttpRpcServerImpl(
             httpRpcSettings.context.version,
             resources
         ),
-        SecurityManagerRPCImpl(createAuthenticationProviders(httpRpcObjectConfigProvider, rpcSecurityManager)),
+        SecurityManagerRPCImpl(createAuthenticationProviders(httpRpcObjectConfigProvider, rpcSecurityManager, jwtProcessor)),
         httpRpcObjectConfigProvider,
         OpenApiInfoProvider(resources, httpRpcObjectConfigProvider),
         multiPartDir
@@ -96,13 +99,15 @@ class HttpRpcServerImpl(
 
     private fun createAuthenticationProviders(
         settings: HttpRpcSettingsProvider,
-        rpcSecurityManager: RPCSecurityManager
+        rpcSecurityManager: RPCSecurityManager,
+        jwtProcessor: HttpRpcTokenProcessor
     ): Set<AuthenticationProvider> {
         val result = mutableSetOf<AuthenticationProvider>(UsernamePasswordAuthenticationProvider(rpcSecurityManager))
         val azureAdSettings = settings.getSsoSettings()?.azureAd()
         if (azureAdSettings != null) {
             result.add(AzureAdAuthenticationProvider.createDefault(azureAdSettings, rpcSecurityManager))
         }
+        result.add(LocalJwtAuthenticationProvider(jwtProcessor, rpcSecurityManager))
         return result
     }
 }

@@ -7,6 +7,7 @@ import net.corda.httprpc.server.config.models.HttpRpcSettings
 import net.corda.httprpc.server.factory.HttpRpcServerFactory
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.RpcOps
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
 import org.osgi.service.component.annotations.Component
 import java.nio.file.Path
 
@@ -18,9 +19,10 @@ class HttpRpcServerFactoryImpl : HttpRpcServerFactory {
         rpcOpsImpls: List<PluggableRPCOps<out RpcOps>>,
         rpcSecurityManager: RPCSecurityManager,
         httpRpcSettings: HttpRpcSettings,
-        multiPartDir: Path
+        multiPartDir: Path,
+        jwtProcessor: HttpRpcTokenProcessor
     ): HttpRpcServer {
 
-        return HttpRpcServerImpl(rpcOpsImpls, rpcSecurityManager, httpRpcSettings, multiPartDir, devMode = false)
+        return HttpRpcServerImpl(rpcOpsImpls, rpcSecurityManager, httpRpcSettings, multiPartDir, jwtProcessor, devMode = false)
     }
 }

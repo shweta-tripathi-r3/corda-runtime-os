@@ -5,6 +5,7 @@ import net.corda.components.rpc.internal.HttpRpcGatewayEventHandler
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.RpcOps
+import net.corda.httprpc.jwt.HttpRpcTokenProcessor
 import net.corda.httprpc.server.factory.HttpRpcServerFactory
 import net.corda.httprpc.ssl.SslCertReadServiceFactory
 import net.corda.lifecycle.Lifecycle
@@ -33,7 +34,9 @@ class HttpRpcGateway @Activate constructor(
     @Reference(service = SslCertReadServiceFactory::class)
     sslCertReadServiceFactory: SslCertReadServiceFactory,
     @Reference(service = PermissionManagementService::class)
-    permissionManagementService: PermissionManagementService
+    permissionManagementService: PermissionManagementService,
+    @Reference(service = HttpRpcTokenProcessor::class)
+    private val jwtProcessor: HttpRpcTokenProcessor
 ) : Lifecycle {
 
     private companion object {
@@ -53,7 +56,8 @@ class HttpRpcGateway @Activate constructor(
         httpRpcServerFactory,
         rbacSecurityManagerService,
         sslCertReadServiceFactory,
-        this.dynamicRpcOps
+        this.dynamicRpcOps,
+        jwtProcessor
     )
 
     private var coordinator: LifecycleCoordinator = coordinatorFactory.createCoordinator<HttpRpcGateway>(handler)
