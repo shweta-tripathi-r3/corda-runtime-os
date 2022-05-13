@@ -45,7 +45,7 @@ data class ConfigEntity(
     /** Updates the classes fields to match those of the [configEntity]. */
     fun update(configEntity: ConfigEntity) {
         config = configEntity.config
-        schemaVersionMajor = configEntity.schemaVersionMinor
+        schemaVersionMajor = configEntity.schemaVersionMajor
         schemaVersionMinor = configEntity.schemaVersionMinor
         updateTimestamp = configEntity.updateTimestamp
         updateActor = configEntity.updateActor
