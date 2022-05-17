@@ -150,18 +150,6 @@ data class CpkMetadataEntity(
     val cpkCordappManifest: CpkCordappManifestEntity? = null
     // cordappCertificates TODO To be added as per https://r3-cev.atlassian.net/browse/CORE-4658
 ) {
-    // TODO We need to set the below fetch to be FetchType.EAGER (Currently we are getting a `StackOverflowException`
-    //  that gets fixed with LAZY). as per https://r3-cev.atlassian.net/browse/CORE-4829
-//    @OneToMany(fetch = FetchType.EAGER)
-//    @JoinColumns(
-//        JoinColumn(name = "cpi_name"),
-//        JoinColumn(name = "cpi_version"),
-//        JoinColumn( name = "cpi_signer_summary_hash"),
-//        JoinColumn( name = "cpk_file_checksum")
-//    )
-//    val cpkDependencies: Set<CpkDependencyEntity> = emptySet()
-//    @OneToOne(fetch = FetchType.EAGER, mappedBy = "cpkMetadataEntity")
-//    val cpkCordappManifest: CpkCordappManifestEntity? = null
     // this TS is managed on the DB itself
     @Column(name = "insert_ts", insertable = false, updatable = false)
     val insertTimestamp: Instant? = null
@@ -196,30 +184,11 @@ data class CpkManifest(
 @Embeddable
 data class CpkFormatVersion(val major: Int, val minor: Int)
 
-//@Entity
-//@Table(name = "cpk_cordapp_manifest", schema = DbSchema.CONFIG)
 @Embeddable
 data class CpkCordappManifestEntity(
-//    @Id
-//    @OneToOne
-//    @JoinColumns(
-//        JoinColumn(name = "cpi_name", referencedColumnName = "cpi_name", insertable = false, updatable = false),
-//        JoinColumn(name = "cpi_version", referencedColumnName = "cpi_version", insertable = false, updatable = false),
-//        JoinColumn(
-//            name = "cpi_signer_summary_hash", referencedColumnName = "cpi_signer_summary_hash",
-//            insertable = false, updatable = false
-//        ),
-//        JoinColumn(name = "cpk_file_checksum", referencedColumnName = "cpk_file_checksum", insertable = false, updatable = false)
-//    )
-//    val cpkMetadataEntity: CpkMetadataEntity,
-
-//    @Column(name = "bundle_symbolic_name", nullable = false)
     val bundleSymbolicName: String,
-//    @Column(name = "bundle_version", nullable = false)
     val bundleVersion: String,
-//    @Column(name = "min_platform_version", nullable = false)
     val minPlatformVersion: Int,
-//    @Column(name = "target_platform_version", nullable = false)
     val targetPlatformVersion: Int,
     @Embedded
     @AttributeOverrides(
