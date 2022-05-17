@@ -423,6 +423,9 @@ class CpiEntitiesIntegrationTest {
         assertThat(cpkOne.cpkDependencies.count()).isEqualTo(2)
 
         assertThat(cpkOne.cpkCordappManifest).isNotNull
+
+        assertThat(cpkOne.cpkCordappManifest?.workflowInfo).isNotNull
+        assertThat(cpkOne.cpkCordappManifest?.contractInfo).isNotNull
     }
 }
 
@@ -463,8 +466,8 @@ private object CpkMetadataEntityFactory {
                 "",
                 1,
                 2,
-//                ManifestCorDappInfo(null, null, null, null),
-//                ManifestCorDappInfo("short-name", "vendor", 1, "license")
+                ManifestCorDappInfo("app-short-name", "app-vendor", 1, "licence"),
+                ManifestCorDappInfo("short-name", "vendor", 1, "license")
             )
         )
 //        val cpkDependencyEntities = setOf(
@@ -495,6 +498,8 @@ private object CpkMetadataEntityFactory {
             "",
             1,
             2,
+            ManifestCorDappInfo("app-short-name", "app-vendor", 1, "licence"),
+            ManifestCorDappInfo("short-name", "vendor", 1, "license")
         ))
     }
 
