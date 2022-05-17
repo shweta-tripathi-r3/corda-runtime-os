@@ -221,26 +221,26 @@ data class CpkCordappManifestEntity(
     val minPlatformVersion: Int,
 //    @Column(name = "target_platform_version", nullable = false)
     val targetPlatformVersion: Int,
-    @Embedded
-    @AttributeOverrides(
-        value = [
-            AttributeOverride(name = "shortName", column = Column(name = "contract_info_short_name", nullable = true)),
-            AttributeOverride(name = "vendor", column = Column(name = "contract_info_vendor", nullable = true)),
-            AttributeOverride(name = "versionId", column = Column(name = "contract_info_version_id", nullable = true)),
-            AttributeOverride(name = "license", column = Column(name = "contract_info_license", nullable = true))
-        ]
-    )
-    val contractInfo: ManifestCorDappInfo,
-    @Embedded
-    @AttributeOverrides(
-        value = [
-            AttributeOverride(name = "shortName", column = Column(name = "work_flow_info_short_name", nullable = true)),
-            AttributeOverride(name = "vendor", column = Column(name = "work_flow_info_vendor", nullable = true)),
-            AttributeOverride(name = "versionId", column = Column(name = "work_flow_info_version_id", nullable = true)),
-            AttributeOverride(name = "license", column = Column(name = "work_flow_info_license", nullable = true))
-        ]
-    )
-    val workflowInfo: ManifestCorDappInfo,
+//    @Embedded
+//    @AttributeOverrides(
+//        value = [
+//            AttributeOverride(name = "shortName", column = Column(name = "contract_info_short_name", nullable = true)),
+//            AttributeOverride(name = "vendor", column = Column(name = "contract_info_vendor", nullable = true)),
+//            AttributeOverride(name = "versionId", column = Column(name = "contract_info_version_id", nullable = true)),
+//            AttributeOverride(name = "license", column = Column(name = "contract_info_license", nullable = true))
+//        ]
+//    )
+//    val contractInfo: ManifestCorDappInfo,
+//    @Embedded
+//    @AttributeOverrides(
+//        value = [
+//            AttributeOverride(name = "shortName", column = Column(name = "work_flow_info_short_name", nullable = true)),
+//            AttributeOverride(name = "vendor", column = Column(name = "work_flow_info_vendor", nullable = true)),
+//            AttributeOverride(name = "versionId", column = Column(name = "work_flow_info_version_id", nullable = true)),
+//            AttributeOverride(name = "license", column = Column(name = "work_flow_info_license", nullable = true))
+//        ]
+//    )
+//    val workflowInfo: ManifestCorDappInfo,
     // attributes TODO To be added as per https://r3-cev.atlassian.net/browse/CORE-4658
 ) : Serializable
 
