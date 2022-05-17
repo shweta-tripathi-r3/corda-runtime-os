@@ -13,6 +13,9 @@ class InMemoryEntityManagerConfiguration(dbName: String) : EntityManagerConfigur
     override val dataSource: CloseableDataSource
         get() = ds
 
+    override val showSql: Boolean
+        get() = true
+
     override val ddlManage: DdlManage
         get() = DdlManage.UPDATE
 }

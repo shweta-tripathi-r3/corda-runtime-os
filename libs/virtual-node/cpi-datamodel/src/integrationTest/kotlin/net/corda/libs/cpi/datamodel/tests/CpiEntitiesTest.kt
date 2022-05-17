@@ -15,6 +15,7 @@ import net.corda.libs.cpi.datamodel.CpkManifest
 import net.corda.libs.cpi.datamodel.CpkMetadataEntity
 import net.corda.libs.cpi.datamodel.CpkMetadataEntityKey
 import net.corda.libs.cpi.datamodel.ManifestCorDappInfo
+import net.corda.libs.cpi.datamodel.findAllCpiMetadata
 import net.corda.libs.cpi.datamodel.findCpkChecksumsNotIn
 import net.corda.libs.cpi.datamodel.findCpkDataEntity
 import net.corda.orm.EntityManagerConfiguration
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.util.UUID
 import javax.persistence.EntityManagerFactory
+import kotlin.streams.toList
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CpiEntitiesIntegrationTest {
@@ -38,7 +40,7 @@ class CpiEntitiesIntegrationTest {
     init {
         // comment this out if you want to run the test against a real postgres
         //  NOTE: the blob storage doesn't work in HSQL, hence skipping the majority of the test.
-         System.setProperty("postgresPort", "5432")
+//         System.setProperty("postgresPort", "5432")
         dbConfig = DbUtils.getEntityManagerConfiguration("cpi_db")
 
         val dbChange = ClassloaderChangeLog(
@@ -259,9 +261,9 @@ class CpiEntitiesIntegrationTest {
         )
 
         emFactory.transaction {
-            it.createQuery("DELETE FROM ${CpkCordappManifestEntity::class.simpleName}").executeUpdate()
+            it.createNativeQuery("DELETE FROM config.cpk_cordapp_manifest").executeUpdate()
 
-            it.createQuery("DELETE FROM ${CpkDependencyEntity::class.simpleName}").executeUpdate()
+            it.createNativeQuery("DELETE FROM config.cpk_dependency").executeUpdate()
 
             it.createNativeQuery("DELETE FROM config.cpk_library").executeUpdate()
 
@@ -365,6 +367,61 @@ class CpiEntitiesIntegrationTest {
         )
         assertEquals(expectedCpkDataEntity, cpkDataEntity)
     }
+
+    @Test
+    fun `findAllCpiMetadata fetches eagerly`() {
+        cleanUpDb()
+
+        // Create CPI First
+        val cpiId = UUID.randomUUID()
+        val cpi = CpiMetadataEntity(
+            "test-cpi-$cpiId",
+            "1.0",
+            "test-cpi-hash",
+            "test-cpi-$cpiId.cpi",
+            "test-cpi.cpi-$cpiId-hash",
+            "{group-policy-json}",
+            "group-id",
+            "file-upload-request-id-$cpiId",
+            false
+        )
+        val cpkId = UUID.randomUUID()
+        val cpk = CpkDataEntity(
+            "cpk-checksum-$cpkId",
+            ByteArray(2000),
+        )
+        val (cpkMetadataEntity, _, _) =
+            CpkMetadataEntityFactory.create(
+                cpi,
+                cpk.fileChecksum,
+                "test-cpk.cpk",
+            )
+
+        EntityManagerFactoryFactoryImpl().create(
+            "test_unit",
+            CpiEntities.classes.toList(),
+            dbConfig
+        ).use { em ->
+            em.transaction {
+                // saving cpk should also save related cpi
+                it.persist(cpk)
+                it.persist(cpkMetadataEntity)
+                it.flush()
+            }
+        }
+
+        // find all
+        val cpis = EntityManagerFactoryFactoryImpl().create(
+            "test_unit",
+            CpiEntities.classes.toList(),
+            dbConfig
+        ).use {
+            it.findAllCpiMetadata().toList()
+        }
+
+        val cpkOne = cpis.first().cpks.first()
+        assertThat(cpkOne.cpkDependencies.count()).isEqualTo(2)
+    }
 }
 
 private object CpkMetadataEntityFactory {
@@ -386,31 +443,60 @@ private object CpkMetadataEntityFactory {
             listOf(
                 "lib1",
                 "lib2"
-            )
-        )
-        val cpkDependencyEntities = setOf(
-            CpkDependencyEntity(
-                cpkMetadataEntity,
-                "main-bundle-name-1",
-                "main-bundle-version-1",
-                "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FA"
             ),
-            CpkDependencyEntity(
-                cpkMetadataEntity,
-                "main-bundle-name-2",
-                "main-bundle-version-2",
-                "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FB"
+            cpkDependencies = setOf(
+                CpkDependencyEntity(
+                    "main-bundle-name-1",
+                    "main-bundle-version-1",
+                    "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FA"
+                ),
+                CpkDependencyEntity(
+                    "main-bundle-name-2",
+                    "main-bundle-version-2",
+                    "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FB"
+                )
+            ),
+            cpkCordappManifest = CpkCordappManifestEntity(
+                "",
+                "",
+                1,
+                2,
+                ManifestCorDappInfo(null, null, null, null),
+                ManifestCorDappInfo("short-name", "vendor", 1, "license")
             )
         )
-        val cordappManifest = CpkCordappManifestEntity(
-            cpkMetadataEntity,
+//        val cpkDependencyEntities = setOf(
+//            CpkDependencyEntity(
+//                cpkMetadataEntity,
+//                "main-bundle-name-1",
+//                "main-bundle-version-1",
+//                "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FA"
+//            ),
+//            CpkDependencyEntity(
+//                cpkMetadataEntity,
+//                "main-bundle-name-2",
+//                "main-bundle-version-2",
+//                "SHA-256:BFD76C0EBBD006FEE583410547C1887B0292BE76D582D96C242D2A792723E3FB"
+//            )
+//        )
+//        val cordappManifest = CpkCordappManifestEntity(
+//            cpkMetadataEntity,
+//            "",
+//            "",
+//            1,
+//            2,
+//            ManifestCorDappInfo(null, null, null, null),
+//            ManifestCorDappInfo("short-name", "vendor", 1, "license")
+//        )
+        return Triple(cpkMetadataEntity, emptySet(), CpkCordappManifestEntity(
             "",
             "",
             1,
             2,
             ManifestCorDappInfo(null, null, null, null),
             ManifestCorDappInfo("short-name", "vendor", 1, "license")
-        )
-        return Triple(cpkMetadataEntity, cpkDependencyEntities, cordappManifest)
+        ))
     }
+
+
 }
