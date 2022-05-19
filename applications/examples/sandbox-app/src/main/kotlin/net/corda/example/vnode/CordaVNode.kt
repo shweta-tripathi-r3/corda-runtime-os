@@ -8,29 +8,24 @@ import com.typesafe.config.ConfigValueFactory
 import net.corda.data.flow.FlowInitiatorType
 import net.corda.data.flow.FlowKey
 import net.corda.data.flow.FlowStartContext
-import net.corda.data.flow.FlowStatusKey
 import net.corda.data.flow.event.FlowEvent
 import net.corda.data.flow.event.StartFlow
 import net.corda.data.virtualnode.VirtualNodeInfo
 import net.corda.flow.pipeline.factory.FlowEventProcessorFactory
+import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.SmartConfigFactory
 import net.corda.messaging.api.records.Record
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.schema.Schemas.Flow.Companion.FLOW_EVENT_TOPIC
-import net.corda.schema.configuration.FlowConfig
-import net.corda.securitymanager.SecurityManagerService
+import net.corda.schema.configuration.FlowConfig.PROCESSING_MAX_FLOW_SLEEP_DURATION
+import net.corda.schema.configuration.FlowConfig.PROCESSING_MAX_RETRY_ATTEMPTS
+import net.corda.schema.configuration.FlowConfig.SESSION_HEARTBEAT_TIMEOUT_WINDOW
+import net.corda.schema.configuration.FlowConfig.SESSION_MESSAGE_RESEND_WINDOW
 import net.corda.v5.base.util.loggerFor
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
-import org.osgi.framework.AdminPermission
 import org.osgi.framework.BundleReference
-import org.osgi.framework.PackagePermission
-import org.osgi.framework.PackagePermission.EXPORTONLY
-import org.osgi.framework.PackagePermission.IMPORT
-import org.osgi.framework.ServicePermission
-import org.osgi.framework.ServicePermission.GET
-import org.osgi.framework.ServicePermission.REGISTER
 import org.osgi.framework.wiring.BundleWiring
 import org.osgi.service.component.ComponentContext
 import org.osgi.service.component.annotations.Activate
@@ -39,16 +34,8 @@ import org.osgi.service.component.annotations.Deactivate
 import org.osgi.service.component.annotations.Reference
 import org.osgi.service.component.annotations.ReferenceCardinality.OPTIONAL
 import org.osgi.service.component.annotations.ReferencePolicy.DYNAMIC
-import org.osgi.service.permissionadmin.PermissionAdmin
-import java.io.FilePermission
 import java.lang.management.ManagementFactory
-import java.lang.management.ManagementPermission
-import java.lang.reflect.ReflectPermission
-import java.net.NetPermission
-import java.net.SocketPermission
-import java.nio.file.LinkPermission
 import java.time.Instant
-import java.util.PropertyPermission
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit.SECONDS
@@ -72,9 +59,6 @@ class CordaVNode @Activate constructor(
     private val flowEventProcessorFactory: FlowEventProcessorFactory,
 
     @Reference
-    private val securityManager: SecurityManagerService,
-
-    @Reference
     private val shutdown: Shutdown,
 
     private val componentContext: ComponentContext
@@ -86,11 +70,18 @@ class CordaVNode @Activate constructor(
         private const val TIMEOUT_MILLIS = 1000L
         private const val WAIT_MILLIS = 100L
 
-        private val config = ConfigFactory.empty()
-            .withValue(FlowConfig.SESSION_MESSAGE_RESEND_WINDOW, ConfigValueFactory.fromAnyRef(500000L))
-            .withValue(FlowConfig.SESSION_HEARTBEAT_TIMEOUT_WINDOW, ConfigValueFactory.fromAnyRef(500000L))
-        private val configFactory = SmartConfigFactory.create(config)
-        private val smartConfig = configFactory.create(config)
+        private val smartConfig: SmartConfig
+
+        init {
+            val configFactory = SmartConfigFactory.create(ConfigFactory.empty())
+
+            val config = ConfigFactory.empty()
+                .withValue(PROCESSING_MAX_RETRY_ATTEMPTS, ConfigValueFactory.fromAnyRef(5))
+                .withValue(PROCESSING_MAX_FLOW_SLEEP_DURATION, ConfigValueFactory.fromAnyRef(5000L))
+                .withValue(SESSION_MESSAGE_RESEND_WINDOW, ConfigValueFactory.fromAnyRef(500000L))
+                .withValue(SESSION_HEARTBEAT_TIMEOUT_WINDOW, ConfigValueFactory.fromAnyRef(500000L))
+            smartConfig = configFactory.create(config)
+        }
     }
 
     private val appName: String = System.getProperty("app.name", "heap")
@@ -138,7 +129,7 @@ class CordaVNode @Activate constructor(
     private fun createRPCStartFlow(clientId: String, virtualNodeInfo: VirtualNodeInfo): StartFlow {
         return StartFlow(
             FlowStartContext(
-                FlowStatusKey(clientId, virtualNodeInfo.holdingIdentity),
+                FlowKey(clientId, virtualNodeInfo.holdingIdentity),
                 FlowInitiatorType.RPC,
                 clientId,
                 virtualNodeInfo.holdingIdentity,
@@ -166,15 +157,15 @@ class CordaVNode @Activate constructor(
                 dumpHeap("created")
 
                 val rpcStartFlow = createRPCStartFlow(clientId, vnodeInfo.toAvro())
-                val flowKey = FlowKey(generateRandomId(), holdingIdentity.toAvro())
-                val record = Record(FLOW_EVENT_TOPIC, flowKey, FlowEvent(flowKey, rpcStartFlow))
+                val flowId = generateRandomId()
+                val record = Record(FLOW_EVENT_TOPIC, flowId, FlowEvent(flowId, rpcStartFlow))
                 flowEventProcessorFactory.create(smartConfig).apply {
                     val result = onNext(null, record)
                     result.responseEvents.singleOrNull { evt ->
                         evt.topic == FLOW_EVENT_TOPIC
                     }?.also { evt ->
                         @Suppress("unchecked_cast")
-                        onNext(result.updatedState, evt as Record<FlowKey, FlowEvent>)
+                        onNext(result.updatedState, evt as Record<String, FlowEvent>)
                     }
                 }
             } finally {
@@ -203,41 +194,6 @@ class CordaVNode @Activate constructor(
     private fun process() {
         logger.info("Starting")
         try {
-            securityManager.start()
-            securityManager.denyPermissions("FLOW/*", listOf(
-                // OSGi permissions.
-                AdminPermission(),
-                ServicePermission("*", GET),
-                ServicePermission("net.corda.v5.*", REGISTER),
-                PackagePermission("net.corda", "$EXPORTONLY,$IMPORT"),
-                PackagePermission("net.corda.*", "$EXPORTONLY,$IMPORT"),
-
-                // Prevent the FLOW sandboxes from importing these packages,
-                // which effectively forbids them from executing most OSGi code.
-                PackagePermission("org.osgi.framework", IMPORT),
-                PackagePermission("org.osgi.service.component", IMPORT),
-
-                // Java permissions.
-                RuntimePermission("*"),
-                ReflectPermission("*"),
-                NetPermission("*"),
-                LinkPermission("hard"),
-                LinkPermission("symbolic"),
-                ManagementPermission("control"),
-                ManagementPermission("monitor"),
-                PropertyPermission("*", "read,write"),
-                SocketPermission("*", "accept,connect,listen"),
-                FilePermission("<<ALL FILES>>", "read,write,execute,delete,readlink")
-            ))
-            securityManager.grantPermissions("FLOW/*", listOf(
-                PackagePermission("net.corda.v5.*", IMPORT),
-                ServicePermission("(location=FLOW/*)", GET),
-                ServicePermission("net.corda.v5.*", GET)
-            ))
-            securityManager.denyPermissions("*", listOf(
-                ServicePermission(PermissionAdmin::class.java.name, REGISTER)
-            ))
-
             dumpHeap("started")
             executeSandbox("client-1", EXAMPLE_CPI_RESOURCE)
             executeSandbox("client-2", EXAMPLE_CPI_RESOURCE)

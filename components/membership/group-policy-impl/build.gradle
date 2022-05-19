@@ -1,5 +1,5 @@
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'corda.common-library'
 }
 
@@ -15,7 +15,6 @@ dependencies {
 
     implementation project(":libs:lifecycle:lifecycle")
     implementation project(":libs:membership:membership-impl")
-    implementation project(":libs:membership:membership-internal")
     implementation project(":libs:virtual-node:virtual-node-info")
 
     implementation project(":components:membership:group-policy")
@@ -32,5 +31,4 @@ dependencies {
     testImplementation project(":testing:test-utilities")
     testImplementation "net.corda:corda-topic-schema"
     testImplementation "net.corda:corda-config-schema"
-    testImplementation "net.corda:corda-packaging-avro-converters"
 }

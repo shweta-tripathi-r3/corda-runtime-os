@@ -1,15 +1,24 @@
 package net.corda.tools.kafka
 
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValueFactory
-import net.corda.configuration.publish.ConfigPublishService
 import net.corda.comp.kafka.topic.admin.KafkaTopicAdmin
+import net.corda.data.config.Configuration
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.SmartConfigFactory
-import net.corda.libs.configuration.schema.messaging.TOPIC_PREFIX_PATH
+import net.corda.messaging.api.publisher.config.PublisherConfig
+import net.corda.messaging.api.publisher.factory.PublisherFactory
+import net.corda.messaging.api.records.Record
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.schema.Schemas.Config.Companion.CONFIG_TOPIC
+import net.corda.schema.configuration.MessagingConfig
+import net.corda.schema.configuration.MessagingConfig.Boot.INSTANCE_ID
+import net.corda.schema.configuration.MessagingConfig.Boot.TOPIC_PREFIX
+import net.corda.schema.configuration.MessagingConfig.Bus.BOOTSTRAP_SERVER
 import net.corda.v5.base.util.contextLogger
 import org.osgi.framework.FrameworkUtil
 import org.osgi.service.component.annotations.Activate
@@ -21,14 +30,15 @@ import picocli.CommandLine
 import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
+import kotlin.random.Random
 
 @Suppress("SpreadOperator")
 @Component(immediate = true)
 class KafkaConfigUploader @Activate constructor(
     @Reference(service = KafkaTopicAdmin::class)
     private var topicAdmin: KafkaTopicAdmin,
-    @Reference(service = ConfigPublishService::class)
-    private var configPublish: ConfigPublishService,
+    @Reference(service = PublisherFactory::class)
+    val publisherFactory: PublisherFactory,
     @Reference(service = Shutdown::class)
     private val shutDownService: Shutdown,
 ) : Application {
@@ -36,9 +46,8 @@ class KafkaConfigUploader @Activate constructor(
     private companion object {
         private val logger: Logger = contextLogger()
         val consoleLogger: Logger = LoggerFactory.getLogger("Console")
-        const val TOPIC_PREFIX = "messaging.${TOPIC_PREFIX_PATH}"
-        const val KAFKA_BOOTSTRAP_SERVER = "bootstrap.servers"
-        const val KAFKA_COMMON_BOOTSTRAP_SERVER = "messaging.kafka.common.bootstrap.servers"
+        private const val KAFKA_BOOTSTRAP_SERVER = "bootstrap.servers"
+        private const val CONFIGURATION_WRITER_CLIENT_ID = "kafka-config-updater"
     }
 
     override fun startup(args: Array<String>) {
@@ -57,6 +66,7 @@ class KafkaConfigUploader @Activate constructor(
             }
 
             kafkaConnectionProperties[KAFKA_BOOTSTRAP_SERVER] = getConfigValue(kafkaConnectionProperties, KAFKA_BOOTSTRAP_SERVER)
+            kafkaConnectionProperties[TOPIC_PREFIX] = getConfigValue(kafkaConnectionProperties, TOPIC_PREFIX)
 
             val topicTemplate = parameters.topicTemplate
             if (topicTemplate != null) {
@@ -68,24 +78,65 @@ class KafkaConfigUploader @Activate constructor(
 
             val configurationFile = parameters.configurationFile
             if (configurationFile != null) {
-                logger.info("Writing config to topic")
-                configPublish.updateConfig(
-                    CONFIG_TOPIC,
-                    getBootstrapConfig(kafkaConnectionProperties),
-                    configurationFile.readText()
-                )
-                logger.info("Write complete")
-                consoleLogger.info("Write of config to topic completed")
+                publishConfig(configurationFile, kafkaConnectionProperties)
             }
             shutdownOSGiFramework()
+        }
+    }
+
+    private fun publishConfig(configurationFile: File, kafkaConnectionProperties: Properties) {
+        val records = recordsForConfig(configurationFile.readText())
+        logger.info("Writing config to topic")
+        publisherFactory.createPublisher(
+            PublisherConfig(CONFIGURATION_WRITER_CLIENT_ID, false),
+            getBootstrapConfig(kafkaConnectionProperties)
+        ).use { publisher ->
+            if (records.isNotEmpty()) publisher.publish(records).forEach { it.get() }
+        }
+        logger.info("Write complete")
+        consoleLogger.info("Write of config to topic completed")
+    }
+
+    internal fun recordsForConfig(configuration: String): List<Record<String, Configuration>> {
+        val parsedConfig = ConfigFactory.parseString(configuration)
+        return parsedConfig.root().keys.flatMap { packageKey ->
+            val packageConfig = parsedConfig.getConfig(packageKey)
+            packageConfig.root().keys.mapNotNull { componentKey ->
+                //skip if the component key is the package version
+                if (componentKey != "packageVersion") {
+                    recordForComponent(componentKey, packageKey, packageConfig)
+                } else {
+                    null
+                }
+            }
+        }
+    }
+
+    private fun recordForComponent(componentKey: String, packageKey: String, packageConfig: Config): Record<String, Configuration>? {
+        return try {
+            val recordKey = "$packageKey.$componentKey"
+            val version = packageConfig.getString("$componentKey.componentVersion")
+            val content = Configuration(packageConfig.getConfig(componentKey).root().render(ConfigRenderOptions.concise()), version)
+            Record(CONFIG_TOPIC, recordKey, content)
+        } catch (e: ConfigException) {
+            logger.warn("Component $componentKey has no defined componentVersion. Discarding component configuration")
+            null
         }
     }
 
     private fun getBootstrapConfig(kafkaConnectionProperties: Properties?): SmartConfig {
         val allConfig = ConfigFactory.empty()
             .withValue(
-                KAFKA_COMMON_BOOTSTRAP_SERVER,
+                BOOTSTRAP_SERVER,
                 ConfigValueFactory.fromAnyRef(getConfigValue(kafkaConnectionProperties, KAFKA_BOOTSTRAP_SERVER))
+            )
+            .withValue(
+                MessagingConfig.Bus.BUS_TYPE,
+                ConfigValueFactory.fromAnyRef("KAFKA")
+            )
+            .withValue(
+                INSTANCE_ID,
+                ConfigValueFactory.fromAnyRef(Random.nextInt())
             )
             .withValue(TOPIC_PREFIX, ConfigValueFactory.fromAnyRef(getConfigValue(kafkaConnectionProperties, TOPIC_PREFIX)))
         return SmartConfigFactory.create(allConfig).create(allConfig)

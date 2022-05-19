@@ -1,6 +1,6 @@
 plugins {
     id 'corda.common-library'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
 }
 
 description 'P2P gateway component'
@@ -13,6 +13,7 @@ dependencies {
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
     implementation "net.corda:corda-base"
     implementation "net.corda:corda-avro-schema"
+    implementation "net.corda:corda-config-schema"
     implementation "net.corda:corda-topic-schema"
     implementation "net.corda:corda-crypto"
     api project(":libs:messaging:messaging")
@@ -41,13 +42,11 @@ dependencies {
     integrationTestRuntimeOnly "com.lmax:disruptor:$disruptorVersion"
 
     integrationTestImplementation project(':libs:crypto:certificate-generation')
-    integrationTestImplementation project(":libs:messaging:inmemory-messaging-impl")
     integrationTestImplementation project(":libs:lifecycle:lifecycle-impl")
     integrationTestImplementation project(":libs:lifecycle:registry")
     integrationTestImplementation project(":components:configuration:configuration-read-service-impl")
     integrationTestImplementation project(":libs:configuration:configuration-core")
-    integrationTestImplementation project(":libs:configuration:configuration-publish")
-    integrationTestImplementation project(":libs:configuration:configuration-publish-impl")
+    integrationTestImplementation project(":testing:p2p:inmemory-messaging-impl")
     integrationTestImplementation 'net.corda:corda-cipher-suite'
 }
 

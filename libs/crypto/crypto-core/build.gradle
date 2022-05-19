@@ -1,5 +1,5 @@
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'corda.common-library'
 }
 
@@ -13,7 +13,7 @@ dependencies {
 
     api "net.corda:corda-cipher-suite"
 
-    testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 

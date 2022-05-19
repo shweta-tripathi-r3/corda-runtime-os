@@ -2,19 +2,16 @@ package net.corda.cpiinfo.write.impl
 
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.cpiinfo.write.CpiInfoWriteService
-import net.corda.data.packaging.CPIIdentifier
-import net.corda.data.packaging.CPIMetadata
 import net.corda.libs.configuration.SmartConfig
-import net.corda.libs.packaging.CpiMetadata
+import net.corda.libs.packaging.core.CpiMetadata
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
+import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.lifecycle.LifecycleStatus
-import net.corda.lifecycle.createCoordinator
 import net.corda.messaging.api.publisher.Publisher
 import net.corda.messaging.api.publisher.config.PublisherConfig
 import net.corda.messaging.api.publisher.factory.PublisherFactory
 import net.corda.messaging.api.records.Record
-import net.corda.packaging.CPI
 import net.corda.schema.Schemas.VirtualNode.Companion.CPI_INFO_TOPIC
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.debug
@@ -24,10 +21,12 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.Logger
+import net.corda.data.packaging.CpiIdentifier as CpiIdentifierAvro
+import net.corda.data.packaging.CpiMetadata as CpiMetadataAvro
 
 /**
  * CPI Info Service writer so that we can [put] and [remove]
- * [CPI.Metadata] from Kafka compacted queues
+ * [CpiMetadata] from Kafka compacted queues
  *
  * Complements [CpiInfoReaderComponent]
  */
@@ -45,13 +44,12 @@ class CpiInfoWriterComponentImpl @Activate constructor(
         internal const val CLIENT_ID = "CPI_INFO_WRITER"
     }
 
-    // This eventually needs to be passed in to here from the parent `main`
-    private val instanceId: Int? = null
-
     private val eventHandler: MessagingConfigEventHandler =
         MessagingConfigEventHandler(configurationReadService, this::onConfigChangeEvent, this::onConfig)
 
-    private val coordinator = coordinatorFactory.createCoordinator<CpiInfoWriteService>(eventHandler)
+    override val lifecycleCoordinatorName = LifecycleCoordinatorName.forComponent<CpiInfoWriteService>()
+
+    private val coordinator = coordinatorFactory.createCoordinator(lifecycleCoordinatorName, eventHandler)
 
     private var publisher: Publisher? = null
 
@@ -65,7 +63,7 @@ class CpiInfoWriterComponentImpl @Activate constructor(
 
     /** Synchronous publish */
     @Suppress("ForbiddenComment")
-    private fun publish(records: List<Record<CPIIdentifier, CPIMetadata>>) {
+    private fun publish(records: List<Record<CpiIdentifierAvro, CpiMetadataAvro>>) {
         if (publisher == null) {
             log.error("Cpi Info Writer publisher is null, not publishing, this error will addressed in a later PR")
             return
@@ -101,7 +99,7 @@ class CpiInfoWriterComponentImpl @Activate constructor(
     private fun onConfig(coordinator: LifecycleCoordinator, config: SmartConfig) {
         coordinator.updateStatus(LifecycleStatus.DOWN)
         publisher?.close()
-        publisher = publisherFactory.createPublisher(PublisherConfig(CLIENT_ID, instanceId), config)
+        publisher = publisherFactory.createPublisher(PublisherConfig(CLIENT_ID), config)
         coordinator.updateStatus(LifecycleStatus.UP)
     }
 }

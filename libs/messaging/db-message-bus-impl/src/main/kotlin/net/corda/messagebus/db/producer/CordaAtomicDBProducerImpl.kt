@@ -11,21 +11,18 @@ import net.corda.messagebus.db.persistence.DBAccess
 import net.corda.messagebus.db.persistence.DBAccess.Companion.ATOMIC_TRANSACTION
 import net.corda.messagebus.db.util.WriteOffsets
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
-import java.time.Duration
 import kotlin.math.abs
 
 @Suppress("TooManyFunctions")
 class CordaAtomicDBProducerImpl(
     private val serializer: CordaAvroSerializer<Any>,
-    private val dbAccess: DBAccess
+    private val dbAccess: DBAccess,
+    private val writeOffsets: WriteOffsets
 ) : CordaProducer {
 
     init {
         dbAccess.writeAtomicTransactionRecord()
     }
-
-    private val defaultTimeout: Duration = Duration.ofSeconds(1)
-    private val writeOffsets = WriteOffsets(dbAccess.getMaxOffsetsPerTopicPartition())
 
     override fun send(record: CordaProducerRecord<*, *>, callback: CordaProducer.Callback?) {
         sendRecords(listOf(record))
@@ -99,10 +96,9 @@ class CordaAtomicDBProducerImpl(
         throwNonTransactionalLogic()
     }
 
-    override fun close(timeout: Duration) {
+    override fun close() {
+        dbAccess.close()
     }
-
-    override fun close() = close(defaultTimeout)
 
     private fun throwNonTransactionalLogic() {
         throw CordaMessageAPIFatalException("Non transactional producer can't do transactional logic.")

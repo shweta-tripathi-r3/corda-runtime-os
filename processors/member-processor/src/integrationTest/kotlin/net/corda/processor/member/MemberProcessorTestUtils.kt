@@ -1,11 +1,15 @@
 package net.corda.processor.member
 
 import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueFactory
 import net.corda.cpiinfo.read.CpiInfoReadService
+import net.corda.crypto.core.aes.KeyCredentials
+import net.corda.crypto.impl.config.addDefaultCryptoConfig
 import net.corda.data.config.Configuration
+import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.SmartConfigFactory
-import net.corda.libs.packaging.CpiIdentifier
-import net.corda.libs.packaging.CpiMetadata
+import net.corda.libs.packaging.core.CpiIdentifier
+import net.corda.libs.packaging.core.CpiMetadata
 import net.corda.lifecycle.Lifecycle
 import net.corda.membership.GroupPolicy
 import net.corda.membership.grouppolicy.GroupPolicyProvider
@@ -33,18 +37,13 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import java.time.Duration
 import java.lang.IllegalStateException
 import java.util.UUID
 
 class MemberProcessorTestUtils {
     companion object {
-        val bootConf = with(ConfigFactory.parseString("instanceId=1")) {
-            SmartConfigFactory.create(this).create(this)
-        }
-
-        val cryptoConf = ""
-
-        val messagingConf = """
+        private const val MESSAGING_CONFIGURATION_VALUE: String = """
             componentVersion="5.1"
             subscription {
                 consumer {
@@ -61,6 +60,41 @@ class MemberProcessorTestUtils {
             }
       """
 
+        private const val BOOT_CONFIGURATION = """
+        instance.id=1
+        bus.busType = INMEMORY
+    """
+
+        fun makeMessagingConfig(boostrapConfig: SmartConfig): SmartConfig =
+            boostrapConfig.factory.create(
+                ConfigFactory.parseString(MESSAGING_CONFIGURATION_VALUE)
+                    .withFallback(ConfigFactory.parseString(BOOT_CONFIGURATION))
+            )
+
+        fun makeBootstrapConfig(extra: Map<String, SmartConfig>): SmartConfig {
+            var cfg = SmartConfigFactory.create(
+                ConfigFactory.parseString(
+                    """
+            ${SmartConfigFactory.SECRET_PASSPHRASE_KEY}=passphrase
+            ${SmartConfigFactory.SECRET_SALT_KEY}=salt
+        """.trimIndent()
+                )
+            ).create(
+                ConfigFactory
+                    .parseString(MESSAGING_CONFIGURATION_VALUE)
+                    .withFallback(
+                        ConfigFactory.parseString(BOOT_CONFIGURATION)
+                    )
+            ).addDefaultCryptoConfig(
+                fallbackCryptoRootKey = KeyCredentials("root-passphrase", "root-salt"),
+                fallbackSoftKey = KeyCredentials("soft-passphrase", "soft-salt")
+            )
+            extra.forEach {
+                cfg = cfg.withFallback(cfg.withValue(it.key, ConfigValueFactory.fromMap(it.value.root().unwrapped())))
+            }
+            return cfg
+        }
+
         val aliceName = "C=GB, L=London, O=Alice"
         val bobName = "C=GB, L=London, O=Bob"
         val charlieName = "C=GB, L=London, O=Charlie"
@@ -69,24 +103,27 @@ class MemberProcessorTestUtils {
         val bobX500Name = MemberX500Name.parse(bobName)
         val charlieX500Name = MemberX500Name.parse(charlieName)
         val groupId = "ABC123"
-        val aliceHoldingIdentity = HoldingIdentity(aliceName, groupId)
+        val aliceHoldingIdentity = HoldingIdentity(aliceX500Name.toString(), groupId)
+        val bobHoldingIdentity = HoldingIdentity(bobX500Name.toString(), groupId)
 
         fun Publisher.publishRawGroupPolicyData(
             virtualNodeInfoReader: VirtualNodeInfoReadService,
             cpiInfoReadService: CpiInfoReadService,
-            holdingIdentity: HoldingIdentity = aliceHoldingIdentity,
+            holdingIdentity: HoldingIdentity,
             groupPolicy: String = sampleGroupPolicy1
         ) {
             val cpiVersion = UUID.randomUUID().toString()
-            val previous = getVirtualNodeInfo(virtualNodeInfoReader)
+            val previous = getVirtualNodeInfo(virtualNodeInfoReader, holdingIdentity)
             val previousCpiInfo = getCpiInfo(cpiInfoReadService, previous?.cpiIdentifier)
             // Create test data
             val cpiMetadata = getCpiMetadata(
                 groupPolicy = groupPolicy,
                 cpiVersion = cpiVersion
             )
-            val virtualNodeInfo = VirtualNodeInfo(holdingIdentity, cpiMetadata.cpiId,
-                null, UUID.randomUUID(), null, UUID.randomUUID())
+            val virtualNodeInfo = VirtualNodeInfo(
+                holdingIdentity, cpiMetadata.cpiId,
+                null, UUID.randomUUID(), null, UUID.randomUUID()
+            )
 
             // Publish test data
             publishCpiMetadata(cpiMetadata)
@@ -102,7 +139,7 @@ class MemberProcessorTestUtils {
 
             // wait for virtual node info reader to pick up changes
             eventually {
-                val newVNodeInfo = getVirtualNodeInfo(virtualNodeInfoReader)
+                val newVNodeInfo = getVirtualNodeInfo(virtualNodeInfoReader, holdingIdentity)
                 assertNotNull(newVNodeInfo)
                 assertNotEquals(previous, newVNodeInfo)
                 assertEquals(virtualNodeInfo.cpiIdentifier, newVNodeInfo?.cpiIdentifier)
@@ -126,15 +163,25 @@ class MemberProcessorTestUtils {
         val sampleGroupPolicy1 get() = getSampleGroupPolicy("/SampleGroupPolicy.json")
         val sampleGroupPolicy2 get() = getSampleGroupPolicy("/SampleGroupPolicy2.json")
 
-        fun getRegistrationResult(registrationProxy: RegistrationProxy): MembershipRequestRegistrationResult = eventually {
-            assertDoesNotThrow {
-                registrationProxy.register(aliceHoldingIdentity)
+        /**
+         * Registration is not a call expected to happen repeatedly in quick succession so allowing more time in
+         * between calls for a more realistic set up.
+         */
+        fun getRegistrationResult(
+            registrationProxy: RegistrationProxy,
+            holdingIdentity: HoldingIdentity
+        ): MembershipRequestRegistrationResult =
+            eventually(
+                waitBetween = Duration.ofMillis(1000)
+            ) {
+                assertDoesNotThrow {
+                    registrationProxy.register(holdingIdentity)
+                }
             }
-        }
 
-        fun getRegistrationResultFails(registrationProvider: RegistrationProxy) = eventually {
-            assertThrows<IllegalStateException> {
-                registrationProvider.register(aliceHoldingIdentity)
+        fun assertLookupSize(groupReader: MembershipGroupReader, expectedSize: Int) = eventually {
+            groupReader.lookup().also {
+                assertEquals(expectedSize, it.size)
             }
         }
 
@@ -157,7 +204,7 @@ class MemberProcessorTestUtils {
 
         fun getGroupPolicyFails(
             groupPolicyProvider: GroupPolicyProvider,
-            holdingIdentity: HoldingIdentity = aliceHoldingIdentity,
+            holdingIdentity: HoldingIdentity,
             expectedException: Class<out Exception> = IllegalStateException::class.java
         ) = eventually {
             val e = assertThrows<Exception> { groupPolicyProvider.getGroupPolicy(holdingIdentity) }
@@ -166,7 +213,7 @@ class MemberProcessorTestUtils {
 
         fun getGroupPolicy(
             groupPolicyProvider: GroupPolicyProvider,
-            holdingIdentity: HoldingIdentity = aliceHoldingIdentity
+            holdingIdentity: HoldingIdentity
         ) = eventually {
             assertDoesNotThrow { groupPolicyProvider.getGroupPolicy(holdingIdentity) }
         }
@@ -188,19 +235,21 @@ class MemberProcessorTestUtils {
             assertEquals(2, new.size)
         }
 
+        fun Publisher.publishMessagingConf(messagingConfig: SmartConfig) =
+            publishConf(ConfigKeys.MESSAGING_CONFIG, messagingConfig.root().render())
 
-        fun getSampleGroupPolicy(fileName: String): String {
+        private fun getSampleGroupPolicy(fileName: String): String {
             val url = this::class.java.getResource(fileName)
             requireNotNull(url)
             return url.readText()
         }
 
-        fun getCpiIdentifier(
+        private fun getCpiIdentifier(
             name: String = "INTEGRATION_TEST",
             version: String
         ) = CpiIdentifier(name, version, SecureHash.create("SHA-256:0000000000000000"))
 
-        fun getCpiMetadata(
+        private fun getCpiMetadata(
             cpiVersion: String,
             groupPolicy: String,
             cpiIdentifier: CpiIdentifier = getCpiIdentifier(version = cpiVersion)
@@ -211,16 +260,20 @@ class MemberProcessorTestUtils {
             groupPolicy
         )
 
-        fun getVirtualNodeInfo(virtualNodeInfoReader: VirtualNodeInfoReadService) =
-            virtualNodeInfoReader.get(aliceHoldingIdentity)
+        private fun getVirtualNodeInfo(virtualNodeInfoReader: VirtualNodeInfoReadService, holdingIdentity: HoldingIdentity) =
+            virtualNodeInfoReader.get(holdingIdentity)
 
-        fun getCpiInfo(cpiInfoReadService: CpiInfoReadService, cpiIdentifier: CpiIdentifier?) =
+        private fun getCpiInfo(cpiInfoReadService: CpiInfoReadService, cpiIdentifier: CpiIdentifier?) =
             when (cpiIdentifier) {
-                null -> { null }
-                else -> { cpiInfoReadService.get(cpiIdentifier) }
+                null -> {
+                    null
+                }
+                else -> {
+                    cpiInfoReadService.get(cpiIdentifier)
+                }
             }
 
-        fun Publisher.publishVirtualNodeInfo(virtualNodeInfo: VirtualNodeInfo) {
+        private fun Publisher.publishVirtualNodeInfo(virtualNodeInfo: VirtualNodeInfo) {
             publish(
                 listOf(
                     Record(
@@ -232,19 +285,13 @@ class MemberProcessorTestUtils {
             )
         }
 
-        fun Publisher.publishCpiMetadata(cpiMetadata: CpiMetadata) =
-            publishRecord(Schemas.VirtualNode.CPI_INFO_TOPIC, cpiMetadata.cpiId.toAvro(), cpiMetadata.toAvro())
-
-        fun Publisher.publishMessagingConf() =
-            publishConf(ConfigKeys.MESSAGING_CONFIG, messagingConf)
-
-        fun Publisher.publishCryptoConf() =
-            publishConf(ConfigKeys.CRYPTO_CONFIG, cryptoConf)
-
         private fun Publisher.publishConf(configKey: String, conf: String) =
             publishRecord(Schemas.Config.CONFIG_TOPIC, configKey, Configuration(conf, "1"))
 
-        fun <K : Any, V : Any> Publisher.publishRecord(topic: String, key: K, value: V) =
+        private fun Publisher.publishCpiMetadata(cpiMetadata: CpiMetadata) =
+            publishRecord(Schemas.VirtualNode.CPI_INFO_TOPIC, cpiMetadata.cpiId.toAvro(), cpiMetadata.toAvro())
+
+        private fun <K : Any, V : Any> Publisher.publishRecord(topic: String, key: K, value: V) =
             publish(listOf(Record(topic, key, value)))
     }
 }

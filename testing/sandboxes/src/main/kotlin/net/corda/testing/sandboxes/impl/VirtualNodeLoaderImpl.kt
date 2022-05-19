@@ -1,8 +1,8 @@
 package net.corda.testing.sandboxes.impl
 
-import net.corda.libs.packaging.CpiIdentifier
+import net.corda.libs.packaging.core.CpiIdentifier
 import java.util.concurrent.ConcurrentHashMap
-import net.corda.packaging.CPI
+import net.corda.libs.packaging.Cpi
 import net.corda.testing.sandboxes.CpiLoader
 import net.corda.testing.sandboxes.VirtualNodeLoader
 import net.corda.v5.base.util.loggerFor
@@ -25,7 +25,7 @@ class VirtualNodeLoaderImpl @Activate constructor(
 ) : VirtualNodeLoader, VirtualNodeInfoReadService {
     private val virtualNodeInfoMap = ConcurrentHashMap<HoldingIdentity, VirtualNodeInfo>()
     private val resourcesLookup = mutableMapOf<CpiIdentifier, String>()
-    private val cpiResources = mutableMapOf<String, CPI>()
+    private val cpiResources = mutableMapOf<String, Cpi>()
     private val logger = loggerFor<VirtualNodeLoader>()
 
     override val isRunning: Boolean
@@ -35,15 +35,15 @@ class VirtualNodeLoaderImpl @Activate constructor(
         // TODO - refactor this when CPI loader code moves from api to runtime-os
         val cpi = cpiResources.computeIfAbsent(resourceName) { key ->
             cpiLoader.loadCPI(key).also { cpi ->
-                resourcesLookup[CpiIdentifier.fromLegacy(cpi.metadata.id)] = key
+                resourcesLookup[cpi.metadata.cpiId] = key
             }
         }
         return VirtualNodeInfo(
             holdingIdentity,
             CpiIdentifier(
-                cpi.metadata.id.name,
-                cpi.metadata.id.version,
-                cpi.metadata.id.signerSummaryHash),
+                cpi.metadata.cpiId.name,
+                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId.signerSummaryHash),
             null, UUID.randomUUID(), null, UUID.randomUUID(), null
         ).also(::put)
     }

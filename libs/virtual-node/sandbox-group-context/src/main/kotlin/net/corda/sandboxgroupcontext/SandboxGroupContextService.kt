@@ -1,9 +1,9 @@
 package net.corda.sandboxgroupcontext
 
-import net.corda.libs.packaging.CpkIdentifier
-import net.corda.libs.packaging.CpkMetadata
+import net.corda.libs.packaging.core.CpkIdentifier
+import net.corda.libs.packaging.core.CpkMetadata
 
-interface SandboxGroupContextService {
+interface SandboxGroupContextService: AutoCloseable {
     /**
      * This function creates and returns a "fully constructed" node that is ready to
      * execute a flow with no further configuration required.  Your supplied initializer will be run

@@ -3,6 +3,7 @@ package net.corda.membership.impl.read
 import com.typesafe.config.ConfigFactory
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.data.config.Configuration
+import net.corda.db.messagebus.testkit.DBSetup
 import net.corda.libs.configuration.SmartConfigFactory
 import net.corda.lifecycle.Lifecycle
 import net.corda.membership.read.MembershipGroupReader
@@ -13,10 +14,11 @@ import net.corda.messaging.api.publisher.factory.PublisherFactory
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas
 import net.corda.schema.configuration.ConfigKeys
+import net.corda.schema.configuration.MessagingConfig.Boot.INSTANCE_ID
+import net.corda.schema.configuration.MessagingConfig.Bus.BUS_TYPE
 import net.corda.test.util.eventually
-import net.corda.v5.base.exceptions.CordaRuntimeException
-import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.types.MemberX500Name
+import net.corda.v5.base.util.contextLogger
 import net.corda.virtualnode.HoldingIdentity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -31,7 +33,7 @@ import org.osgi.test.common.annotation.InjectService
 import org.osgi.test.junit5.service.ServiceExtension
 import kotlin.reflect.KFunction
 
-@ExtendWith(ServiceExtension::class)
+@ExtendWith(ServiceExtension::class, DBSetup::class)
 class MembershipGroupReaderProviderIntegrationTest {
 
     companion object {
@@ -53,7 +55,10 @@ class MembershipGroupReaderProviderIntegrationTest {
     private val aliceMemberName = MemberX500Name.parse(aliceX500Name)
     private val groupId = "ABC123"
     private val aliceHoldingIdentity = HoldingIdentity(aliceX500Name, groupId)
-    private val bootConf = "instanceId=1"
+    private val bootConf = """
+        $INSTANCE_ID=1
+        $BUS_TYPE = INMEMORY
+        """.trimIndent()
 
     private val messagingConf = """
             componentVersion="5.1"
@@ -81,8 +86,16 @@ class MembershipGroupReaderProviderIntegrationTest {
 
     @BeforeEach
     fun setUp() {
+        // Set basic bootstrap config
+        val bootConfig = with(ConfigFactory.parseString(bootConf)) {
+            SmartConfigFactory.create(this).create(this)
+        }
+
         if (!setUpComplete) {
-            publisherFactory.createPublisher(PublisherConfig("group-reader-integration-test", 1)).publish(
+            publisherFactory.createPublisher(
+                PublisherConfig("group-reader-integration-test"),
+                bootConfig
+            ).publish(
                 listOf(
                     Record(
                         Schemas.Config.CONFIG_TOPIC,
@@ -90,23 +103,19 @@ class MembershipGroupReaderProviderIntegrationTest {
                         Configuration(messagingConf, "1")
                     )
                 )
-            )
+            )[0]
 
             startableServices.forEach { it.startAndWait() }
-            // Set basic bootstrap config
-            with(ConfigFactory.parseString(bootConf)) {
-                configurationReadService.bootstrapConfig(
-                    SmartConfigFactory.create(this).create(this)
-                )
-            }
 
-            // Publish test data
-            with(publisherFactory.createPublisher(PublisherConfig(CLIENT_ID))) {
-                publishMessagingConf()
-            }
-
-            setUpComplete = true
+            configurationReadService.bootstrapConfig(bootConfig)
         }
+
+        // Publish test data
+        with(publisherFactory.createPublisher(PublisherConfig(CLIENT_ID), bootConfig)) {
+            publishMessagingConf()
+        }
+
+        setUpComplete = true
     }
 
     val tests = listOf(
@@ -214,3 +223,4 @@ class MembershipGroupReaderProviderIntegrationTest {
     private fun <K : Any, V : Any> Publisher.publishRecord(topic: String, key: K, value: V) =
         publish(listOf(Record(topic, key, value)))
 }
+

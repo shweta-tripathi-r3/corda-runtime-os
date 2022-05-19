@@ -1,14 +1,15 @@
 package net.corda.p2p.gateway
 
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValueFactory
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.configuration.read.impl.ConfigurationReadServiceImpl
 import net.corda.crypto.test.certificates.generation.toPem
+import net.corda.data.config.Configuration
 import net.corda.libs.configuration.SmartConfigFactory
-import net.corda.libs.configuration.publish.CordaConfigurationKey
-import net.corda.libs.configuration.publish.CordaConfigurationVersion
-import net.corda.libs.configuration.publish.impl.ConfigPublisherImpl
+import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.lifecycle.Lifecycle
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.impl.LifecycleCoordinatorFactoryImpl
@@ -35,6 +36,7 @@ import net.corda.schema.Schemas
 import net.corda.schema.Schemas.Config.Companion.CONFIG_TOPIC
 import net.corda.schema.TestSchema
 import net.corda.test.util.eventually
+import net.corda.v5.base.concurrent.getOrThrow
 import net.corda.v5.base.util.seconds
 import org.assertj.core.api.Assertions.assertThat
 import org.bouncycastle.asn1.x500.X500Name
@@ -43,10 +45,9 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 import java.io.StringWriter
 import java.net.BindException
 import java.net.ServerSocket
-import java.nio.ByteBuffer
 import java.security.KeyStore
 import java.security.cert.X509Certificate
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 open class TestBase {
@@ -62,7 +63,6 @@ open class TestBase {
         }
         return KeyStoreWithPassword(keyStore, password)
     }
-
     protected val truststoreCertificatePem by lazy {
         javaClass.classLoader.getResource("truststore/certificate.pem").readText()
     }
@@ -72,6 +72,7 @@ open class TestBase {
     protected val truststoreKeyStore by lazy {
         TrustStoresMap.TrustedCertificates(listOf(truststoreCertificatePem)).trustStore
     }
+
     protected val c4TruststoreKeyStore by lazy {
         TrustStoresMap.TrustedCertificates(listOf(c4TruststoreCertificatePem)).trustStore
     }
@@ -87,7 +88,6 @@ open class TestBase {
             }
         }
     }
-
     protected val clientMessageContent = "PING"
     protected val serverResponseContent = "PONG"
     protected val keystorePass = "password"
@@ -130,6 +130,7 @@ open class TestBase {
         private val configurationTopicService = TopicServiceImpl()
         private val rpcTopicService = RPCTopicServiceImpl()
         private val configPublisherClientId = "config.${UUID.randomUUID().toString().replace("-", "")}"
+        private val messagingConfig = SmartConfigImpl.empty()
 
         val readerService by lazy {
             ConfigurationReadServiceImpl(
@@ -140,6 +141,14 @@ open class TestBase {
                 val bootstrapper = ConfigFactory.empty()
                 it.bootstrapConfig(smartConfigFactory.create(bootstrapper))
             }
+        }
+
+        private fun Publisher.publishGatewayConfig(config: Config) {
+            this.publish(listOf(Record(
+                CONFIG_TOPIC,
+                "p2p.gateway",
+                Configuration(config.root().render(ConfigRenderOptions.concise()), "0.1")
+            ))).forEach { it.get() }
         }
 
         fun publishConfig(configuration: GatewayConfiguration) {
@@ -154,33 +163,18 @@ open class TestBase {
                 .withValue("connectionConfig.retryDelay", ConfigValueFactory.fromAnyRef(configuration.connectionConfig.retryDelay))
                 .withValue("connectionConfig.initialReconnectionDelay", ConfigValueFactory.fromAnyRef(configuration.connectionConfig.initialReconnectionDelay))
                 .withValue("connectionConfig.maximalReconnectionDelay", ConfigValueFactory.fromAnyRef(configuration.connectionConfig.maximalReconnectionDelay))
-            CordaPublisherFactory(configurationTopicService, rpcTopicService, lifecycleCoordinatorFactory).createPublisher(PublisherConfig((configPublisherClientId))).use { publisher ->
-                val configurationPublisher = ConfigPublisherImpl(CONFIG_TOPIC, publisher)
-                configurationPublisher.updateConfiguration(
-                    CordaConfigurationKey(
-                        "myKey",
-                        CordaConfigurationVersion("p2p", 0, 1),
-                        CordaConfigurationVersion("gateway", 0, 1)
-                    ),
-                    publishConfig
-                )
-            }
+            CordaPublisherFactory(configurationTopicService, rpcTopicService, lifecycleCoordinatorFactory)
+                .createPublisher(PublisherConfig(configPublisherClientId, false), messagingConfig).use { publisher ->
+                    publisher.publishGatewayConfig(publishConfig)
+                }
         }
         fun publishBadConfig() {
             val publishConfig = ConfigFactory.empty()
                 .withValue("hello", ConfigValueFactory.fromAnyRef("world"))
             CordaPublisherFactory(configurationTopicService, rpcTopicService, lifecycleCoordinatorFactory)
-                .createPublisher(PublisherConfig((configPublisherClientId)))
+                .createPublisher(PublisherConfig(configPublisherClientId, false), messagingConfig)
                 .use { publisher ->
-                    val configurationPublisher = ConfigPublisherImpl(CONFIG_TOPIC, publisher)
-                    configurationPublisher.updateConfiguration(
-                        CordaConfigurationKey(
-                            "myKey",
-                            CordaConfigurationVersion("p2p", 0, 1),
-                            CordaConfigurationVersion("gateway", 0, 1)
-                        ),
-                        publishConfig
-                    )
+                    publisher.publishGatewayConfig(publishConfig)
                 }
         }
     }

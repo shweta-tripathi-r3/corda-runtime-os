@@ -1,5 +1,5 @@
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'corda.common-library'
 }
 
@@ -16,7 +16,6 @@ dependencies {
     implementation "net.corda:corda-topic-schema"
 
     implementation project(":libs:messaging:messaging")
-    implementation project(":libs:membership:membership-internal")
 
     implementation project(":components:configuration:configuration-read-service")
     implementation project(":components:membership:membership-service")
@@ -25,5 +24,5 @@ dependencies {
 
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-    testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
 }

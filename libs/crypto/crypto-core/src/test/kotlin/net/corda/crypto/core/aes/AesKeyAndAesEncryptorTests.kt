@@ -104,7 +104,7 @@ class AesKeyAndAesEncryptorTests {
     fun `Should always derive same key for the same passphrase and salt and use successfully multiple times`() {
         val passphrase = UUID.randomUUID().toString()
         val salt = UUID.randomUUID().toString()
-        val key1 = AesKey.derive(passphrase, salt)
+        val key1 = AesKey.derive(KeyCredentials(passphrase, salt))
         val key2 = AesKey.derive(passphrase, salt)
         val random = Random(Instant.now().toEpochMilli())
         (0 until 10).forEach { _ ->
@@ -205,7 +205,7 @@ class AesKeyAndAesEncryptorTests {
     }
 
     @Test
-    fun `AesKey should not be equal to the object of different typr`() {
+    fun `AesKey should not be equal to the object of different type`() {
         val encoded = AesKey.encodePassPhrase(UUID.randomUUID().toString(), UUID.randomUUID().toString())
         val secretKey = SecretKeySpec(encoded, AES_KEY_ALGORITHM)
         val key = AesKey(key = secretKey)
@@ -250,7 +250,7 @@ class AesKeyAndAesEncryptorTests {
     }
 
     @Test
-    fun `AesEncryptor should not be equal to the object of different typr`() {
+    fun `AesEncryptor should not be equal to the object of different type`() {
         val encoded = AesKey.encodePassPhrase(UUID.randomUUID().toString(), UUID.randomUUID().toString())
         val secretKey = SecretKeySpec(encoded, AES_KEY_ALGORITHM)
         val encryptor = AesEncryptor(AesKey(key = secretKey))

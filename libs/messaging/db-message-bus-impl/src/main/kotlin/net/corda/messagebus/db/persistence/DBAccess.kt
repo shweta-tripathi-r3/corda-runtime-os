@@ -1,6 +1,7 @@
 package net.corda.messagebus.db.persistence
 
 import net.corda.messagebus.api.CordaTopicPartition
+import net.corda.messagebus.db.datamodel.CommittedOffsetEntryKey
 import net.corda.messagebus.db.datamodel.CommittedPositionEntry
 import net.corda.messagebus.db.datamodel.TopicEntry
 import net.corda.messagebus.db.datamodel.TopicRecordEntry
@@ -11,6 +12,7 @@ import net.corda.orm.utils.transaction
 import net.corda.v5.base.util.uncheckedCast
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Instant
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
@@ -31,6 +33,10 @@ class DBAccess(
     companion object {
         private val log: Logger = LoggerFactory.getLogger(this::class.java)
         internal val ATOMIC_TRANSACTION = TransactionRecordEntry("Atomic Transaction", TransactionState.COMMITTED)
+    }
+
+    fun close() {
+        entityManagerFactory.close()
     }
 
     fun getMaxCommittedPositions(
@@ -102,8 +108,11 @@ class DBAccess(
      * If auto topic creation is enabled then will create the topic
      */
     fun getTopicPartitionMapFor(topic: String): Set<CordaTopicPartition> {
-        return executeWithErrorHandling("retrieve topic partitions") { entityManager ->
-            val topicEntry = entityManager.find(TopicEntry::class.java, topic)
+        val topicEntry = executeWithErrorHandling(
+            "get topic partition map",
+            allowDuplicate = true
+        ) { entityManager ->
+            entityManager.find(TopicEntry::class.java, topic)
                 ?: if (autoCreate) {
                     val topicEntry = TopicEntry(topic, defaultNumPartitions)
                     entityManager.persist(topicEntry)
@@ -111,12 +120,12 @@ class DBAccess(
                 } else {
                     throw CordaMessageAPIFatalException("Cannot find topic $topic")
                 }
-            val topicPartitions = mutableSetOf<CordaTopicPartition>()
-            repeat(topicEntry.numPartitions) { partition ->
-                topicPartitions.add(CordaTopicPartition(topic, partition))
-            }
-            topicPartitions
         }
+        val topicPartitions = mutableSetOf<CordaTopicPartition>()
+        repeat(topicEntry.numPartitions) { partition ->
+            topicPartitions.add(CordaTopicPartition(topic, partition))
+        }
+        return topicPartitions
     }
 
     fun getTopicPartitionMap(): Map<String, Int> {
@@ -178,8 +187,11 @@ class DBAccess(
 
     fun writeOffsets(offsets: List<CommittedPositionEntry>) {
         executeWithErrorHandling("write offsets") { entityManager ->
-            offsets.forEach { offset ->
-                entityManager.persist(offset)
+            offsets.forEach {
+                val key = CommittedOffsetEntryKey(it.topic, it.consumerGroup, it.partition, it.recordPosition)
+                if (entityManager.find(CommittedPositionEntry::class.java, key) == null) {
+                    entityManager.persist(it)
+                }
             }
         }
     }
@@ -189,7 +201,10 @@ class DBAccess(
      * an error for this one txn record
      */
     fun writeAtomicTransactionRecord() {
-        executeWithErrorHandling("write atomic transaction record") { entityManager ->
+        executeWithErrorHandling(
+            "write atomic transaction record",
+            allowDuplicate = true
+        ) { entityManager ->
             if (entityManager.find(TransactionRecordEntry::class.java, ATOMIC_TRANSACTION.transactionId) == null) {
                 entityManager.persist(ATOMIC_TRANSACTION)
             }
@@ -308,15 +323,35 @@ class DBAccess(
      */
     private fun <T> executeWithErrorHandling(
         operationName: String,
+        allowDuplicate: Boolean = false,
         operation: (emf: EntityManager) -> T,
     ): T {
+        var result: T? = null
         return try {
             entityManagerFactory.transaction {
-                operation(it)
+                result = operation(it)
+                result
             }
         } catch (e: Exception) {
-            log.error("Error while trying to $operationName. Transaction has been rolled back.", e)
-            throw e
-        }
+            if (allowDuplicate && e.isCausedBy(SQLIntegrityConstraintViolationException::class.java)) {
+                // Someone got here first, not a problem
+                log.info("Attempt at duplicate record is allowed in this instance.")
+                result
+            } else {
+                log.error("Error while trying to $operationName. Transaction has been rolled back.", e)
+                throw e
+            }
+        } ?: throw CordaMessageAPIFatalException("Internal error.  DB result should not be null.")
     }
+}
+
+fun <T : Exception> Exception.isCausedBy(exceptionType: Class<T>): Boolean {
+    var currentCause = this.cause
+    while (currentCause != null) {
+        if (currentCause::class.java.isAssignableFrom(exceptionType)) {
+            return true
+        }
+        currentCause = currentCause.cause
+    }
+    return false
 }

@@ -1,6 +1,6 @@
 plugins {
     id 'corda.common-library'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
 }
 
 description 'Database Message Bus Implementation'
@@ -9,6 +9,7 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation "net.corda:corda-base"
     implementation "net.corda:corda-avro-schema"
+    implementation "net.corda:corda-config-schema"
     compileOnly 'org.osgi:osgi.core'
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
@@ -25,6 +26,10 @@ dependencies {
     implementation project(":libs:messaging:messaging")
     implementation project(":libs:messaging:message-bus")
     implementation project(":libs:schema-registry:schema-registry")
+
+    runtimeOnly project(':libs:db:db-orm-impl')
+    runtimeOnly project(':libs:schema-registry:schema-registry-impl')
+    runtimeOnly "com.sun.activation:javax.activation:$activationVersion"
 
     testImplementation project(":testing:test-utilities")
     testImplementation "org.assertj:assertj-core:$assertjVersion"

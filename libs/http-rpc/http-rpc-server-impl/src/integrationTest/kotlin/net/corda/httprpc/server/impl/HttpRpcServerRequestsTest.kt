@@ -16,7 +16,6 @@ import net.corda.httprpc.tools.HttpVerb.DELETE
 import net.corda.httprpc.tools.HttpVerb.GET
 import net.corda.httprpc.tools.HttpVerb.POST
 import net.corda.httprpc.tools.HttpVerb.PUT
-import net.corda.v5.application.flows.BadRpcStartFlowRequestException
 import net.corda.v5.base.util.NetworkHostAndPort
 import org.apache.http.HttpStatus
 import org.assertj.core.api.Assertions.assertThat
@@ -24,11 +23,11 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import java.nio.file.Path
 import java.time.Instant
 import java.time.ZonedDateTime
 import kotlin.test.assertEquals
-
+import net.corda.httprpc.server.impl.utils.TestClientFileUpload
+import net.corda.httprpc.test.utls.ChecksumUtil
 
 class HttpRpcServerRequestsTest : HttpRpcServerTestBase() {
     companion object {
@@ -47,7 +46,8 @@ class HttpRpcServerRequestsTest : HttpRpcServerTestBase() {
                     TestHealthCheckAPIImpl(),
                     TestJavaPrimitivesRPCopsImpl(),
                     CustomSerializationAPIImpl(),
-                    TestEntityRpcOpsImpl()
+                    TestEntityRpcOpsImpl(),
+                    TestFileUploadImpl()
                 ),
                 securityManager,
                 httpRpcSettings,
@@ -374,12 +374,6 @@ class HttpRpcServerRequestsTest : HttpRpcServerTestBase() {
     }
 
     @Test
-    fun `BadRequestException should be converted to BadRequestResponse`() {
-        val throwExceptionResponse = client.call(GET, WebRequest<Any>("health/throwexception?exception=${BadRpcStartFlowRequestException::class.java.name}"), userName, password)
-        assertEquals(HttpStatus.SC_BAD_REQUEST, throwExceptionResponse.responseStatus)
-    }
-
-    @Test
     fun `POST with non cordaSerializable should not run the init of the object`() {
         client.call(POST, WebRequest<Any>("customjson/unsafe", """ { "s": { "data": "value" } }"""), userName, password)
         client.call(POST, WebRequest<Any>("customjson/unsafe", """ { "s": { "unsafe": "value" } }"""), userName, password)
@@ -467,5 +461,206 @@ class HttpRpcServerRequestsTest : HttpRpcServerTestBase() {
 
         assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
         assertEquals("\"Deleted using query: MyQuery\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `test generate checksum function`() {
+        val inputStream1 = "test text".byteInputStream()
+        val inputStream2 = "test text".byteInputStream()
+
+        val checksum1 = ChecksumUtil.generateChecksum(inputStream1)
+        val checksum2 = ChecksumUtil.generateChecksum(inputStream2)
+
+        assertEquals(checksum1, checksum2)
+    }
+
+    @Test
+    fun `file upload using multi-part form request`() {
+        val text = "test text"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/upload",
+                files = mapOf(
+                    "file" to listOf(TestClientFileUpload(text.byteInputStream(), "uploadedTestFile.txt"))
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedChecksum = ChecksumUtil.generateChecksum(text.byteInputStream())
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedChecksum\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `file upload with name parameter using multi-part form request`() {
+        val text = "test text"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/uploadwithname",
+                formParameters = mapOf("name" to "some-text-as-parameter"),
+                files = mapOf(
+                    "file" to listOf(TestClientFileUpload(text.byteInputStream(), "uploadedTestFile.txt"))
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedResult = "some-text-as-parameter, ${ChecksumUtil.generateChecksum(text.byteInputStream())}"
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedResult\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `file upload on API declaring HttpFileUpload object as parameter using multi-part form request`() {
+        val text = "test text"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/fileuploadobject",
+                files = mapOf(
+                    "file" to listOf(TestClientFileUpload(text.byteInputStream(), "uploadedTestFile.txt"))
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedResult = ChecksumUtil.generateChecksum(text.byteInputStream())
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedResult\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `file upload on API declaring multiple HttpFileUpload objects as parameters using multi-part form request`() {
+        val text1 = "test text 1"
+        val text2 = "test text 2"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/multifileuploadobject",
+                files = mapOf(
+                    "file1" to listOf(TestClientFileUpload(text1.byteInputStream(), "uploadedTestFile1.txt")),
+                    "file2" to listOf(TestClientFileUpload(text2.byteInputStream(), "uploadedTestFile2.txt"))
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedResult = ChecksumUtil.generateChecksum(text1.byteInputStream()) + ", " + ChecksumUtil.generateChecksum(text2.byteInputStream())
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedResult\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `file upload of list of HttpFileUpload using multi-part form request`() {
+        val text1 = "test text 1"
+        val text2 = "test text 2"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/fileuploadobjectlist",
+                files = mapOf(
+                    "files" to listOf(
+                        TestClientFileUpload(text1.byteInputStream(), "uploadedTestFile1.txt"),
+                        TestClientFileUpload(text2.byteInputStream(), "uploadedTestFile2.txt")
+                    )
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedResult = ChecksumUtil.generateChecksum(text1.byteInputStream()) + ", " + ChecksumUtil.generateChecksum(text2.byteInputStream())
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedResult\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `file upload of HttpFileUpload using name in annotation`() {
+        val text1 = "test text 1"
+        val createEntityResponse = client.call(
+            POST,
+            WebRequest<Any>(
+                path = "fileupload/uploadwithnameinannotation",
+                files = mapOf(
+                    "differentName" to listOf(TestClientFileUpload(text1.byteInputStream(), "uploadedTestFile1.txt"))
+                )
+            ),
+            userName,
+            password
+        )
+
+        val expectedResult = ChecksumUtil.generateChecksum(text1.byteInputStream())
+
+        assertEquals(HttpStatus.SC_OK, createEntityResponse.responseStatus)
+        assertEquals("\"$expectedResult\"", createEntityResponse.body)
+    }
+
+    @Test
+    fun `POST call using name in annotation`() {
+
+        val fullUrl = "health/stringmethodwithnameinannotation"
+        val helloResponse = client.call(
+            POST, WebRequest<Any>(
+                fullUrl,
+                """{"correctName": "foo"}"""
+            ),
+            userName, password
+        )
+        assertEquals(HttpStatus.SC_OK, helloResponse.responseStatus)
+        assertEquals(""""Completed foo"""", helloResponse.body)
+    }
+
+    @Test
+    fun `test api that returns null object `() {
+
+        val fullUrl = "health/apireturningnullobject"
+        val helloResponse = client.call(
+            POST, WebRequest<Any>(
+                fullUrl
+            ),
+            userName, password
+        )
+        assertEquals(HttpStatus.SC_OK, helloResponse.responseStatus)
+        assertEquals("""null""", helloResponse.body)
+    }
+
+    @Test
+    fun `test api that returns null string`() {
+
+        val fullUrl = "health/apireturningnullstring"
+        val helloResponse = client.call(
+            POST, WebRequest<Any>(
+                fullUrl
+            ),
+            userName, password
+        )
+        assertEquals(HttpStatus.SC_OK, helloResponse.responseStatus)
+        assertEquals("""null""", helloResponse.body)
+    }
+
+    @Test
+    fun `test api that returns object wrapping a null string`() {
+
+        val fullUrl = "health/apireturningobjectwithnullablestringinside"
+        val helloResponse = client.call(
+            POST, WebRequest<Any>(
+                fullUrl
+            ),
+            userName, password
+        )
+        assertEquals(HttpStatus.SC_OK, helloResponse.responseStatus)
+        assertEquals("""{"str":null}""", helloResponse.body)
     }
 }

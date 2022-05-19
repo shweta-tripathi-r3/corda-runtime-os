@@ -155,6 +155,6 @@ class PermissionStorageWriterServiceEventHandlerTest {
         verify(subscription).start()
         handler.processEvent(StopEvent(), mock())
         assertNull(handler.subscription)
-        verify(subscription).stop()
+        verify(subscription).close()
     }
 }

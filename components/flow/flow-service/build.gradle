@@ -1,22 +1,14 @@
-import aQute.bnd.gradle.Bundle
-
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'corda.osgi-test-conventions'
     id 'corda.common-library'
 }
 
 description "Flow service"
 
-configurations {
-    cpks {
-        canBeConsumed = false
-        transitive = false
-    }
-}
-
 dependencies {
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
+    compileOnly "org.osgi:org.osgi.service.component:$osgiServiceComponentVersion"
     compileOnly 'org.osgi:osgi.annotation'
 
     implementation project(":components:configuration:configuration-read-service")
@@ -27,13 +19,13 @@ dependencies {
     implementation project(":components:virtual-node:sandbox-group-context-service")
 
     implementation project(":libs:configuration:configuration-core")
-    implementation project(':libs:configuration:configuration-schema:messaging-configuration')
     implementation project(":libs:lifecycle:lifecycle")
     implementation project(":libs:messaging:messaging")
     implementation project(":libs:sandbox")
     implementation project(":libs:serialization:serialization-checkpoint-api")
     implementation project(":libs:serialization:serialization-amqp")
     implementation project(":libs:serialization:serialization-internal")
+    implementation project(":libs:utilities")
     implementation project(":libs:virtual-node:sandbox-group-context")
 
     implementation platform("net.corda:corda-api:$cordaApiVersion")
@@ -43,11 +35,10 @@ dependencies {
     implementation "net.corda:corda-avro-schema"
     implementation "net.corda:corda-base"
     implementation "net.corda:corda-config-schema"
-    implementation "net.corda:corda-packaging"
+    implementation project(":libs:packaging:packaging")
     implementation "net.corda:corda-topic-schema"
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
-
 
     implementation "co.paralleluniverse:quasar-core-osgi:$quasarVersion"
     implementation "com.esotericsoftware:kryo:$kryoVersion"
@@ -59,34 +50,28 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     testImplementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
-    testImplementation project(":libs:lifecycle:lifecycle-impl")
-    testImplementation project(":libs:lifecycle:registry")
+
     testImplementation project(":libs:flows:session-manager-impl")
+    testImplementation project(":libs:lifecycle:lifecycle-test-impl")
+    testImplementation project(":libs:lifecycle:registry")
     testImplementation project(":testing:flow-utilities")
 
     testRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
 
-    cpks project(path: ':testing:cpbs:sandbox-cpk-inject', configuration: 'cordaCPB')
-
     integrationTestImplementation project(':testing:sandboxes')
+    integrationTestImplementation project(':testing:virtual-node-info-read-service-fake')
+
     integrationTestRuntimeOnly project(':libs:application:application-impl')
     integrationTestRuntimeOnly project(':libs:flows:session-manager-impl')
-    integrationTestRuntimeOnly project(':libs:messaging:inmemory-messaging-impl')
+    integrationTestRuntimeOnly project(":libs:lifecycle:lifecycle-impl")
+    integrationTestRuntimeOnly project(':libs:messaging:db-message-bus-impl')
+    integrationTestRuntimeOnly project(':libs:messaging:messaging-impl')
     integrationTestRuntimeOnly project(':libs:serialization:serialization-checkpoint-api')
     integrationTestRuntimeOnly project(':libs:serialization:serialization-kryo')
     integrationTestRuntimeOnly project(":components:membership:membership-group-read-impl")
     integrationTestRuntimeOnly project(":components:virtual-node:cpk-read-service-impl")
 
-
     integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:$ariesDynamicBundleVersion"
-}
-
-def integrationTestResources = tasks.named('processIntegrationTestResources', ProcessResources) {
-    from configurations.cpks
-}
-
-tasks.named('testingBundle', Bundle) {
-    dependsOn integrationTestResources
 }
 
 def jar = tasks.named('jar', Jar) {

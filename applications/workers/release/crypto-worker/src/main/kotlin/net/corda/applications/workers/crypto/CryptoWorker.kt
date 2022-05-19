@@ -7,13 +7,20 @@ import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getPa
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setUpHealthMonitor
 import net.corda.applications.workers.workercommon.JavaSerialisationFilter
+import net.corda.applications.workers.workercommon.PathAndConfig
+import net.corda.crypto.core.aes.KeyCredentials
+import net.corda.crypto.impl.config.addDefaultCryptoConfig
+import net.corda.libs.configuration.SmartConfig
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.processors.crypto.CryptoProcessor
+import net.corda.schema.configuration.ConfigKeys.CRYPTO_CONFIG
+import net.corda.schema.configuration.ConfigKeys.DB_CONFIG
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
+import picocli.CommandLine
 import picocli.CommandLine.Mixin
 
 /** The worker for interacting with the key material. */
@@ -32,7 +39,7 @@ class CryptoWorker @Activate constructor(
         private val logger = contextLogger()
     }
 
-    /** Parses the arguments, then initialises and starts the [processor]. */
+    /** Parses the arguments, then initialises and starts the [processor] and [dependenciesProcessor]. */
     override fun startup(args: Array<String>) {
         logger.info("Crypto worker starting.")
         JavaSerialisationFilter.install()
@@ -41,7 +48,7 @@ class CryptoWorker @Activate constructor(
         if (printHelpOrVersion(params.defaultParams, CryptoWorker::class.java, shutDownService)) return
         setUpHealthMonitor(healthMonitor, params.defaultParams)
 
-        val config = getBootstrapConfig(params.defaultParams)
+        val config = buildBoostrapConfig(params)
 
         processor.start(config)
     }
@@ -53,8 +60,25 @@ class CryptoWorker @Activate constructor(
     }
 }
 
+fun buildBoostrapConfig(params: CryptoWorkerParams): SmartConfig {
+    val databaseConfig = PathAndConfig(DB_CONFIG, params.databaseParams)
+    val cryptoConfig = PathAndConfig(CRYPTO_CONFIG, params.cryptoParams)
+    return getBootstrapConfig(
+        params.defaultParams, listOf(databaseConfig, cryptoConfig)
+    ).addDefaultCryptoConfig(
+        fallbackCryptoRootKey = KeyCredentials("root-passphrase", "root-salt"),
+        fallbackSoftKey = KeyCredentials("soft-passphrase", "soft-salt")
+    )
+}
+
 /** Additional parameters for the crypto worker are added here. */
-private class CryptoWorkerParams {
+class CryptoWorkerParams {
     @Mixin
     var defaultParams = DefaultWorkerParams()
+
+    @CommandLine.Option(names = ["-d", "--databaseParams"], description = ["Database parameters for the worker."])
+    var databaseParams = emptyMap<String, String>()
+
+    @CommandLine.Option(names = ["--cryptoParams"], description = ["Crypto parameters for the worker."])
+    var cryptoParams = emptyMap<String, String>()
 }

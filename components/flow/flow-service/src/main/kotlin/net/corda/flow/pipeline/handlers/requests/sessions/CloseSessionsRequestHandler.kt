@@ -1,19 +1,18 @@
 package net.corda.flow.pipeline.handlers.requests.sessions
 
-import net.corda.data.flow.event.MessageDirection
-import net.corda.data.flow.event.SessionEvent
-import net.corda.data.flow.event.session.SessionClose
+import net.corda.data.flow.event.Wakeup
+import net.corda.data.flow.state.session.SessionStateType
 import net.corda.data.flow.state.waiting.SessionConfirmation
 import net.corda.data.flow.state.waiting.SessionConfirmationType
 import net.corda.data.flow.state.waiting.WaitingFor
 import net.corda.flow.fiber.FlowIORequest
 import net.corda.flow.pipeline.FlowEventContext
-import net.corda.flow.pipeline.handlers.addOrReplaceSession
-import net.corda.flow.pipeline.handlers.getInitiatingAndInitiatedParties
-import net.corda.flow.pipeline.handlers.getSession
+import net.corda.flow.pipeline.exceptions.FlowFatalException
+import net.corda.flow.pipeline.factory.FlowRecordFactory
 import net.corda.flow.pipeline.handlers.requests.FlowRequestHandler
-import net.corda.flow.pipeline.handlers.requests.requireCheckpoint
-import net.corda.session.manager.SessionManager
+import net.corda.flow.pipeline.sessions.FlowSessionManager
+import net.corda.flow.pipeline.sessions.FlowSessionMissingException
+import net.corda.flow.state.FlowCheckpoint
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -21,45 +20,58 @@ import java.time.Instant
 
 @Component(service = [FlowRequestHandler::class])
 class CloseSessionsRequestHandler @Activate constructor(
-    @Reference(service = SessionManager::class)
-    private val sessionManager: SessionManager
+    @Reference(service = FlowSessionManager::class)
+    private val flowSessionManager: FlowSessionManager,
+    @Reference(service = FlowRecordFactory::class)
+    private val flowRecordFactory: FlowRecordFactory
 ) : FlowRequestHandler<FlowIORequest.CloseSessions> {
 
     override val type = FlowIORequest.CloseSessions::class.java
 
     override fun getUpdatedWaitingFor(context: FlowEventContext<Any>, request: FlowIORequest.CloseSessions): WaitingFor {
-        return WaitingFor(SessionConfirmation(request.sessions.toList(), SessionConfirmationType.CLOSE))
+        val sessionsToClose = try {
+            getSessionsToClose(context.checkpoint, request)
+        } catch (e: IllegalArgumentException) {
+            // TODO Wakeup flow with an error
+            throw FlowFatalException(
+                e.message ?: "An error occurred in the platform - A session in ${request.sessions} was missing from the checkpoint",
+                context,
+                e
+            )
+        }
+        return if (sessionsToClose.isEmpty()) {
+            WaitingFor(net.corda.data.flow.state.waiting.Wakeup())
+        } else {
+            WaitingFor(SessionConfirmation(sessionsToClose, SessionConfirmationType.CLOSE))
+        }
     }
 
     override fun postProcess(context: FlowEventContext<Any>, request: FlowIORequest.CloseSessions): FlowEventContext<Any> {
-        val checkpoint = requireCheckpoint(context)
+        val checkpoint = context.checkpoint
 
-        val now = Instant.now()
-        for (sessionId in request.sessions) {
-            val sessionState = checkpoint.getSession(sessionId)
-            val (initiatingIdentity, initiatedIdentity) = getInitiatingAndInitiatedParties(
-                sessionState, checkpoint.flowKey.identity
-            )
-            val updatedSessionState = sessionManager.processMessageToSend(
-                key = checkpoint.flowKey.flowId,
-                sessionState = checkpoint.getSession(sessionId),
-                event = SessionEvent.newBuilder()
-                    .setSessionId(sessionId)
-                    .setMessageDirection(MessageDirection.OUTBOUND)
-                    .setTimestamp(now)
-                    .setInitiatingIdentity(initiatingIdentity)
-                    .setInitiatedIdentity(initiatedIdentity)
-                    .setSequenceNum(null)
-                    .setReceivedSequenceNum(0)
-                    .setOutOfOrderSequenceNums(listOf(0))
-                    .setPayload(SessionClose())
-                    .build(),
-                instant = now
-            )
+        val hasNoSessionsOrAllClosed = try {
+            val sessionsToClose = getSessionsToClose(checkpoint, request)
 
-            checkpoint.addOrReplaceSession(updatedSessionState)
+            flowSessionManager.sendCloseMessages(checkpoint, sessionsToClose, Instant.now())
+                .forEach { updatedSessionState -> checkpoint.putSessionState(updatedSessionState) }
+
+            sessionsToClose.isEmpty() || flowSessionManager.doAllSessionsHaveStatus(checkpoint, sessionsToClose, SessionStateType.CLOSED)
+        } catch (e: FlowSessionMissingException) {
+            // TODO CORE-4850 Wakeup with error when session does not exist
+            throw FlowFatalException(e.message, context, e)
         }
 
-        return context
+        return if (hasNoSessionsOrAllClosed) {
+            val record = flowRecordFactory.createFlowEventRecord(checkpoint.flowId, Wakeup())
+            context.copy(outputRecords = context.outputRecords + listOf(record))
+        } else {
+            context
+        }
+    }
+
+    private fun getSessionsToClose(checkpoint: FlowCheckpoint, request: FlowIORequest.CloseSessions): List<String> {
+        val sessions = request.sessions.toList()
+        val erroredSessions = flowSessionManager.getSessionsWithStatus(checkpoint, sessions, SessionStateType.ERROR)
+        return sessions - erroredSessions.map { it.sessionId }
     }
 }

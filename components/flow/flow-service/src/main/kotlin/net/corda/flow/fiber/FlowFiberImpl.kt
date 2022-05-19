@@ -2,27 +2,28 @@ package net.corda.flow.fiber
 
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberScheduler
-import net.corda.data.flow.FlowKey
+import co.paralleluniverse.fibers.FiberWriter
 import net.corda.data.flow.FlowStackItem
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.base.util.contextLogger
-import net.corda.v5.base.util.uncheckedCast
 import org.slf4j.Logger
 import org.slf4j.MDC
+import java.io.Serializable
 import java.nio.ByteBuffer
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 
 @Suppress("TooManyFunctions", "ComplexMethod", "LongParameterList")
 class FlowFiberImpl<R>(
     override val flowId: UUID,
-    override val flowKey: FlowKey,
     override val flowLogic: Flow<R>,
     scheduler: FiberScheduler
-) : Fiber<Unit>(flowKey.toString(), scheduler), FlowFiber<R> {
+) : Fiber<Unit>(flowId.toString(), scheduler), FlowFiber<R> {
+
+    private fun interface SerializableFiberWriter : FiberWriter, Serializable
 
     companion object {
         private val log: Logger = contextLogger()
@@ -55,7 +56,7 @@ class FlowFiberImpl<R>(
         setLoggingContext()
         log.info("Flow starting.")
 
-        val result = try {
+        val outcomeOfFlow = try {
             suspend(FlowIORequest.InitialCheckpoint)
 
             /**
@@ -80,9 +81,13 @@ class FlowFiberImpl<R>(
         }
 
         try {
-            closeSessions()
-            flowCompletion.complete(result)
+            when (outcomeOfFlow) {
+                is FlowIORequest.FlowFinished -> finishTopLevelSubFlow()
+                is FlowIORequest.FlowFailed -> failTopLevelSubFlow(outcomeOfFlow.exception)
+            }
+            flowCompletion.complete(outcomeOfFlow)
         } catch (e: CordaRuntimeException) {
+            failTopLevelSubFlow(e)
             flowCompletion.complete(FlowIORequest.FlowFailed(e))
         }
     }
@@ -102,32 +107,43 @@ class FlowFiberImpl<R>(
     @Suspendable
     override fun <SUSPENDRETURN> suspend(request: FlowIORequest<SUSPENDRETURN>): SUSPENDRETURN {
         log.info("Flow suspending.")
-        try {
-            parkAndSerialize { _, _ ->
-                log.info("Parking...")
-                val fiberState = getExecutionContext().checkpointSerializer.serialize(this)
-                flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
-                log.info("Parked.")
-            }
-        } catch (e: Throwable) {
-            throw e
-        }
+        parkAndSerialize(SerializableFiberWriter { _, _ ->
+            log.info("Parking...")
+            val fiberState = getExecutionContext().checkpointSerializer.serialize(this)
+            flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
+            log.info("Parked.")
+        })
 
         setLoggingContext()
         log.info("Flow resuming.")
 
+        @Suppress("unchecked_cast")
         return when (val outcome = suspensionOutcome!!) {
-            is FlowContinuation.Run -> uncheckedCast(outcome.value)
-            is FlowContinuation.Error -> throw outcome.exception
+            is FlowContinuation.Run -> outcome.value as SUSPENDRETURN
+            is FlowContinuation.Error -> throw outcome.exception.fillInStackTrace()
             else -> throw IllegalStateException("Tried to return when suspension outcome says to continue")
         }
     }
 
     @Suspendable
-    private fun closeSessions() {
+    private fun finishTopLevelSubFlow() {
+        // We close the sessions here, which delegates to the subFlow finished request handler, rather than combining the logic into the
+        // flow finish request handler. This is due to the flow finish code removing the flow's checkpoint, which is needed by the close
+        // logic to determine whether all sessions have successfully acknowledged receipt of the close messages.
         val flowStackItem = getRemainingFlowStackItem()
         if (flowStackItem.sessionIds.isNotEmpty()) {
-            suspend(FlowIORequest.CloseSessions(flowStackItem.sessionIds.toSet()))
+            suspend(FlowIORequest.SubFlowFinished(flowStackItem))
+        }
+    }
+
+    @Suspendable
+    private fun failTopLevelSubFlow(throwable: Throwable) {
+        // We close the sessions here, which delegates to the subFlow failed request handler, rather than combining the logic into the
+        // flow finish request handler. This is due to the flow finish code removing the flow's checkpoint, which is needed by the close
+        // logic to determine whether all sessions have successfully acknowledged receipt of the close messages.
+        val flowStackItem = getRemainingFlowStackItem()
+        if (flowStackItem.sessionIds.isNotEmpty()) {
+            suspend(FlowIORequest.SubFlowFailed(throwable, flowStackItem))
         }
     }
 
@@ -172,8 +188,8 @@ class FlowFiberImpl<R>(
     }
 
     private fun setLoggingContext() {
-        MDC.put("flow-id", flowKey.toString())
-        MDC.put("fiber-id", this.getId().toString())
+        MDC.put("flow-id", flowId.toString())
+        MDC.put("fiber-id", id.toString())
         MDC.put("thread-id", Thread.currentThread().id.toString())
     }
 }

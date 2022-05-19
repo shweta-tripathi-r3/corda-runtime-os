@@ -1,5 +1,6 @@
 package net.corda.p2p.linkmanager
 
+import net.corda.data.identity.HoldingIdentity
 import net.corda.libs.configuration.SmartConfig
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.domino.logic.ComplexDominoTile
@@ -9,17 +10,15 @@ import net.corda.messaging.api.processor.CompactedProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.messaging.api.subscription.config.SubscriptionConfig
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
-import net.corda.p2p.linkmanager.LinkManagerInternalTypes.toHoldingIdentity
 import net.corda.p2p.test.HostedIdentityEntry
 import net.corda.schema.TestSchema.Companion.HOSTED_MAP_TOPIC
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 
-class StubLinkManagerHostingMap(
+internal class StubLinkManagerHostingMap(
     lifecycleCoordinatorFactory: LifecycleCoordinatorFactory,
     subscriptionFactory: SubscriptionFactory,
-    instanceId: Int,
     configuration: SmartConfig,
 ) : LinkManagerHostingMap {
     companion object {
@@ -27,7 +26,7 @@ class StubLinkManagerHostingMap(
     }
 
     private val locallyHostedIdentityToIdentityInfo =
-        ConcurrentHashMap<LinkManagerInternalTypes.HoldingIdentity, HostingMapListener.IdentityInfo>()
+        ConcurrentHashMap<HoldingIdentity, HostingMapListener.IdentityInfo>()
     private val publicHashToIdentityInfo =
         ConcurrentHashMap<GroupIdWithPublicKeyHash, HostingMapListener.IdentityInfo>()
     private val publicKeyReader = PublicKeyReader()
@@ -38,7 +37,6 @@ class StubLinkManagerHostingMap(
         SubscriptionConfig(
             GROUP_NAME,
             HOSTED_MAP_TOPIC,
-            instanceId
         ),
         Processor(),
         configuration,
@@ -66,10 +64,10 @@ class StubLinkManagerHostingMap(
         return ready
     }
 
-    override fun isHostedLocally(identity: LinkManagerInternalTypes.HoldingIdentity) =
+    override fun isHostedLocally(identity: HoldingIdentity) =
         locallyHostedIdentityToIdentityInfo.containsKey(identity)
 
-    override fun getInfo(identity: LinkManagerInternalTypes.HoldingIdentity) =
+    override fun getInfo(identity: HoldingIdentity) =
         locallyHostedIdentityToIdentityInfo[identity]
 
     override fun getInfo(hash: ByteArray, groupId: String) = publicHashToIdentityInfo[
@@ -102,7 +100,7 @@ class StubLinkManagerHostingMap(
         ) {
             if (oldValue != null) {
                 publicHashToIdentityInfo.remove(oldValue.toGroupIdWithPublicKeyHash())
-                locallyHostedIdentityToIdentityInfo.remove(oldValue.holdingIdentity.toHoldingIdentity())
+                locallyHostedIdentityToIdentityInfo.remove(oldValue.holdingIdentity)
             }
             val newIdentity = newRecord.value
             if (newIdentity != null) {
@@ -127,7 +125,7 @@ class StubLinkManagerHostingMap(
             sessionKeyTenantId = entry.sessionKeyTenantId,
             sessionPublicKey = publicKeyReader.loadPublicKey(entry.sessionPublicKey)
         )
-        locallyHostedIdentityToIdentityInfo[entry.holdingIdentity.toHoldingIdentity()] = info
+        locallyHostedIdentityToIdentityInfo[entry.holdingIdentity] = info
         publicHashToIdentityInfo[entry.toGroupIdWithPublicKeyHash()] = info
         listeners.forEach {
             it.identityAdded(info)

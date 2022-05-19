@@ -57,10 +57,11 @@ pipeline {
         }
         stage ('Create namespace') {
             steps {
-                sh '''
+                sh """
                     kubectl create ns $NAMESPACE
                     kubectl label ns $NAMESPACE namespace-type=corda-e2e --overwrite=true
-                '''
+                    kubectl label ns $NAMESPACE branch=${env.BRANCH_NAME.replace('/','-')} --overwrite=true
+                """
             }
         }
         stage('Install prereqs') {
@@ -68,7 +69,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USER')]) {
                     sh '''
                         echo $PASSWORD | helm registry login corda-os-docker.software.r3.com -u $USER --password-stdin
-                        helm install prereqs oci://corda-os-docker.software.r3.com/helm-charts/corda-prereqs \
+                        helm install prereqs oci://corda-os-docker.software.r3.com/helm-charts/corda-dev \
                             -f .ci/e2eTests/prereqs.yaml -n $NAMESPACE --wait --timeout 600s
                     '''
                 }
@@ -144,7 +145,7 @@ pipeline {
                 writeFile file: "e2eTestDataForSplunk.log", text: "${env.BUILD_URL}\n${NAMESPACE}"
                 archiveArtifacts artifacts: "e2eTestDataForSplunk.log", fingerprint: true
             }
-        }        
+        }
         success {
             // Only delete namespace if we're successful (though it'll get pruned in 3 hours anyway)
             sh 'kubectl delete ns "${NAMESPACE}"'

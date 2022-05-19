@@ -1,27 +1,22 @@
 package net.corda.messaging.subscription
 
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigValueFactory
 import net.corda.data.CordaAvroSerializer
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.messagebus.api.CordaTopicPartition
-import net.corda.messagebus.api.configuration.ConfigProperties.Companion.CONSUMER_MAX_POLL_INTERVAL
-import net.corda.messagebus.api.configuration.ConfigProperties.Companion.CONSUMER_PROCESSOR_TIMEOUT
 import net.corda.messagebus.api.consumer.CordaConsumer
-import net.corda.messagebus.api.consumer.CordaConsumerRebalanceListener
 import net.corda.messagebus.api.consumer.CordaConsumerRecord
 import net.corda.messagebus.api.producer.CordaProducer
 import net.corda.messaging.TOPIC_PREFIX
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
 import net.corda.messaging.api.exception.CordaMessageAPIIntermittentException
 import net.corda.messaging.api.processor.StateAndEventProcessor
-import net.corda.messaging.createStandardTestConfig
+import net.corda.messaging.constants.SubscriptionType
+import net.corda.messaging.createResolvedSubscriptionConfig
 import net.corda.messaging.generateMockCordaConsumerRecordList
-import net.corda.messaging.properties.ConfigProperties.Companion.PATTERN_STATEANDEVENT
-import net.corda.messaging.subscription.config.StateAndEventConfig.Companion.getStateAndEventConfig
 import net.corda.messaging.subscription.consumer.StateAndEventConsumer
 import net.corda.messaging.subscription.consumer.builder.StateAndEventBuilder
+import net.corda.messaging.subscription.consumer.listener.StateAndEventConsumerRebalanceListener
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.mockito.kotlin.any
@@ -31,8 +26,8 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 
@@ -43,13 +38,13 @@ class StateAndEventSubscriptionImplTest {
         private const val TOPIC = "topic"
     }
 
-    private val config: Config = createStandardTestConfig().getConfig(PATTERN_STATEANDEVENT)
+    private val config = createResolvedSubscriptionConfig(SubscriptionType.STATE_AND_EVENT)
     private val cordaAvroSerializer: CordaAvroSerializer<Any> = mock()
     private val lifecycleCoordinatorFactory: LifecycleCoordinatorFactory = mock()
     private val lifecycleCoordinator: LifecycleCoordinator = mock()
-    private val stateAndEventConfig = getStateAndEventConfig(config)
+    private val rebalanceListener: StateAndEventConsumerRebalanceListener = mock()
 
-    data class Mocks(
+    private data class Mocks(
         val builder: StateAndEventBuilder,
         val producer: CordaProducer,
         val stateAndEventConsumer: StateAndEventConsumer<String, String, String>,
@@ -58,7 +53,6 @@ class StateAndEventSubscriptionImplTest {
     private fun setupMocks(iterations: Long): Mocks {
         val latch = CountDownLatch(iterations.toInt() + 1)
         val stateAndEventConsumer: StateAndEventConsumer<String, String, String> = mock()
-        val rebalanceListener: CordaConsumerRebalanceListener = mock()
         val eventConsumer: CordaConsumer<String, String> = mock()
         val stateConsumer: CordaConsumer<String, String> = mock()
         val producer: CordaProducer = mock()
@@ -131,7 +125,7 @@ class StateAndEventSubscriptionImplTest {
         }.whenever(builder).createProducer(any())
 
         val subscription = StateAndEventSubscriptionImpl<String, String, String>(
-            stateAndEventConfig,
+            config,
             builder,
             mock(),
             cordaAvroSerializer,
@@ -178,7 +172,7 @@ class StateAndEventSubscriptionImplTest {
         }.whenever(stateAndEventConsumer).waitForFunctionToFinish(any(), any(), any())
 
         val subscription = StateAndEventSubscriptionImpl<String, String, String>(
-            stateAndEventConfig,
+            config,
             builder,
             mock(),
             cordaAvroSerializer,
@@ -202,7 +196,8 @@ class StateAndEventSubscriptionImplTest {
         )
         verify(builder, times(1)).createProducer(any())
         verify(eventConsumer, times(1)).poll(any())
-        verifyNoInteractions(producer)
+        verify(producer, times(0)).beginTransaction()
+        verify(rebalanceListener).close()
     }
 
     @Test
@@ -210,7 +205,7 @@ class StateAndEventSubscriptionImplTest {
     fun `state and event subscription no retries`() {
         val (builder, producer, stateAndEventConsumer) = setupMocks(5)
         val subscription = StateAndEventSubscriptionImpl<Any, Any, Any>(
-            stateAndEventConfig,
+            config,
             builder,
             mock(),
             cordaAvroSerializer,
@@ -265,7 +260,7 @@ class StateAndEventSubscriptionImplTest {
             }
         }.whenever(eventConsumer).poll(any())
         val subscription = StateAndEventSubscriptionImpl<Any, Any, Any>(
-            stateAndEventConfig,
+            config,
             builder,
             mock(),
             cordaAvroSerializer,
@@ -318,7 +313,7 @@ class StateAndEventSubscriptionImplTest {
         }.whenever(eventConsumer).poll(any())
 
         val subscription = StateAndEventSubscriptionImpl<Any, Any, Any>(
-            stateAndEventConfig,
+            config,
             builder,
             mock(),
             cordaAvroSerializer,
@@ -353,14 +348,13 @@ class StateAndEventSubscriptionImplTest {
         val records = mutableListOf<CordaConsumerRecord<String, String>>()
         records.add(CordaConsumerRecord(TOPIC, 1, 1, "key1", "value1", 1))
 
-        var eventsPaused = false
+        var callCount = 0
         val eventConsumer = stateAndEventConsumer.eventConsumer
         doAnswer {
-            if (eventsPaused) {
-                emptyList()
-            } else {
-                eventsPaused = true
+            if (callCount++ == 0) {
                 records
+            } else {
+                mutableListOf()
             }
         }.whenever(eventConsumer).poll(any())
 
@@ -369,17 +363,7 @@ class StateAndEventSubscriptionImplTest {
             CompletableFuture.completedFuture(null)
         }.whenever(stateAndEventConsumer).waitForFunctionToFinish(any(), any(), any())
 
-        val shortWaitProcessorConfig = getStateAndEventConfig(
-            config
-                .withValue(
-                    CONSUMER_MAX_POLL_INTERVAL.replace("consumer", "eventConsumer"),
-                    ConfigValueFactory.fromAnyRef(10000)
-                )
-                .withValue(
-                    CONSUMER_PROCESSOR_TIMEOUT.replace("consumer", "eventConsumer"),
-                    ConfigValueFactory.fromAnyRef(100)
-                )
-        )
+        val shortWaitProcessorConfig = config.copy(processorTimeout = Duration.ofMillis(10L))
 
         val subscription = StateAndEventSubscriptionImpl<Any, Any, Any>(
             shortWaitProcessorConfig,
@@ -390,7 +374,13 @@ class StateAndEventSubscriptionImplTest {
         )
 
         subscription.start()
-        while (subscription.isRunning && !eventsPaused) {
+
+        /**
+         * wait for a second poll to be called before we complete
+         * as we need to be sure the first poll has completed processing
+         * before we go to the asserts
+         */
+        while (subscription.isRunning && callCount <= 1) {
             Thread.sleep(10)
         }
         subscription.stop()

@@ -1,11 +1,10 @@
 package net.corda.sandboxgroupcontext.impl
 
-import net.corda.libs.packaging.CpkMetadata
+import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.sandboxgroupcontext.VirtualNodeContext
 import net.corda.sandboxgroupcontext.getObjectByKey
-import net.corda.sandboxgroupcontext.getUniqueObject
 import net.corda.sandboxgroupcontext.putObjectByKey
 import net.corda.sandboxgroupcontext.putUniqueObject
 import net.corda.sandboxgroupcontext.service.impl.SandboxGroupContextImpl
@@ -32,9 +31,11 @@ class Cat(override val name: String, private val noise: String) : Animal {
     override fun noise() = noise
 }
 
+inline fun <reified T : Any> SandboxGroupContext.getUniqueObject() = this.get(T::class.java.name, T::class.java)
+
 class SandboxGroupContextTest {
     private val holdingIdentity = HoldingIdentity("foo", "bar")
-    private val cpkMetadata: CpkMetadata = CpkMetadata.fromLegacyCpk(Helpers.mockTrivialCpk("MAIN_BUNDLE", "example", "1.0.0"))
+    private val cpkMetadata: CpkMetadata = Helpers.mockTrivialCpk("MAIN_BUNDLE", "example", "1.0.0").metadata
 
     private val cpksMetadata = setOf(cpkMetadata)
 

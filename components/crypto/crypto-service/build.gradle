@@ -1,5 +1,5 @@
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'corda.common-library'
 }
 
@@ -12,7 +12,9 @@ dependencies {
 
     implementation "net.corda.kotlin:kotlin-stdlib-jdk8-osgi"
     implementation platform("net.corda:corda-api:$cordaApiVersion")
+    implementation "net.corda:corda-avro-schema"
 
+    implementation project(':components:crypto:crypto-persistence')
     implementation project(':libs:crypto:crypto-core')
     implementation project(":libs:lifecycle:lifecycle")
 }

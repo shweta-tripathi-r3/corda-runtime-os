@@ -2,11 +2,14 @@ import aQute.bnd.gradle.Bundle
 import aQute.bnd.gradle.Resolve
 import aQute.bnd.gradle.TestOSGi
 
+import static com.gradle.enterprise.gradleplugin.test.JUnitXmlDialect.GENERIC
+import com.gradle.enterprise.gradleplugin.test.ImportJUnitXmlReports
+
 import static org.gradle.jvm.toolchain.JavaLanguageVersion.of
 
 plugins {
     id 'corda.common-library'
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
 }
 
 description 'Messaging Patterns Test'
@@ -35,6 +38,7 @@ dependencies {
     integrationTestImplementation platform("net.corda:corda-api:$cordaApiVersion")
     integrationTestImplementation "net.corda:corda-avro-schema"
     integrationTestImplementation "net.corda:corda-base"
+    integrationTestImplementation 'net.corda:corda-config-schema'
     integrationTestImplementation 'net.corda:corda-topic-schema'
 
     integrationTestImplementation "com.typesafe:config:$typeSafeConfigVersion"
@@ -42,6 +46,7 @@ dependencies {
     integrationTestImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     integrationTestImplementation "org.osgi:org.osgi.test.junit5:$osgiTestJunit5Version"
     integrationTestImplementation "javax.persistence:javax.persistence-api"
+    integrationTestImplementation "org.apache.servicemix.bundles:org.apache.servicemix.bundles.kafka-clients:$kafkaClientVersion"
 
     integrationTestImplementation project(":components:kafka-topic-admin")
     integrationTestImplementation 'net.corda:corda-db-schema'
@@ -49,10 +54,9 @@ dependencies {
     integrationTestImplementation project(":libs:db:db-admin")
     integrationTestImplementation project(":libs:db:db-admin-impl")
     integrationTestImplementation project(":libs:db:db-orm")
-    integrationTestImplementation project(":libs:db:db-orm-impl")
     integrationTestImplementation project(":libs:messaging:db-message-bus-datamodel")
-    integrationTestImplementation project(":testing:db-testkit")
     integrationTestImplementation project(":libs:messaging:topic-admin")
+    integrationTestImplementation project(":testing:db-message-bus-testkit")
 
     //runtime implementation dependencies
     integrationTestRuntimeOnly project(":libs:schema-registry:schema-registry-impl")
@@ -130,12 +134,24 @@ tasks.register('dbIntegrationTest', TestOSGi) {
     bndrun = dbResolve.flatMap { it.outputBndrun }
 }
 
+// Gradle enterprise does not pick up OSGI tests by default as they they are of type TestOSGi rather than standard
+// Test task this ensures test results are captured
+def importTask = tasks.register("importOSGiJUnitXml", ImportJUnitXmlReports) {
+    dialect = GENERIC
+    reports.from(fileTree("$testResultsDir/dbIntegrationTest").matching {
+        include '**/TEST-*.xml'
+    })
+}
+
 tasks.named('integrationTest') {
     // By default this is expected to run against the in-memory db, effectively
     // running an in-mem version of the message pattern tests
+    finalizedBy importTask
     dependsOn dbIntegrationTest
+
     enabled = false
 }
+
 
 artifacts {
     archives testingBundle

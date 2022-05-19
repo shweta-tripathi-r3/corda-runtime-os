@@ -4,14 +4,15 @@ import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.crypto.client.CryptoOpsClient
 import net.corda.crypto.client.CryptoOpsProxyClient
+import net.corda.crypto.component.impl.AbstractConfigurableComponent
 import net.corda.data.KeyValuePairList
-import net.corda.data.crypto.config.HSMInfo
 import net.corda.data.crypto.wire.CryptoPublicKey
-import net.corda.data.crypto.wire.CryptoPublicKeys
 import net.corda.data.crypto.wire.CryptoSignatureWithKey
-import net.corda.data.crypto.wire.ops.rpc.HSMKeyDetails
+import net.corda.data.crypto.wire.CryptoSigningKey
+import net.corda.data.crypto.wire.CryptoSigningKeys
 import net.corda.data.crypto.wire.ops.rpc.RpcOpsRequest
 import net.corda.data.crypto.wire.ops.rpc.RpcOpsResponse
+import net.corda.data.crypto.wire.ops.rpc.queries.CryptoKeyOrderBy
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.messaging.api.config.toMessagingConfig
@@ -27,7 +28,6 @@ import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import java.nio.ByteBuffer
 import java.security.PublicKey
-import java.util.UUID
 
 @Suppress("TooManyFunctions")
 @Component(service = [CryptoOpsClient::class, CryptoOpsProxyClient::class])
@@ -40,107 +40,153 @@ class CryptoOpsClientComponent @Activate constructor(
     private val schemeMetadata: CipherSchemeMetadata,
     @Reference(service = ConfigurationReadService::class)
     configurationReadService: ConfigurationReadService
-) : AbstractComponent<CryptoOpsClientComponent.Resources>(
-    coordinatorFactory,
-    LifecycleCoordinatorName.forComponent<CryptoOpsClient>(),
-    configurationReadService,
+) : AbstractConfigurableComponent<CryptoOpsClientComponent.Impl>(
+    coordinatorFactory = coordinatorFactory,
+    myName = LifecycleCoordinatorName.forComponent<CryptoOpsClient>(),
+    configurationReadService = configurationReadService,
+    impl = InactiveImpl(),
+    dependencies = setOf(
+        LifecycleCoordinatorName.forComponent<ConfigurationReadService>()
+    )
 ), CryptoOpsClient, CryptoOpsProxyClient {
     companion object {
-        const val CLIENT_ID = "crypto.ops.rpc"
-        const val GROUP_NAME = "crypto.ops.rpc"
-
-        private inline val Resources?.instance: CryptoOpsClientImpl
-            get() = this?.ops ?: throw IllegalStateException("The component haven't been initialised.")
+        const val CLIENT_ID = "crypto.ops.rpc.client"
+        const val GROUP_NAME = "crypto.ops.rpc.client"
     }
 
+    interface Impl : AutoCloseable {
+        val ops: CryptoOpsClientImpl
+    }
+
+    override fun createInactiveImpl(): Impl = InactiveImpl()
+
+    override fun createActiveImpl(event: ConfigChangedEvent): Impl =
+        ActiveImpl(publisherFactory, schemeMetadata, event)
+
     override fun getSupportedSchemes(tenantId: String, category: String): List<String> =
-        resources.instance.getSupportedSchemes(tenantId, category)
+        impl.ops.getSupportedSchemes(tenantId, category)
 
-    override fun findPublicKey(tenantId: String, alias: String): PublicKey? =
-        resources.instance.findPublicKey(tenantId, alias)
-
-    override fun filterMyKeys(tenantId: String, candidateKeys: Iterable<PublicKey>): Iterable<PublicKey> =
-        resources.instance.filterMyKeys(tenantId, candidateKeys)
+    override fun filterMyKeys(tenantId: String, candidateKeys: Collection<PublicKey>): Collection<PublicKey> =
+        impl.ops.filterMyKeys(tenantId, candidateKeys)
 
     override fun generateKeyPair(
         tenantId: String,
         category: String,
         alias: String,
+        scheme: String,
         context: Map<String, String>
     ): PublicKey =
-        resources.instance.generateKeyPair(tenantId, category, alias, context)
+        impl.ops.generateKeyPair(tenantId, category, alias, scheme, context)
 
-    override fun freshKey(tenantId: String, context: Map<String, String>): PublicKey =
-        resources.instance.freshKey(tenantId, context)
-
-    override fun freshKey(tenantId: String, externalId: UUID, context: Map<String, String>): PublicKey =
-        resources.instance.freshKey(tenantId, externalId, context)
-
-    override fun sign(
+    override fun generateKeyPair(
         tenantId: String,
-        publicKey: PublicKey,
-        data: ByteArray,
-        context: Map<String, String>
-    ): DigitalSignature.WithKey =
-        resources.instance.sign(tenantId, publicKey, data, context)
-
-    override fun sign(
-        tenantId: String,
-        publicKey: PublicKey,
-        signatureSpec: SignatureSpec,
-        data: ByteArray,
-        context: Map<String, String>
-    ): DigitalSignature.WithKey =
-        resources.instance.sign(tenantId, publicKey, signatureSpec, data, context)
-
-    override fun sign(tenantId: String, alias: String, data: ByteArray, context: Map<String, String>): ByteArray =
-        resources.instance.sign(tenantId, alias, data, context)
-
-    override fun sign(
-        tenantId: String,
+        category: String,
         alias: String,
+        externalId: String,
+        scheme: String,
+        context: Map<String, String>
+    ): PublicKey =
+        impl.ops.generateKeyPair(tenantId, category, alias, externalId, scheme, context)
+
+    override fun freshKey(
+        tenantId: String,
+        category: String,
+        scheme: String,
+        context: Map<String, String>
+    ): PublicKey =
+        impl.ops.freshKey(tenantId, category, scheme, context)
+
+    override fun freshKey(
+        tenantId: String,
+        category: String,
+        externalId: String,
+        scheme: String,
+        context: Map<String, String>
+    ): PublicKey =
+        impl.ops.freshKey(tenantId, category, externalId, scheme, context)
+
+    override fun sign(
+        tenantId: String,
+        publicKey: PublicKey,
+        data: ByteArray,
+        context: Map<String, String>
+    ): DigitalSignature.WithKey =
+        impl.ops.sign(tenantId, publicKey, data, context)
+
+    override fun sign(
+        tenantId: String,
+        publicKey: PublicKey,
         signatureSpec: SignatureSpec,
         data: ByteArray,
         context: Map<String, String>
-    ): ByteArray =
-        resources.instance.sign(tenantId, alias, signatureSpec, data, context)
+    ): DigitalSignature.WithKey =
+        impl.ops.sign(tenantId, publicKey, signatureSpec, data, context)
 
-    override fun findHSMKey(tenantId: String, alias: String): HSMKeyDetails? =
-        resources.instance.findHSMKey(tenantId, alias)
+    override fun lookup(
+        tenantId: String,
+        skip: Int,
+        take: Int,
+        orderBy: CryptoKeyOrderBy,
+        filter: Map<String, String>
+    ): List<CryptoSigningKey> =
+        impl.ops.lookup(
+            tenantId = tenantId,
+            skip = skip,
+            take = take,
+            orderBy = orderBy,
+            filter = filter
+        )
 
-    override fun findHSMKey(tenantId: String, publicKey: PublicKey): HSMKeyDetails? =
-        resources.instance.findHSMKey(tenantId, publicKey)
+    override fun lookup(tenantId: String, ids: List<String>): List<CryptoSigningKey> =
+        impl.ops.lookup(
+            tenantId = tenantId,
+            ids = ids
+        )
 
-    override fun findHSM(tenantId: String, category: String): HSMInfo? =
-        resources.instance.findHSM(tenantId, category)
+    override fun filterMyKeysProxy(tenantId: String, candidateKeys: Iterable<ByteBuffer>): CryptoSigningKeys =
+        impl.ops.filterMyKeysProxy(tenantId, candidateKeys)
 
-    override fun filterMyKeysProxy(tenantId: String, candidateKeys: Iterable<ByteBuffer>): CryptoPublicKeys =
-        resources.instance.filterMyKeysProxy(tenantId, candidateKeys)
+    override fun freshKeyProxy(
+        tenantId: String,
+        category: String,
+        scheme: String,
+        context: KeyValuePairList
+    ): CryptoPublicKey = impl.ops.freshKeyProxy(tenantId, category, scheme, context)
 
-    override fun freshKeyProxy(tenantId: String, context: KeyValuePairList): CryptoPublicKey =
-        resources.instance.freshKeyProxy(tenantId, context)
-
-    override fun freshKeyProxy(tenantId: String, externalId: UUID, context: KeyValuePairList): CryptoPublicKey =
-        resources.instance.freshKeyProxy(tenantId, externalId, context)
+    override fun freshKeyProxy(
+        tenantId: String,
+        category: String,
+        externalId: String,
+        scheme: String,
+        context: KeyValuePairList
+    ): CryptoPublicKey = impl.ops.freshKeyProxy(tenantId, category, externalId, scheme, context)
 
     override fun signProxy(
         tenantId: String,
         publicKey: ByteBuffer,
         data: ByteBuffer,
         context: KeyValuePairList
-    ): CryptoSignatureWithKey =
-        resources.instance.signProxy(tenantId, publicKey, data, context)
+    ): CryptoSignatureWithKey = impl.ops.signProxy(tenantId, publicKey, data, context)
 
-    override fun allocateResources(event: ConfigChangedEvent): Resources {
-        logger.info("Creating ${Resources::class.java.name}")
-        return Resources(publisherFactory, schemeMetadata, event)
+    override fun createWrappingKey(
+        configId: String,
+        failIfExists: Boolean,
+        masterKeyAlias: String,
+        context: Map<String, String>
+    ) = impl.ops.createWrappingKey(configId, failIfExists, masterKeyAlias, context)
+
+    internal class InactiveImpl: Impl {
+        override val ops: CryptoOpsClientImpl
+            get() = throw IllegalStateException("Component is in illegal state.")
+
+        override fun close() = Unit
     }
 
-    class Resources(
+    internal class ActiveImpl(
         publisherFactory: PublisherFactory,
         schemeMetadata: CipherSchemeMetadata,
         event: ConfigChangedEvent
-    ) : AutoCloseable {
+    ) : Impl {
         private val sender: RPCSender<RpcOpsRequest, RpcOpsResponse> = publisherFactory.createRPCSender(
             RPCConfig(
                 groupName = GROUP_NAME,
@@ -152,7 +198,7 @@ class CryptoOpsClientComponent @Activate constructor(
             event.config.toMessagingConfig()
         ).also { it.start() }
 
-        internal val ops: CryptoOpsClientImpl = CryptoOpsClientImpl(
+        override val ops: CryptoOpsClientImpl = CryptoOpsClientImpl(
             schemeMetadata = schemeMetadata,
             sender = sender
         )

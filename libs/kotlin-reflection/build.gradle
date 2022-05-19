@@ -1,9 +1,11 @@
 import aQute.bnd.gradle.Bundle
 import aQute.bnd.gradle.Resolve
 import aQute.bnd.gradle.TestOSGi
+import com.gradle.enterprise.gradleplugin.test.ImportJUnitXmlReports
+import static com.gradle.enterprise.gradleplugin.test.JUnitXmlDialect.GENERIC
 
 plugins {
-    id 'com.r3.internal.gradle.plugins.r3Publish'
+    id 'corda.common-publishing'
     id 'biz.aQute.bnd.builder'
 }
 
@@ -43,6 +45,7 @@ def jar = tasks.named('jar', Jar) {
         bnd """\
 Bundle-Name: Corda Kotlin Reflection
 Bundle-SymbolicName: \${project.group}.kotlin-reflection
+Sealed: true
 -includeresource: @kotlinx-metadata-jvm-${kotlinMetadataVersion}.jar
 -conditionalpackage: org.objectweb.asm
 """
@@ -56,6 +59,7 @@ def testingBundle = tasks.register('testingBundle', Bundle) {
     bundle {
         bnd '''\
 Test-Cases: \${classes;HIERARCHY_INDIRECTLY_ANNOTATED;org.junit.platform.commons.annotation.Testable;CONCRETE}
+Sealed: true
 '''
     }
 }
@@ -75,6 +79,14 @@ def resolve = tasks.register('resolve', Resolve) {
     }
 }
 
+// Gradle enterprise does not pick up OSGI tests by default as they they are of type TestOSGi rather than standard
+def importOSGiJunitXml = tasks.register('importOSGiJUnitXml', ImportJUnitXmlReports) {
+    dialect = GENERIC
+    reports.from(fileTree("$testResultsDir/integrationTest").matching {
+        include '**/TEST-*.xml'
+    })
+}
+
 def testOSGi = tasks.register('testOSGi', TestOSGi) {
     resultsDirectory = file("$testResultsDir/integrationTest")
     bundles = files(
@@ -83,6 +95,7 @@ def testOSGi = tasks.register('testOSGi', TestOSGi) {
         testingBundle
     )
     bndrun = resolve.flatMap { it.outputBndrun }
+    finalizedBy importOSGiJunitXml
 }
 
 tasks.named('integrationTest') {

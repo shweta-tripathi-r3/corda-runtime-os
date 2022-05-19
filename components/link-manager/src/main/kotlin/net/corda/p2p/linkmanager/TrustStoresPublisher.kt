@@ -26,7 +26,6 @@ internal class TrustStoresPublisher(
     publisherFactory: PublisherFactory,
     lifecycleCoordinatorFactory: LifecycleCoordinatorFactory,
     configuration: SmartConfig,
-    instanceId: Int,
 ) : LifecycleWithDominoTile, GroupPolicyListener {
 
     companion object {
@@ -41,11 +40,11 @@ internal class TrustStoresPublisher(
     private val publisher = PublisherWithDominoLogic(
         publisherFactory,
         lifecycleCoordinatorFactory,
-        PublisherConfig(MISSING_DATA_WRITER_GROUP_NAME),
+        PublisherConfig(MISSING_DATA_WRITER_GROUP_NAME, false),
         configuration,
     )
     private val subscription = subscriptionFactory.createCompactedSubscription(
-        SubscriptionConfig(CURRENT_DATA_READER_GROUP_NAME, GATEWAY_TLS_TRUSTSTORES, instanceId),
+        SubscriptionConfig(CURRENT_DATA_READER_GROUP_NAME, GATEWAY_TLS_TRUSTSTORES),
         Processor(),
         configuration,
     )

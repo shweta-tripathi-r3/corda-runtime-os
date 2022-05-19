@@ -1,8 +1,12 @@
 package net.corda.sandbox.internal
 
-import net.corda.libs.packaging.CpkMetadata
-import net.corda.packaging.CPK
-import net.corda.packaging.CordappManifest
+import net.corda.libs.packaging.core.CpkMetadata
+import net.corda.libs.packaging.Cpk
+import net.corda.libs.packaging.core.CordappManifest
+import net.corda.libs.packaging.core.CpkIdentifier
+import net.corda.libs.packaging.core.CpkManifest
+import net.corda.libs.packaging.core.CpkType
+import net.corda.libs.packaging.core.CpkFormatVersion
 import net.corda.sandbox.SandboxException
 import net.corda.sandbox.internal.sandbox.CpkSandboxImpl
 import net.corda.sandbox.internal.sandbox.SandboxImpl
@@ -25,9 +29,6 @@ import org.osgi.framework.Bundle
 import org.osgi.framework.BundleException
 import java.io.ByteArrayInputStream
 import java.nio.file.Paths
-import java.security.cert.Certificate
-import java.util.Collections.emptyNavigableSet
-import java.util.NavigableSet
 import kotlin.random.Random.Default.nextBytes
 
 /** Tests of [SandboxServiceImpl]. */
@@ -109,7 +110,7 @@ class SandboxServiceImplTests {
 
         val sandboxesRetrievedFromSandboxGroup =
             cpks.map { cpk -> sandboxGroup.cpkSandboxes.find { sandbox ->
-                sandbox.cpkMetadata.fileChecksum == cpk.metadata.hash
+                sandbox.cpkMetadata.fileChecksum == cpk.metadata.fileChecksum
             } }
         assertEquals(sandboxes.toSet(), sandboxesRetrievedFromSandboxGroup.toSet())
     }
@@ -130,7 +131,7 @@ class SandboxServiceImplTests {
     fun `a sandbox correctly indicates which CPK it is created from`() {
         val sandboxGroup = sandboxService.createSandboxGroup(setOf(cpkOne))
         val sandbox = (sandboxGroup as SandboxGroupInternal).cpkSandboxes.single()
-        assertEquals(CpkMetadata.fromLegacyCpk(cpkOne), sandbox.cpkMetadata)
+        assertEquals(cpkOne.metadata, sandbox.cpkMetadata)
     }
 
     @Test
@@ -481,38 +482,32 @@ class SandboxServiceImplTests {
     }
 }
 
-/** For testing, associates a [CPK] with its bundles, the classes within those, and its CPK dependencies. */
+/** For testing, associates a Cpk with its bundles, the classes within those, and its CPK dependencies. */
 private data class CpkAndContents(
     val mainBundleClass: Class<*>,
     val libraryClass: Class<*>,
     val mainBundleName: String? = "${random.nextInt()}",
     val libraryBundleName: String? = "${random.nextInt()}",
-    private val cpkDependencies: NavigableSet<CPK.Identifier> = emptyNavigableSet()
+    private val cpkDependencies: List<CpkIdentifier> = emptyList()
 ) {
     val bundleNames = setOf(mainBundleName, libraryBundleName)
     val cpk = createDummyCpk(cpkDependencies)
 
-    /** Creates a dummy [CPK]. */
-    private fun createDummyCpk(cpkDependencies: NavigableSet<CPK.Identifier>) = object : CPK {
-        override val metadata = object : CPK.Metadata {
-            override val id = CPK.Identifier.newInstance(random.nextInt().toString(), "1.0", randomSecureHash())
-            override val type = CPK.Type.UNKNOWN
-            override val manifest = object : CPK.Manifest {
-                override val cpkFormatVersion = CPK.FormatVersion.parse("0.0")
-            }
-            override val hash = SecureHash(HASH_ALGORITHM, nextBytes(HASH_LENGTH))
-
-            // We use `random.nextInt` to generate random values here.
-            override val mainBundle = Paths.get("${random.nextInt()}.jar").toString()
-            override val libraries = listOf(Paths.get("lib/${random.nextInt()}.jar").toString())
-            override val cordappManifest = mock<CordappManifest>().apply {
+    /** Creates a dummy Cpk. */
+    private fun createDummyCpk(cpkDependencies: List<CpkIdentifier>) = object : Cpk {
+        override val metadata = CpkMetadata(
+            cpkId = CpkIdentifier(random.nextInt().toString(), "1.0", randomSecureHash()),
+            manifest = CpkManifest(CpkFormatVersion(0, 0)),
+            mainBundle = Paths.get("${random.nextInt()}.jar").toString(),
+            libraries = listOf(Paths.get("lib/${random.nextInt()}.jar").toString()),
+            dependencies = cpkDependencies,
+            cordappManifest = mock<CordappManifest>().apply {
                 whenever(bundleSymbolicName).thenAnswer { mainBundleName }
                 whenever(bundleVersion).thenAnswer { "${random.nextInt()}" }
-            }
-            override val dependencies = cpkDependencies
-            override val cordappCertificates: Set<Certificate> = emptySet()
-        }
-
+            },
+            type = CpkType.UNKNOWN,
+            fileChecksum = SecureHash(HASH_ALGORITHM, nextBytes(HASH_LENGTH)),
+            cordappCertificates = emptySet())
         override fun getResourceAsStream(resourceName: String) = ByteArrayInputStream(ByteArray(0))
         override fun close() {}
     }

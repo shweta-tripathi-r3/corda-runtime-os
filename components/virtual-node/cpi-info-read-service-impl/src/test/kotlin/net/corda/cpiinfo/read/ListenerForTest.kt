@@ -1,15 +1,16 @@
 package net.corda.cpiinfo.read
 
-import net.corda.packaging.CPI
+import net.corda.libs.packaging.core.CpiIdentifier
+import net.corda.libs.packaging.core.CpiMetadata
 
 class ListenerForTest : CpiInfoListener {
     var update = false
-    var lastSnapshot = mapOf<CPI.Identifier, CPI.Metadata>()
-    var changedKeys = emptySet<CPI.Identifier>()
+    var lastSnapshot = mapOf<CpiIdentifier, CpiMetadata>()
+    var changedKeys = emptySet<CpiIdentifier>()
 
     override fun onUpdate(
-        changedKeys: Set<CPI.Identifier>,
-        currentSnapshot: Map<CPI.Identifier, CPI.Metadata>
+        changedKeys: Set<CpiIdentifier>,
+        currentSnapshot: Map<CpiIdentifier, CpiMetadata>
     ) {
         update = true
         lastSnapshot = currentSnapshot

@@ -16,21 +16,18 @@ import net.corda.messagebus.db.util.WriteOffsets
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.util.*
 import kotlin.math.abs
 
 class CordaTransactionalDBProducerImpl(
     private val serializer: CordaAvroSerializer<Any>,
-    private val dbAccess: DBAccess
+    private val dbAccess: DBAccess,
+    private val writeOffsets: WriteOffsets
 ) : CordaProducer {
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
-
-    private val defaultTimeout: Duration = Duration.ofSeconds(1)
-    private val writeOffsets = WriteOffsets(dbAccess.getMaxOffsetsPerTopicPartition())
 
     private val _transaction = ThreadLocal<TransactionRecordEntry>()
     private var transaction
@@ -133,12 +130,12 @@ class CordaTransactionalDBProducerImpl(
     override fun sendAllOffsetsToTransaction(consumer: CordaConsumer<*, *>) {
         verifyInTransaction()
         val topicPartitions = consumer.assignment()
-        val offsets = topicPartitions.map { (topic, partition) ->
-            val offset = writeOffsets.getNextOffsetFor(CordaTopicPartition(topic, partition))
+        val offsetsPerPartition = topicPartitions.associateWith { consumer.position(it) }
+        val offsets = offsetsPerPartition.map { (topicPartition, offset) ->
             CommittedPositionEntry(
-                topic,
+                topicPartition.topic,
                 (consumer as DBCordaConsumerImpl).getConsumerGroup(),
-                partition,
+                topicPartition.partition,
                 offset,
                 transaction
             )
@@ -158,14 +155,13 @@ class CordaTransactionalDBProducerImpl(
         transaction = null
     }
 
-    override fun close(timeout: Duration) {
+    override fun close() {
         if (inTransaction) {
             log.error("Close called during transaction.  Some data may be lost.")
             abortTransaction()
         }
+        dbAccess.close()
     }
-
-    override fun close() = close(defaultTimeout)
 
     private fun verifyInTransaction() {
         if (!inTransaction) {

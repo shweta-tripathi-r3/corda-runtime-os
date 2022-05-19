@@ -1,6 +1,6 @@
 package net.corda.sandboxgroupcontext.test
 
-import net.corda.libs.packaging.CpkMetadata
+import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.sandboxgroupcontext.SandboxGroupContext
 import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.sandboxgroupcontext.VirtualNodeContext
@@ -8,7 +8,6 @@ import net.corda.sandboxgroupcontext.service.SandboxGroupContextComponent
 import net.corda.testing.sandboxes.CpiLoader
 import net.corda.testing.sandboxes.VirtualNodeLoader
 import net.corda.v5.application.flows.Flow
-import net.corda.v5.application.services.CordaService
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.VirtualNodeInfo
@@ -36,6 +35,10 @@ class VirtualNodeService @Activate constructor(
 
         private fun generateHoldingIdentity() = HoldingIdentity(X500_NAME, UUID.randomUUID().toString())
     }
+    init {
+        // setting cache size to 2 as some tests require 2 concurrent sandboxes for validating they don't overlap
+        sandboxGroupContextComponent.initCache(2)
+    }
 
     private val vnodes = mutableMapOf<SandboxGroupContext, VirtualNodeInfo>()
 
@@ -57,11 +60,6 @@ class VirtualNodeService @Activate constructor(
         )
         return sandboxGroupContextComponent.getOrCreate(vNodeContext) { _, sandboxGroupContext ->
             sandboxGroupContextComponent.registerCustomCryptography(sandboxGroupContext)
-            sandboxGroupContextComponent.registerMetadataServices(
-                sandboxGroupContext,
-                serviceNames = { cpk -> cpk.cordappManifest.services },
-                isMetadataService = CordaService::class.java::isAssignableFrom
-            )
         }
     }
 

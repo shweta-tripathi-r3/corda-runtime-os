@@ -100,7 +100,7 @@ class PermissionStorageWriterServiceEventHandler(
     @VisibleForTesting
     internal fun onConfigurationUpdated(messagingConfig: SmartConfig) {
 
-        subscription?.stop()
+        subscription?.close()
         subscription = subscriptionFactory.createRPCSubscription(
             rpcConfig = RPCConfig(
                 groupName = GROUP_NAME,
@@ -109,7 +109,7 @@ class PermissionStorageWriterServiceEventHandler(
                 requestType = PermissionManagementRequest::class.java,
                 responseType = PermissionManagementResponse::class.java
             ),
-            nodeConfig = messagingConfig,
+            messagingConfig = messagingConfig,
             responderProcessor = permissionStorageWriterProcessorFactory.create(
                 entityManagerFactoryCreator(),
                 readerService.permissionStorageReader!!
@@ -120,7 +120,7 @@ class PermissionStorageWriterServiceEventHandler(
     }
 
     private fun downTransition(coordinator: LifecycleCoordinator) {
-        subscription?.stop()
+        subscription?.close()
         subscription = null
         crsSub?.close()
         crsSub = null

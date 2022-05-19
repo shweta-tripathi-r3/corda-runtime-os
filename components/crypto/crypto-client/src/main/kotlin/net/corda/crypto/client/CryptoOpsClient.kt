@@ -1,14 +1,13 @@
 package net.corda.crypto.client
 
-import net.corda.data.crypto.config.HSMInfo
-import net.corda.data.crypto.wire.ops.rpc.HSMKeyDetails
+import net.corda.data.crypto.wire.CryptoSigningKey
+import net.corda.data.crypto.wire.ops.rpc.queries.CryptoKeyOrderBy
 import net.corda.lifecycle.Lifecycle
 import net.corda.v5.crypto.CompositeKey
 import net.corda.v5.crypto.DigitalSignature
 import net.corda.v5.crypto.SignatureSpec
 import java.security.KeyPair
 import java.security.PublicKey
-import java.util.UUID
 
 /**
  * The crypto operations client to generate fresh keys, sign, find or filter public keys, some HSM related queries.
@@ -24,16 +23,6 @@ interface CryptoOpsClient : Lifecycle {
     fun getSupportedSchemes(tenantId: String, category: String): List<String>
 
     /**
-     * Returns the public key for the given alias.
-     *
-     * @param tenantId The tenant owning the key.
-     * @param alias The key alias assigned by tenant.
-     *
-     * @return The [PublicKey] if of the pair if it's found, otherwise null.
-     */
-    fun findPublicKey(tenantId: String, alias: String): PublicKey?
-
-    /**
      * Filters the input [PublicKey]s down to a collection of keys that this tenant owns (has private keys for).
      *
      * @param tenantId The tenant owning the key.
@@ -41,15 +30,15 @@ interface CryptoOpsClient : Lifecycle {
      *
      * @return A collection of [PublicKey]s that this node owns.
      */
-    fun filterMyKeys(tenantId: String, candidateKeys: Iterable<PublicKey>): Iterable<PublicKey>
+    fun filterMyKeys(tenantId: String, candidateKeys: Collection<PublicKey>): Collection<PublicKey>
 
     /**
      * Generates a new random key pair using the configured default key scheme and adds it to the internal key storage.
      *
      * @param tenantId The tenant owning the key.
-     * @param category The key category, such as TLS, LEDGER, etc. Don't use FRESH_KEY category as there is separate API
-     * for the fresh keys which is base around wrapped keys.
+     * @param category The key category, such as TLS, LEDGER, etc.
      * @param alias the tenant defined key alias for the key pair to be generated.
+     * @param scheme the key's scheme code name describing which type of the key to generate.
      * @param context the optional key/value operation context.
      *
      * @return The public part of the pair.
@@ -58,6 +47,29 @@ interface CryptoOpsClient : Lifecycle {
         tenantId: String,
         category: String,
         alias: String,
+        scheme: String,
+        context: Map<String, String> = EMPTY_CONTEXT
+    ): PublicKey
+
+    /**
+     * Generates a new random key pair using the configured default key scheme and adds it to the internal key storage.
+     *
+     * @param tenantId The tenant owning the key.
+     * @param category The key category, such as TLS, LEDGER, etc.
+     * @param alias the tenant defined key alias for the key pair to be generated.
+     * @param externalId an id associated with the key, the service doesn't use any semantic beyond association.
+     * @param scheme the key's scheme code name describing which type of the key to generate.
+     * @param context the optional key/value operation context.
+     *
+     * @return The public part of the pair.
+     */
+    @Suppress("LongParameterList")
+    fun generateKeyPair(
+        tenantId: String,
+        category: String,
+        alias: String,
+        externalId: String,
+        scheme: String,
         context: Map<String, String> = EMPTY_CONTEXT
     ): PublicKey
 
@@ -65,25 +77,36 @@ interface CryptoOpsClient : Lifecycle {
      * Generates a new random [KeyPair] and adds it to the internal key storage.
      *
      * @param tenantId The tenant owning the key.
-     * @param context the optional key/value operation context.
-     *
-     * @return The [PublicKey] of the generated [KeyPair].
-     */
-    fun freshKey(tenantId: String, context: Map<String, String> = EMPTY_CONTEXT): PublicKey
-
-    /**
-     * Generates a new random [KeyPair] and adds it to the internal key storage. Associates the public key to
-     * an external id.
-     *
-     * @param tenantId The tenant owning the key.
-     * @param externalId Some id associated with the key, the service doesn't use any semantic beyond association.
+     * @param category The key category, such as ACCOUNTS, CI, etc.
+     * @param scheme the key's scheme code name describing which type of the key to generate.
      * @param context the optional key/value operation context.
      *
      * @return The [PublicKey] of the generated [KeyPair].
      */
     fun freshKey(
         tenantId: String,
-        externalId: UUID,
+        category: String,
+        scheme: String,
+        context: Map<String, String> = EMPTY_CONTEXT
+    ): PublicKey
+
+    /**
+     * Generates a new random [KeyPair] and adds it to the internal key storage. Associates the public key to
+     * an external id.
+     *
+     * @param tenantId The tenant owning the key.
+     * @param category The key category, such as ACCOUNTS, CI, etc.
+     * @param externalId an id associated with the key, the service doesn't use any semantic beyond association.
+     * @param scheme the key's scheme code name describing which type of the key to generate.
+     * @param context the optional key/value operation context.
+     *
+     * @return The [PublicKey] of the generated [KeyPair].
+     */
+    fun freshKey(
+        tenantId: String,
+        category: String,
+        externalId: String,
+        scheme: String,
         context: Map<String, String> = EMPTY_CONTEXT
     ): PublicKey
 
@@ -113,56 +136,37 @@ interface CryptoOpsClient : Lifecycle {
     ): DigitalSignature.WithKey
 
     /**
-     * Sign a byte array using the private key identified by the input alias.
-     * Returns the signature bytes formatted according to the signature scheme (signAlgorithm).
-     * Default signature scheme for the key scheme is used.
-     * Note that the alias is scoped to tenant, so it would be enough for the system to figure out which HSM to use
-     * without having category as parameter.
+     * Returns list of keys satisfying the filter condition. All filter values are combined as AND.
+     *
+     * @param skip the response paging information, number of records to skip.
+     * @param take the response paging information, number of records to return, the actual number may be less than
+     * requested.
+     * @param orderBy the order by.
+     * @param tenantId the tenant's id which the keys belong to.
+     * @param filter the optional layered property map of the filter parameters such as
+     * category (the HSM's category which handles the keys),
+     * schemeCodeName (the key's signature scheme name),
+     * alias (the alias which is assigned by the tenant),
+     * masterKeyAlias (the wrapping key alias),
+     * externalId (an id associated with the key),
+     * createdAfter (specifies inclusive time after which a key was created),
+     * createdBefore (specifies inclusive time before which a key was created).
      */
-    fun sign(
+    fun lookup(
         tenantId: String,
-        alias: String,
-        data: ByteArray,
-        context: Map<String, String> = EMPTY_CONTEXT
-    ): ByteArray
+        skip: Int,
+        take: Int,
+        orderBy: CryptoKeyOrderBy,
+        filter: Map<String, String>
+    ): List<CryptoSigningKey>
 
     /**
-     * Sign a byte array using the private key identified by the input alias.
-     * Returns the signature bytes formatted according to the signature scheme (signAlgorithm).
-     * The [signatureSpec] is used to override the default signature scheme
-     * Note that the alias is scoped to tenant, so it would be enough for the system to figure out which HSM to use
-     * without having category as parameter.
-     */
-    fun sign(
-        tenantId: String,
-        alias: String,
-        signatureSpec: SignatureSpec,
-        data: ByteArray,
-        context: Map<String, String> = EMPTY_CONTEXT
-    ): ByteArray
-
-    /**
-     * Looks up key details by its alias.
-     * Note that the alias is scoped to tenant, so it would be enough for the system to figure out which HSM to use
-     * without having category as parameter.
+     * Returns list of keys for provided key ids.
      *
-     * @return The key details if it's found otherwise null.
-     */
-    fun findHSMKey(tenantId: String, alias: String): HSMKeyDetails?
-
-    /**
-     * Looks up key details by its public key.
-     * Note that the alias is scoped to tenant, so it would be enough for the system to figure out which HSM to use
-     * without having category as parameter.
+     * @param tenantId the tenant's id which the keys belong to.
+     * @param ids The list of the key ids to look up for, the maximum number of items is 20.
      *
-     * @return The key details if it's found otherwise null.
+     * @throws IllegalArgumentException if the number of ids exceeds 20.
      */
-    fun findHSMKey(tenantId: String, publicKey: PublicKey): HSMKeyDetails?
-
-    /**
-     * Looks up information about the assigned HSM.
-     *
-     * @return The HSM's info if it's assigned otherwise null.
-     */
-    fun findHSM(tenantId: String, category: String) : HSMInfo?
+    fun lookup(tenantId: String, ids: List<String>): List<CryptoSigningKey>
 }
