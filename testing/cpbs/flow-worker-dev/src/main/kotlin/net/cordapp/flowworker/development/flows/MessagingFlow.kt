@@ -11,10 +11,15 @@ import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.application.messaging.receive
 import net.corda.v5.application.messaging.sendAndReceive
 import net.corda.v5.application.messaging.unwrap
+import net.corda.v5.application.serialization.JsonMarshallingService
+import net.corda.v5.application.serialization.parseJson
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
+
+
+data class Pojo(val who: String, val count: Int)
 
 @InitiatingFlow(protocol = "flowDevProtocol")
 @StartableByRPC
@@ -30,9 +35,13 @@ class MessagingFlow(private val jsonArg: String) : Flow<String> {
     @CordaInject
     lateinit var flowMessaging: FlowMessaging
 
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
+
     @Suspendable
     override fun call(): String {
-        log.info("Hello world is starting... [${flowEngine.flowId}]")
+        val pojo = jsonMarshallingService.parseJson<Pojo>(jsonArg)
+        log.info("Hello world is starting... count: ${pojo.count} [${flowEngine.flowId}]")
         val session = flowMessaging.initiateFlow(
             MemberX500Name(
                 commonName = "Alice",
@@ -61,7 +70,7 @@ class MessagingFlow(private val jsonArg: String) : Flow<String> {
         log.info("Closed session")
         log.info("Hello world completed.")
 
-        return "finished top level flow"
+        return "finished top level flow - count: ${pojo.count}"
     }
 }
 

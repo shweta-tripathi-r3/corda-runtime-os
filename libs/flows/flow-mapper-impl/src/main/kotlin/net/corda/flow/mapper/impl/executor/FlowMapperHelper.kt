@@ -57,7 +57,7 @@ fun generateAppMessage(sessionEvent: SessionEvent, sessionEventSerializer: Corda
     val (sourceIdentity, destinationIdentity) = getSourceAndDestinationIdentity(sessionEvent)
     //TODO set p2pTTL value from flow config - CORE-4574
     val header =
-        AuthenticatedMessageHeader(sourceIdentity, destinationIdentity, Long.MAX_VALUE, sessionEvent.sessionId, "", FLOW_SESSION_SUBSYSTEM)
+        AuthenticatedMessageHeader(sourceIdentity, destinationIdentity, Long.MAX_VALUE, sessionEvent.sessionId + "-" + UUID.randomUUID(), "", FLOW_SESSION_SUBSYSTEM)
     return AppMessage(AuthenticatedMessage(header, ByteBuffer.wrap(sessionEventSerializer.serialize(sessionEvent))))
 }
 
