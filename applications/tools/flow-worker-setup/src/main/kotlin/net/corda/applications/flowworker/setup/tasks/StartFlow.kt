@@ -16,15 +16,18 @@ import java.util.UUID
 class StartFlow(private val context: TaskContext) : Task {
 
     override fun execute() {
-        context.publish(
-            getStartRPCEventRecord(
-                clientId = UUID.randomUUID().toString(),
-                flowName = "net.cordapp.flowworker.development.flows.MessagingFlow",
-                x500Name = context.startArgs.x500NName,
-                groupId = "flow-worker-dev",
-                jsonArgs = "{ \"who\":\"${context.startArgs.x500NName}\"}"
+        repeat(3) {
+            Thread.sleep(500)
+            context.publish(
+                getStartRPCEventRecord(
+                    clientId = UUID.randomUUID().toString(),
+                    flowName = "net.cordapp.flowworker.development.flows.MessagingFlow",
+                    x500Name = context.startArgs.x500NName,
+                    groupId = "flow-worker-dev",
+                    jsonArgs = "{ \"who\":\"${context.startArgs.x500NName}\", \"count\":$it}"
+                )
             )
-        )
+        }
     }
 
     @Suppress("LongParameterList", "Unused")
