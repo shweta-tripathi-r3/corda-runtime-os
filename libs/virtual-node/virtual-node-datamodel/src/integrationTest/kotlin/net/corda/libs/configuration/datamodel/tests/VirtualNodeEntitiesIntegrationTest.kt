@@ -86,13 +86,18 @@ class VirtualNodeEntitiesIntegrationTest {
             "file", "1234567890", "group policy",
             "group ID", "request ID", emptySet()
         )
+        val holdingIdentity = HoldingIdentityEntity(
+            "0123456789AB", "a=b", "OU=LLC, O=Bob, L=Dublin, C=IE",
+            "${random.nextInt()}", null, null, null, null, null
+        )
         val virtualNode = VirtualNodeEntity(
-            "0123456789AB", "Test CPI", "1.0",
+            holdingIdentity, "Test CPI", "1.0",
             "CPI summary hash"
         )
 
         entityManagerFactory.createEntityManager().transaction { em ->
             em.persist(cpiMetadata)
+            em.persist(holdingIdentity)
             em.persist(virtualNode)
         }
 
@@ -101,7 +106,7 @@ class VirtualNodeEntitiesIntegrationTest {
             entityManagerFactory.createEntityManager().find(
                 VirtualNodeEntity::class.java,
                 VirtualNodeEntityKey(
-                    virtualNode.holdingIdentityId,
+                    virtualNode.holdingIdentity,
                     virtualNode.cpiName,
                     virtualNode.cpiVersion,
                     virtualNode.cpiSignerSummaryHash

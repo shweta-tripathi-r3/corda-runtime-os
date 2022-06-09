@@ -9,6 +9,8 @@ import javax.persistence.IdClass
 import javax.persistence.Table
 import javax.persistence.Column
 import javax.persistence.Embeddable
+import javax.persistence.JoinColumn
+import javax.persistence.ManyToOne
 
 /**
  * The entity for a virtual node instance in the cluster database.
@@ -22,9 +24,12 @@ import javax.persistence.Embeddable
 @Table(name = VNODE_INSTANCE_DB_TABLE, schema = CONFIG)
 @IdClass(VirtualNodeEntityKey::class)
 data class VirtualNodeEntity(
-    @Id
-    @Column(name = "holding_identity_id", nullable = false)
-    val holdingIdentityId: String,
+//    @Id
+//    @Column(name = "holding_identity_id", nullable = false)
+//    val holdingIdentityId: String,
+    @ManyToOne
+    @JoinColumn(name="holding_identity_id")
+    val holdingIdentity: HoldingIdentityEntity,
     @Id
     @Column(name = "cpi_name", nullable = false)
     var cpiName: String,
@@ -40,7 +45,8 @@ data class VirtualNodeEntity(
 @Embeddable // Set so that kotlin-jpa creates no-argument constructor required by JPA
 @Suppress("Unused")
 class VirtualNodeEntityKey(
-    private val holdingIdentityId: String,
+//    private val holdingIdentityId: String,
+    private val holdingIdentity: HoldingIdentityEntity,
     private val cpiName: String,
     private val cpiVersion: String,
     private val cpiSignerSummaryHash: String
