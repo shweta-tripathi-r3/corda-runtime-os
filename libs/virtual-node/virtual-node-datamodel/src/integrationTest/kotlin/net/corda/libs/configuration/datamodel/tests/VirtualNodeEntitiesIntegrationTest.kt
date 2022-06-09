@@ -139,7 +139,8 @@ class VirtualNodeEntitiesIntegrationTest {
 
         val all = entityManagerFactory.createEntityManager().transaction { em ->
             em.createQuery(
-                "FROM ${VirtualNodeEntity::class.simpleName} vnode_ ",
+                "FROM ${VirtualNodeEntity::class.simpleName} vnode_ "+
+                        "INNER JOIN FETCH vnode_.holdingIdentity hid_ ",
                 VirtualNodeEntity::class.java
             ).resultList
         }
