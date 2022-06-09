@@ -3,12 +3,14 @@ package net.corda.libs.virtualnode.datamodel
 import net.corda.db.schema.DbSchema.CONFIG
 import net.corda.db.schema.DbSchema.VNODE_INSTANCE_DB_TABLE
 import java.io.Serializable
+import javax.persistence.CascadeType
 import javax.persistence.Entity
 import javax.persistence.Id
 import javax.persistence.IdClass
 import javax.persistence.Table
 import javax.persistence.Column
 import javax.persistence.Embeddable
+import javax.persistence.FetchType
 import javax.persistence.JoinColumn
 import javax.persistence.ManyToOne
 
@@ -27,7 +29,10 @@ data class VirtualNodeEntity(
 //    @Id
 //    @Column(name = "holding_identity_id", nullable = false)
 //    val holdingIdentityId: String,
-    @ManyToOne
+    @ManyToOne(
+        fetch = FetchType.EAGER,
+        cascade = [CascadeType.PERSIST, CascadeType.MERGE]
+    )
     @JoinColumn(name="holding_identity_id")
     val holdingIdentity: HoldingIdentityEntity,
     @Id

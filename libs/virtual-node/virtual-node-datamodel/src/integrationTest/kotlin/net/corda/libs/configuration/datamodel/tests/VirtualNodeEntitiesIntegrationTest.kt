@@ -13,6 +13,7 @@ import net.corda.libs.virtualnode.datamodel.VirtualNodeEntity
 import net.corda.libs.virtualnode.datamodel.VirtualNodeEntityKey
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
 import net.corda.orm.utils.transaction
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -97,7 +98,6 @@ class VirtualNodeEntitiesIntegrationTest {
 
         entityManagerFactory.createEntityManager().transaction { em ->
             em.persist(cpiMetadata)
-            em.persist(holdingIdentity)
             em.persist(virtualNode)
         }
 
@@ -113,5 +113,39 @@ class VirtualNodeEntitiesIntegrationTest {
                 )
             )
         )
+    }
+
+    @Test
+    fun `can persist and read back all Virtual Node entities`() {
+        for (i in 1..2) {
+            val cpiMetadata = CpiMetadataEntity(
+                "Test CPI $i", "1.0", "CPI summary hash-$i",
+                "file-$i", "1234567890-$i", "group policy",
+                "group ID-$i", "request ID", emptySet()
+            )
+            val holdingIdentity = HoldingIdentityEntity(
+                "0123456789A$i", "a=b$i", "OU=LLC, O=Bob$i, L=Dublin, C=IE",
+                "${random.nextInt()}", null, null, null, null, null
+            )
+            val virtualNode = VirtualNodeEntity(
+                holdingIdentity, cpiMetadata.name, cpiMetadata.version, cpiMetadata.signerSummaryHash
+            )
+
+            entityManagerFactory.createEntityManager().transaction { em ->
+                em.persist(cpiMetadata)
+                em.persist(virtualNode)
+            }
+        }
+
+        val all = entityManagerFactory.createEntityManager().transaction { em ->
+            em.createQuery(
+                "FROM ${VirtualNodeEntity::class.simpleName} vnode_ ",
+                VirtualNodeEntity::class.java
+            ).resultList
+        }
+
+        assertEquals(all.size, 2)
+        // check this doesn't use a proxy and additional query:
+        assertThat(all.first().holdingIdentity.x500Name).isNotNull
     }
 }
