@@ -113,6 +113,37 @@ class VirtualNodeEntitiesIntegrationTest {
                 )
             )
         )
+
+        // create a second vnode with holding identity
+        val vnode2 = entityManagerFactory.createEntityManager().transaction { em ->
+            val hi = em.find(HoldingIdentityEntity::class.java, holdingIdentity.holdingIdentityId)
+            val cpiMetadata2 = CpiMetadataEntity(
+                "Test CPI", "2.0", "CPI summary hash",
+                "file2", "1234567892", "group policy",
+                "group ID", "request ID", emptySet()
+            )
+            em.persist(cpiMetadata2)
+
+            val virtualNode2 = VirtualNodeEntity(
+                hi, cpiMetadata2.name, cpiMetadata.version, cpiMetadata.signerSummaryHash
+            )
+
+            em.merge(virtualNode2)
+        }
+
+        val loadedVnode = entityManagerFactory.createEntityManager().find(
+            VirtualNodeEntity::class.java,
+            VirtualNodeEntityKey(
+                vnode2.holdingIdentity,
+                vnode2.cpiName,
+                vnode2.cpiVersion,
+                vnode2.cpiSignerSummaryHash
+            )
+        )
+        assertEquals(
+            loadedVnode.holdingIdentity,
+            holdingIdentity
+        )
     }
 
     @Test
