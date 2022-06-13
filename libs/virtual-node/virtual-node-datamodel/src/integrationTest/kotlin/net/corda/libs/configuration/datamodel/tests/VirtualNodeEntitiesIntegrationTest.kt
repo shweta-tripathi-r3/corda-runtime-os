@@ -19,7 +19,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import javax.persistence.EntityManagerFactory
+import javax.persistence.criteria.CriteriaBuilder
+import javax.persistence.criteria.Root
 import kotlin.random.Random
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class VirtualNodeEntitiesIntegrationTest {
@@ -169,11 +172,17 @@ class VirtualNodeEntitiesIntegrationTest {
         }
 
         val all = entityManagerFactory.createEntityManager().transaction { em ->
-            em.createQuery(
-                "FROM ${VirtualNodeEntity::class.simpleName} vnode_ "+
-                        "INNER JOIN FETCH vnode_.holdingIdentity hid_ ",
-                VirtualNodeEntity::class.java
-            ).resultList
+//            em.createQuery(
+//                "FROM ${VirtualNodeEntity::class.simpleName} vnode_ "+
+//                        "LEFT OUTER JOIN FETCH vnode_.holdingIdentity hid_ ",
+//                VirtualNodeEntity::class.java
+//            ).resultList
+            val query = em.criteriaBuilder.createQuery(VirtualNodeEntity::class.java)
+            val root = query.from(VirtualNodeEntity::class.java)
+            root.fetch<Any, Any>("holdingIdentity")
+            query.select(root)
+
+            em.createQuery(query).resultList
         }
 
         assertEquals(all.size, 2)

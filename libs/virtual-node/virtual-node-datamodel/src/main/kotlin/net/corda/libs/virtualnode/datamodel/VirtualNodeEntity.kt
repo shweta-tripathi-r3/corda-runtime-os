@@ -13,6 +13,7 @@ import javax.persistence.Embeddable
 import javax.persistence.FetchType
 import javax.persistence.JoinColumn
 import javax.persistence.ManyToOne
+import javax.persistence.MapsId
 
 /**
  * The entity for a virtual node instance in the cluster database.
@@ -30,9 +31,10 @@ data class VirtualNodeEntity(
 //    @Column(name = "holding_identity_id", nullable = false)
 //    val holdingIdentityId: String,
     @ManyToOne(
-        fetch = FetchType.EAGER,
+        fetch = FetchType.LAZY,
         cascade = [CascadeType.PERSIST, CascadeType.MERGE]
     )
+    @MapsId("holdingIdentity")
     @JoinColumn(name="holding_identity_id")
     val holdingIdentity: HoldingIdentityEntity,
     @Id
