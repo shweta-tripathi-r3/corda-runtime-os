@@ -96,13 +96,13 @@ kafka:
       password: ""
   # SASL configuration for client connection to Kafka
   sasl:
-    # -- SASL username for client connection to Kafka 
+    # -- SASL username for client connection to Kafka
     username: "user"
-    # -- SASL password for client connection to Kafka 
+    # -- SASL password for client connection to Kafka
     password: ""
-    # -- SASL mechanism for client connection to Kafka 
+    # -- SASL mechanism for client connection to Kafka
     mechanism: "SCRAM-SHA-256"
-    # -- enable/disable SASL for client connection to Kafka 
+    # -- enable/disable SASL for client connection to Kafka
     enabled: false
 
 # Configuration for the bootstrapper
