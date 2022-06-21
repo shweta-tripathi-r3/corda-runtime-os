@@ -6,13 +6,17 @@ import net.corda.crypto.client.HSMRegistrationClient
 import net.corda.crypto.core.CryptoConsts
 import net.corda.crypto.core.CryptoConsts.HSMContext.NOT_FAIL_IF_ASSOCIATION_EXISTS
 import net.corda.crypto.core.CryptoConsts.SigningKeyFilters.ALIAS_FILTER
+import net.corda.data.KeyValuePairList
+import net.corda.data.crypto.wire.CryptoSignatureWithKey
 import net.corda.data.crypto.wire.ops.rpc.queries.CryptoKeyOrderBy
 import net.corda.data.membership.PersistentMemberInfo
+import net.corda.data.membership.p2p.MembershipRegistrationRequest
 import net.corda.layeredpropertymap.toAvro
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.membership.grouppolicy.GroupPolicyProvider
 import net.corda.membership.impl.MemberInfoExtension.Companion.GROUP_ID
+import net.corda.membership.impl.MemberInfoExtension.Companion.IS_MGM
 import net.corda.membership.impl.MemberInfoExtension.Companion.LEDGER_KEYS_KEY
 import net.corda.membership.impl.MemberInfoExtension.Companion.LEDGER_KEY_HASHES_KEY
 import net.corda.membership.impl.MemberInfoExtension.Companion.MODIFIED_TIME
@@ -35,9 +39,14 @@ import net.corda.membership.registration.MembershipRequestRegistrationOutcome.SU
 import net.corda.membership.registration.MembershipRequestRegistrationResult
 import net.corda.messaging.api.publisher.factory.PublisherFactory
 import net.corda.messaging.api.records.Record
+import net.corda.p2p.app.AppMessage
+import net.corda.p2p.app.UnauthenticatedMessage
+import net.corda.p2p.app.UnauthenticatedMessageHeader
 import net.corda.p2p.test.HostedIdentityEntry
 import net.corda.schema.Schemas.Membership.Companion.MEMBER_LIST_TOPIC
 import net.corda.schema.Schemas.P2P.Companion.P2P_HOSTED_IDENTITIES_TOPIC
+import net.corda.schema.Schemas.P2P.Companion.P2P_OUT_TOPIC
+import net.corda.schema.registry.AvroSchemaRegistry
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.cipher.suite.KeyEncodingService
@@ -53,7 +62,9 @@ import org.osgi.service.component.annotations.Reference
 import org.slf4j.Logger
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.nio.ByteBuffer
 import java.security.PublicKey
+import java.util.*
 
 @Suppress("LongParameterList")
 @Component(service = [MemberRegistrationService::class])
@@ -74,6 +85,8 @@ class StaticMemberRegistrationService @Activate constructor(
     private val hsmRegistrationClient: HSMRegistrationClient,
     @Reference(service = MemberInfoFactory::class)
     val memberInfoFactory: MemberInfoFactory,
+    @Reference(service = AvroSchemaRegistry::class)
+    val avroSchemaRegistry: AvroSchemaRegistry
 ) : MemberRegistrationService {
     companion object {
         private val logger: Logger = contextLogger()
@@ -115,11 +128,40 @@ class StaticMemberRegistrationService @Activate constructor(
         }
         try {
             val groupPolicy = groupPolicyProvider.getGroupPolicy(member)
-            val membershipUpdates = lifecycleHandler.publisher.publish(parseMemberTemplate(member, groupPolicy))
+            val parsedMember = parseMemberTemplate(member, groupPolicy)
+            val membershipUpdates = lifecycleHandler.publisher.publish(parsedMember)
             membershipUpdates.forEach { it.get() }
             val hostedIdentityUpdates =
                 lifecycleHandler.publisher.publish(listOf(createHostedIdentity(member, groupPolicy)))
             hostedIdentityUpdates.forEach { it.get() }
+            lifecycleHandler.publisher.publish(listOf(
+                Record(
+                    P2P_OUT_TOPIC,
+                    UUID.randomUUID().toString(),
+                    AppMessage(
+                        UnauthenticatedMessage(
+                            UnauthenticatedMessageHeader(
+                                net.corda.data.identity.HoldingIdentity(
+                                    "O=Alice, L=London, C=GB",
+                                    "fc651419-b507-4c3f-845d-7286c5f03b15"
+                                ),
+                                member.toAvro(),
+                                "membership"
+                            ),
+                            avroSchemaRegistry.serialize(MembershipRegistrationRequest(
+                                UUID.randomUUID().toString(),
+                                avroSchemaRegistry.serialize(parsedMember.first().value!!.memberContext),
+                                CryptoSignatureWithKey(
+                                    ByteBuffer.wrap("123".toByteArray()),
+                                    ByteBuffer.wrap("456".toByteArray()),
+                                    KeyValuePairList(emptyList())
+                                )
+                            ))
+                        )
+                    )
+                )
+            )).forEach { it.get() }
+
         } catch (e: Exception) {
             StringWriter().use { sw ->
                 PrintWriter(sw).use { pw ->
@@ -180,7 +222,7 @@ class StaticMemberRegistrationService @Activate constructor(
             ),
             sortedMapOf(
                 STATUS to staticMemberInfo.status,
-                MODIFIED_TIME to staticMemberInfo.modifiedTime,
+                MODIFIED_TIME to staticMemberInfo.modifiedTime
             )
         )
 
