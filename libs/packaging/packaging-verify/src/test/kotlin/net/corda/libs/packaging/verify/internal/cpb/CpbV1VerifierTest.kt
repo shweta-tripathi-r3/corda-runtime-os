@@ -195,7 +195,7 @@ class CpbV1VerifierTest {
     }
 
     @Test
-    fun `throws if CPK signer dependency not satisfied (lower version)`() {
+    fun `throws if CPK signer dependency not satisfied (different version)`() {
         val cpb = TestCpbV1Builder()
             .cpks(
                 TestCpkV1Builder()
@@ -206,7 +206,7 @@ class CpbV1VerifierTest {
                 TestCpkV1Builder()
                     .name("dependency-1.1.0.0.cpk")
                     .bundleName("dependency.cpk")
-                    .bundleVersion("0.9.0.0"))
+                    .bundleVersion("1.1.0.0"))
             .signers(ALICE)
             .build()
 

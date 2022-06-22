@@ -6,8 +6,6 @@ import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_NAME_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_VERSION_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.CPK_FORMAT_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.CPK_LIB_FOLDER
-import net.corda.libs.packaging.certSummaryHash
-import net.corda.libs.packaging.core.CpkIdentifier
 import net.corda.libs.packaging.core.exception.PackagingException
 import net.corda.libs.packaging.verify.internal.requireAttributeValueIn
 import net.corda.libs.packaging.verify.internal.singleOrThrow
@@ -22,16 +20,8 @@ class CpkV1Verifier(jarReader: JarReader): CpkVerifier {
     val codeSigners = jarReader.codeSigners
     private val libraries: List<CpkLibrary>
     private val mainBundle: CpkV1MainBundle
-    val id: CpkIdentifier
-        get() {
-            val certificates = codeSigners.map { it.signerCertPath.certificates.first() }.toSet()
-            val cpkSummaryHash = certificates.asSequence().certSummaryHash()
-            with (mainBundle.manifest.mainAttributes) {
-                return CpkIdentifier(getValue(CPK_BUNDLE_NAME_ATTRIBUTE), getValue(CPK_BUNDLE_VERSION_ATTRIBUTE), cpkSummaryHash)
-            }
-        }
-    val dependencies: CpkDependencies
-        get() = mainBundle.cpkDependencies
+    internal val dependencies: List<CpkDependency>
+        get() = mainBundle.dependencies
 
     init {
         libraries = jarReader.entries.filter(::isLibrary).map { CpkLibrary(it.name, it.createInputStream()) }

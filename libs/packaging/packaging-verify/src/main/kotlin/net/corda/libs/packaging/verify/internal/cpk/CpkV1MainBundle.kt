@@ -1,8 +1,5 @@
 package net.corda.libs.packaging.verify.internal.cpk
 
-import net.corda.libs.packaging.JarReader
-import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_NAME_ATTRIBUTE
-import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_VERSION_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.CPK_DEPENDENCIES_FILE_ENTRY
 import net.corda.libs.packaging.PackagingConstants.CPK_DEPENDENCY_CONSTRAINTS_FILE_ENTRY
 import net.corda.libs.packaging.PackagingConstants.WORKFLOW_LICENCE_ATTRIBUTE
@@ -10,6 +7,9 @@ import net.corda.libs.packaging.PackagingConstants.WORKFLOW_NAME_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.WORKFLOW_VENDOR_ATTRIBUTE
 import net.corda.libs.packaging.PackagingConstants.WORKFLOW_VERSION_ATTRIBUTE
 import net.corda.libs.packaging.core.exception.PackagingException
+import net.corda.libs.packaging.JarReader
+import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_NAME_ATTRIBUTE
+import net.corda.libs.packaging.PackagingConstants.CPK_BUNDLE_VERSION_ATTRIBUTE
 import net.corda.libs.packaging.verify.internal.firstOrThrow
 import net.corda.libs.packaging.verify.internal.requireAttribute
 
@@ -20,13 +20,13 @@ class CpkV1MainBundle(jarReader: JarReader) {
     private val name = jarReader.jarName
     internal val manifest = jarReader.manifest
     private val codeSigners = jarReader.codeSigners
-    internal val cpkDependencies: CpkDependencies
+    internal val dependencies: List<CpkDependency>
     internal val libraryConstraints: CpkLibraryConstraints
 
     init {
-        cpkDependencies = jarReader.entries.filter{ it.name == CPK_DEPENDENCIES_FILE_ENTRY }
-            .map { CpkDependencies(it.name, it.createInputStream(), codeSigners.toTypedArray()) }
+        val dependenciesEntry = jarReader.entries.filter{ it.name == CPK_DEPENDENCIES_FILE_ENTRY }
             .firstOrThrow(PackagingException("$CPK_DEPENDENCIES_FILE_ENTRY not found in CPK main bundle \"$name\""))
+        dependencies = CpkV1DependenciesReader.readDependencies(name, dependenciesEntry.createInputStream(), codeSigners)
 
         libraryConstraints = jarReader.entries.filter{ it.name == CPK_DEPENDENCY_CONSTRAINTS_FILE_ENTRY }
             .map { CpkLibraryConstraints(it.name, it.createInputStream()) }
