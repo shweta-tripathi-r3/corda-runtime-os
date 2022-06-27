@@ -209,6 +209,7 @@ class CryptoOpsClientComponent @Activate constructor(
             ),
             event.config.getConfig(MESSAGING_CONFIG)
         ).also { it.start() }
+        // TODO sender is started but might not be UP
 
         override val ops: CryptoOpsClientImpl = CryptoOpsClientImpl(
             schemeMetadata = schemeMetadata,
