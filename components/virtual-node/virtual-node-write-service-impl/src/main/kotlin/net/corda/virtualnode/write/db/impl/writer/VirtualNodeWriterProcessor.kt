@@ -9,6 +9,7 @@ import net.corda.db.core.DbPrivilege
 import net.corda.db.core.DbPrivilege.DDL
 import net.corda.db.core.DbPrivilege.DML
 import net.corda.layeredpropertymap.toAvro
+import net.corda.libs.cpi.datamodel.findDbChangeLogForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.membership.impl.GroupPolicyParser
 import net.corda.membership.impl.MemberInfoExtension.Companion.groupId
@@ -49,6 +50,7 @@ internal class VirtualNodeWriterProcessor(
     private val vnodeDbFactory: VirtualNodeDbFactory,
     private val groupPolicyParser: GroupPolicyParser,
     private val clock: Clock,
+    private val doCpiMigrations: Boolean = true
 ) : RPCResponderProcessor<VirtualNodeCreationRequest, VirtualNodeCreationResponse> {
 
     companion object {
@@ -96,6 +98,8 @@ internal class VirtualNodeWriterProcessor(
             createSchemasAndUsers(holdingId, vNodeDbs.values)
 
             runDbMigrations(holdingId, vNodeDbs.values)
+
+            runCpiMigrations(cpiMetadata, vNodeDbs.values)
 
             val dbConnections = persistHoldingIdAndVirtualNode(holdingId, vNodeDbs, cpiMetadata.id, request.updateActor)
 
@@ -208,6 +212,26 @@ internal class VirtualNodeWriterProcessor(
                 "Error running virtual node DB migration for holding identity $holdingIdentity",
                 e
             )
+        }
+    }
+
+
+    // TODO... only use vNodeDbs[VAULT]
+    private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vNodeDbs: Collection<VirtualNodeDb>) {
+        val id = CpiIdentifier(cpiMetadata.id.name, cpiMetadata.id.version, cpiMetadata.id.signerSummaryHash)
+        if (doCpiMigrations) {
+            dbConnectionManager.getClusterEntityManagerFactory().createEntityManager().transaction {
+                val changelogs = it.findDbChangeLogForCpi(id)
+                val dbChange = VirtualNodeDbChangeLog(changelogs)
+                try {
+                    vNodeDbs.forEach { vn -> vn.runCpiMigrations(dbChange) }
+                } catch (e: Exception) {
+                    throw VirtualNodeWriteServiceException(
+                        "Error running virtual node DB migration for CPI liquibase migrations",
+                        e
+                    )
+                }
+            }
         }
     }
 

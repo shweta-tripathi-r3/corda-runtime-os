@@ -25,6 +25,7 @@ internal class VirtualNodeWriterFactory(
     private val dbAdmin: DbAdmin,
     private val schemaMigrator: LiquibaseSchemaMigrator,
     private val groupPolicyParser: GroupPolicyParser,
+    private val doCpiMigrations: Boolean = true
 ) {
 
     /**
@@ -76,7 +77,8 @@ internal class VirtualNodeWriterFactory(
             virtualNodeEntityRepository,
             vnodeDbFactory,
             groupPolicyParser,
-            UTCClock()
+            UTCClock(),
+            doCpiMigrations
         )
 
         return subscriptionFactory.createRPCSubscription(rpcConfig, messagingConfig, processor)

@@ -1,7 +1,9 @@
 package net.corda.virtualnode.write.db.impl.writer
 
+import net.corda.db.admin.DbChange
 import net.corda.db.admin.LiquibaseSchemaMigrator
 import net.corda.db.admin.impl.ClassloaderChangeLog
+import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.connection.manager.DBConfigurationException
 import net.corda.db.connection.manager.DbAdmin
 import net.corda.db.connection.manager.DbConnectionManager
@@ -77,4 +79,15 @@ class VirtualNodeDb(
             }
         }
     }
+
+    fun runCpiMigrations(dbChange: DbChange) {
+        dbConnections[DDL]?.let { dbConnection ->
+            dbConnectionManager.getDataSource(dbConnection.config).use { dataSource ->
+                dataSource.connection.use { connection ->
+                    LiquibaseSchemaMigratorImpl().updateDb(connection, dbChange)
+                }
+            }
+        }
+    }
+
 }

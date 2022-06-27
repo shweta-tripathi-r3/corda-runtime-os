@@ -15,11 +15,21 @@ class VirtualNodeDbChangeLog(
     private val changeLogs: List<CpkDbChangeLogEntity>
 ): DbChange {
     companion object {
+        // To get going we assume the master changelog file for a CPK is XML and has this name
+        // Note that this name different to the example in:
+        //    https://docs.liquibase.com/concepts/bestpractices.html
+        // And we know people use other names for master files, e.g. in the liquibase test cases at:
+        //    https://github.com/liquibase/liquibase/tree/master/liquibase-integration-tests/src/test/resources/changelogs/pgsql/complete
+        //
+        // For command line usage the root changelog is a required parameter, see https://docs.liquibase.com/commands/update/update.html
         const val MASTER_CHANGE_LOG = "db.changelog-master.xml"
     }
 
     private val all by lazy {
         changeLogs.associate {
+            // NOTE: it is possible to have a conflict due to for instance:
+            // - CPK called "alpha" and  filepath "gamma-beta" with
+            // - CPK called "alpha-gamma" and filepath "beta"
             "${it.id.cpkName}-${it.id.filePath}" to it.content
         }
     }

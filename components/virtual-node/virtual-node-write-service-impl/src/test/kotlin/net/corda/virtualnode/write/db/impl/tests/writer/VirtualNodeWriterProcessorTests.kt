@@ -198,7 +198,8 @@ class VirtualNodeWriterProcessorTests {
             vNodeRepo,
             vNodeFactory,
             groupPolicyParser,
-            clock
+            clock,
+            false
         )
 
         processRequest(processor, vnodeCreationReq)
@@ -218,7 +219,8 @@ class VirtualNodeWriterProcessorTests {
             vNodeRepo,
             vNodeFactory,
             groupPolicyParser,
-            clock
+            clock,
+            false
         )
         processRequest(processor, vnodeCreationReq)
 
@@ -266,7 +268,8 @@ class VirtualNodeWriterProcessorTests {
             vNodeRepo,
             vNodeFactory,
             groupPolicyParser,
-            clock
+            clock,
+            false
         )
         processRequest(processor, vnodeCreationReq)
 
@@ -307,7 +310,8 @@ class VirtualNodeWriterProcessorTests {
             vNodeRepo,
             vNodeFactory,
             groupPolicyParser,
-            clock
+            clock,
+            false
         )
         val resp = processRequest(processor, vnodeCreationReq)
 
@@ -342,8 +346,8 @@ class VirtualNodeWriterProcessorTests {
             vNodeRepo,
             vNodeFactory,
             groupPolicyParser,
-            clock
-        )
+            clock,
+            false)
         val resp = processRequest(processor, vnodeCreationReq)
 
         assertEquals(expectedResp.success, resp.success)
