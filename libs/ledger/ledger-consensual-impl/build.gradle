@@ -48,9 +48,16 @@ dependencies {
     integrationTestRuntimeOnly project(':libs:lifecycle:lifecycle-impl')
     integrationTestRuntimeOnly project(':libs:messaging:db-message-bus-impl')
     integrationTestRuntimeOnly project(':libs:messaging:messaging-impl')
+    integrationTestRuntimeOnly project(':components:flow:flow-service')
+    integrationTestRuntimeOnly project(':libs:serialization:serialization-amqp')
+    integrationTestRuntimeOnly project(':libs:serialization:serialization-checkpoint-api')
+    integrationTestRuntimeOnly project(':libs:serialization:serialization-kryo')
+    integrationTestRuntimeOnly project(':libs:flows:session-manager')
+    integrationTestRuntimeOnly project(':libs:flows:session-manager-impl')
     integrationTestRuntimeOnly("org.apache.felix:org.apache.felix.framework.security:$felixSecurityVersion") {
         exclude group: 'org.osgi'
     }
+    integrationTestRuntimeOnly "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:$ariesDynamicFrameworkExtensionVersion"
 
     // Gather locations of CPIs to add into `resources`
     cpis project(path: ':testing:cpbs:consensual-ledger', configuration: 'cordaCPB')
