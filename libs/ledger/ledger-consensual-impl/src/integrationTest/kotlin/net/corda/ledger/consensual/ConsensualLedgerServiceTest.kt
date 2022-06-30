@@ -2,10 +2,9 @@ package net.corda.ledger.consensual
 
 import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.testing.sandboxes.fetchService
-import net.corda.testing.sandboxes.lifecycle.EachTestLifecycle
 import net.corda.testing.sandboxes.groupcontext.VirtualNodeService
+import net.corda.testing.sandboxes.lifecycle.EachTestLifecycle
 import net.corda.v5.ledger.consensual.ConsensualLedgerService
-import net.corda.v5.base.util.contextLogger
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -30,7 +29,7 @@ class ConsensualLedgerServiceTest {
         private const val TIMEOUT_MILLIS = 2000L
         private const val CPB = "META-INF/consensual-ledger.cpb"
         private const val CPK_BASIC_FLOW = "net.cordapp.demo.consensual.ConsensualFlow"
-        val logger = contextLogger()
+
         init {
             println("ConsensualLedgerServiceTest init static")
         }
@@ -64,12 +63,7 @@ class ConsensualLedgerServiceTest {
     fun reset() {}
 
     @Test
-    fun `dummy flow runs`() {
+    fun `Can resolve amnd inject service`() {
         assertEquals(42, consensualLedgerService.double(21))
-        // TODO: do stuff here after we can actually inject the ledger service
-        // val sandboxGroupContext = virtualNode.loadSandbox(CPB)
-        // assertThat(
-        //     virtualNode.runFlow<Map<String, String>>(CPK_BASIC_FLOW, sandboxGroupContext)
-        // ).isNotNull
     }
 }
