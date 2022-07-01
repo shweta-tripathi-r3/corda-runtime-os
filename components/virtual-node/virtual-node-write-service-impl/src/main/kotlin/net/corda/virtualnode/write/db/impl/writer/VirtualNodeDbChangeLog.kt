@@ -22,7 +22,7 @@ class VirtualNodeDbChangeLog(
         //    https://github.com/liquibase/liquibase/tree/master/liquibase-integration-tests/src/test/resources/changelogs/pgsql/complete
         //
         // For command line usage the root changelog is a required parameter, see https://docs.liquibase.com/commands/update/update.html
-        const val MASTER_CHANGE_LOG = "db.changelog-master.xml"
+        const val MASTER_CHANGE_LOG = "migration/db.changelog-master.xml"
     }
 
     private val all by lazy {
