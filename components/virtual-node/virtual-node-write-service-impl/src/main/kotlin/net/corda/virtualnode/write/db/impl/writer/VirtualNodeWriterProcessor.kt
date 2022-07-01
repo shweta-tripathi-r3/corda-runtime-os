@@ -99,7 +99,7 @@ internal class VirtualNodeWriterProcessor(
 
             runDbMigrations(holdingId, vNodeDbs.values)
 
-            runCpiMigrations(cpiMetadata, vNodeDbs.values)
+            runCpiMigrations(cpiMetadata, vNodeDbs[VAULT])
 
             val dbConnections = persistHoldingIdAndVirtualNode(holdingId, vNodeDbs, cpiMetadata.id, request.updateActor)
 
@@ -215,16 +215,14 @@ internal class VirtualNodeWriterProcessor(
         }
     }
 
-
-    // TODO... only use vNodeDbs[VAULT]
-    private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vNodeDbs: Collection<VirtualNodeDb>) {
+    private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vaultDb: VirtualNodeDb?) {
         val id = CpiIdentifier(cpiMetadata.id.name, cpiMetadata.id.version, cpiMetadata.id.signerSummaryHash)
-        if (doCpiMigrations) {
+        if (doCpiMigrations && vaultDb != null) {
             dbConnectionManager.getClusterEntityManagerFactory().createEntityManager().transaction {
                 val changelogs = it.findDbChangeLogForCpi(id)
                 val dbChange = VirtualNodeDbChangeLog(changelogs)
                 try {
-                    vNodeDbs.forEach { vn -> vn.runCpiMigrations(dbChange) }
+                    vaultDb.runCpiMigrations(dbChange)
                 } catch (e: Exception) {
                     throw VirtualNodeWriteServiceException(
                         "Error running virtual node DB migration for CPI liquibase migrations",

@@ -27,10 +27,7 @@ class VirtualNodeDbChangeLog(
 
     private val all by lazy {
         changeLogs.associate {
-            // NOTE: it is possible to have a conflict due to for instance:
-            // - CPK called "alpha" and  filepath "gamma-beta" with
-            // - CPK called "alpha-gamma" and filepath "beta"
-            "${it.id.cpkName}-${it.id.filePath}" to it.content
+            "${it.id.cpkName}/${it.id.filePath}" to it.content
         }
     }
 
