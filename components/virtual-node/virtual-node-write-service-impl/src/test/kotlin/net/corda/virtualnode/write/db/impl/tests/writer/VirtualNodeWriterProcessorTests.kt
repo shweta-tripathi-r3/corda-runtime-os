@@ -14,6 +14,9 @@ import net.corda.layeredpropertymap.LayeredPropertyMapFactory
 import net.corda.layeredpropertymap.create
 import net.corda.layeredpropertymap.impl.LayeredPropertyMapFactoryImpl
 import net.corda.libs.configuration.SmartConfig
+import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
+import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
+import net.corda.libs.cpi.datamodel.findDbChangeLogForCpi
 import net.corda.membership.impl.GroupPolicyParser
 import net.corda.membership.impl.MGMContextImpl
 import net.corda.membership.impl.MemberContextImpl
@@ -46,6 +49,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -61,6 +65,7 @@ import java.util.concurrent.CompletableFuture
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.EntityTransaction
+import javax.persistence.TypedQuery
 
 /** Tests of [VirtualNodeWriterProcessor]. */
 class VirtualNodeWriterProcessorTests {
@@ -136,10 +141,12 @@ class VirtualNodeWriterProcessorTests {
         DbPrivilege.DML to dbConnection,
     )
 
+    private val vaultDb = VirtualNodeDb(
+        VirtualNodeDbType.VAULT, true, "holdingIdentityId", dbConnections, mock(), connectionManager, mock())
+
     private val vNodeFactory = mock<VirtualNodeDbFactory>() {
         on { createVNodeDbs(any(), any()) }.doReturn(mapOf(
-            VirtualNodeDbType.VAULT to VirtualNodeDb(
-                VirtualNodeDbType.VAULT, true, "holdingIdentityId", dbConnections, mock(), connectionManager, mock()),
+            VirtualNodeDbType.VAULT to vaultDb,
             VirtualNodeDbType.CRYPTO to VirtualNodeDb(
                 VirtualNodeDbType.CRYPTO, true, "holdingIdentityId", dbConnections, mock(), connectionManager, mock())
         ))
@@ -205,6 +212,35 @@ class VirtualNodeWriterProcessorTests {
         processRequest(processor, vnodeCreationReq)
 
         verify(publisher).publish(listOf(expectedRecord))
+    }
+
+    @Test
+    fun `runs CPI DB Migrations`() {
+        val changeLog = mock<CpkDbChangeLogEntity>()
+        val query = mock<TypedQuery<CpkDbChangeLogEntity>>() {
+            on { resultList }.thenReturn(listOf(changeLog))
+        }
+        whenever(query.setParameter(any<String>(), any())).thenReturn(query)
+        whenever(em.createNamedQuery(CpkDbChangeLogEntity.QUERY_FIND_FOR_CPI))
+            .thenReturn(query)
+
+        val publisher = getPublisher()
+        val processor = VirtualNodeWriterProcessor(
+            publisher,
+            connectionManager,
+            vNodeRepo,
+            vNodeFactory,
+            groupPolicyParser,
+            clock
+        )
+
+        processRequest(processor, vnodeCreationReq)
+
+        // verify the write parameters were used in the query
+        // ...
+        // and that we're evoking hte migration
+        // TODO: hook up list of changes
+        verify(vaultDb).runCpiMigrations(argThat { this.changeLogFileList.containsAll(listOf("foo")) })
     }
 
     @Test

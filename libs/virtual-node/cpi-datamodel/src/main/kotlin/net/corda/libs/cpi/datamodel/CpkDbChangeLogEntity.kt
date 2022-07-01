@@ -1,6 +1,7 @@
 package net.corda.libs.cpi.datamodel
 
 import net.corda.db.schema.DbSchema
+import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity.Companion.QUERY_FIND_FOR_CPI
 import net.corda.libs.packaging.core.CpiIdentifier
 import java.io.Serializable
 import java.nio.charset.Charset
@@ -10,6 +11,7 @@ import javax.persistence.Embeddable
 import javax.persistence.EmbeddedId
 import javax.persistence.Entity
 import javax.persistence.EntityManager
+import javax.persistence.NamedQuery
 import javax.persistence.Table
 import javax.persistence.Version
 
@@ -18,6 +20,16 @@ import javax.persistence.Version
  */
 @Entity
 @Table(name = "cpk_db_change_log", schema = DbSchema.CONFIG)
+@NamedQuery(
+    name= QUERY_FIND_FOR_CPI,
+    query="SELECT NEW CpkDbChangeLogEntity(d.id, d.fileChecksum, d.content) " +
+            "FROM CpkDbChangeLogEntity AS d INNER JOIN " +
+            "CpiCpkEntity AS i " +
+            "ON d.id.cpkName = i.metadata.id.cpkName AND d.id.cpkVersion = i.id.cpkVersion AND " +
+            "   d.id.cpkSignerSummaryHash = i.id.cpkSignerSummaryHash "+
+            "WHERE i.id.cpiName = :name AND "+
+            "      i.id.cpiVersion = :version AND "+
+            "      i.id.cpiSignerSummaryHash = :signerSummaryHash")
 class CpkDbChangeLogEntity(
     @EmbeddedId
     var id: CpkDbChangeLogKey,
@@ -26,6 +38,9 @@ class CpkDbChangeLogEntity(
     @Column(name = "content", nullable = false)
     val content: String,
 ) {
+    companion object {
+        const val QUERY_FIND_FOR_CPI = "CpkDbChangeLogEntity.findDbChangeLogForCpi"
+    }
     // This structure does not distinguish the root changelogs from changelog include files
     // (or CSVs, which we do not need to support). So, to find the root, you need to look for a filename
     // convention. See the comment in the companion object of VirtualNodeDbChangeLog.
@@ -63,16 +78,8 @@ data class CpkDbChangeLogKey(
  */
 fun EntityManager.findDbChangeLogForCpi(
     cpi: CpiIdentifier
-): List<CpkDbChangeLogEntity> = createQuery(
-    "SELECT NEW ${CpkDbChangeLogEntity::class.simpleName}(d.id, d.fileChecksum, d.content) " +
-            "FROM ${CpkDbChangeLogEntity::class.simpleName} AS d INNER JOIN " +
-            "${CpiCpkEntity::class.simpleName} AS i " +
-            "ON d.id.cpkName = i.metadata.id.cpkName AND d.id.cpkVersion = i.id.cpkVersion AND " +
-            "   d.id.cpkSignerSummaryHash = i.id.cpkSignerSummaryHash "+
-            "WHERE i.id.cpiName = :name AND "+
-            "      i.id.cpiVersion = :version AND "+
-            "      i.id.cpiSignerSummaryHash = :signerSummaryHash" ,
-
+): List<CpkDbChangeLogEntity> = createNamedQuery(
+    QUERY_FIND_FOR_CPI,
     CpkDbChangeLogEntity::class.java
 )
     .setParameter("name", cpi.name)
