@@ -124,9 +124,10 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `findCpkDbChangeLog returns all for cpk`() {
-        val (cpi1, cpks1) = TestObject.createCpiWithCpks()
+        val (cpi1, cpks1) = TestObject.createCpiWithCpks(2)
         val (cpi2, cpks2) = TestObject.createCpiWithCpks()
         val cpk1 = cpks1.first()
+        val cpk1b = cpks1[1]
         val cpk2 = cpks2.first()
 
         val changeLog1 = CpkDbChangeLogEntity(
@@ -137,9 +138,26 @@ class CpkDbChangeLogEntityTest {
                    xsi:schemaLocation="https://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
 
     <changeSet author="R3.Corda" id="test-migrations-v1.0">
-        <createTablewmn name="id" type="INT">
+        <createTable name="id" type="string">
+             <column name="id" type="varchar(8)">
                 <constraints nullable="false"/>
             </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>"""
+        )
+        val changeLog1b = CpkDbChangeLogEntity(
+            CpkDbChangeLogKey(cpk1b.metadata.id.cpkName, cpk1b.metadata.id.cpkVersion, cpk1b.metadata.id.cpkSignerSummaryHash, "master"),
+            "master-checksum",
+            """<databaseChangeLog xmlns="https://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="https://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet author="R3.Corda" id="test-migrations-v1.0">
+        <createTable name="id" type="INT">
+        <addColumn tableName="person" >
+                <column name="is_active" type="varchar2(1)" defaultValue="Y" />  
+            </addColumn>  
         </createTable>
     </changeSet>
 </databaseChangeLog>"""
@@ -150,7 +168,7 @@ class CpkDbChangeLogEntityTest {
             "other-content"
         )
         val changeLog3 = CpkDbChangeLogEntity(
-    34        CpkDbChangeLogKey(cpk2.metadata.id.cpkName, cpk2.metadata.id.cpkVersion, cpk2.metadata.id.cpkSignerSummaryHash, "master"),
+            CpkDbChangeLogKey(cpk2.metadata.id.cpkName, cpk2.metadata.id.cpkVersion, cpk2.metadata.id.cpkSignerSummaryHash, "master"),
             "master-checksum",
             "master-content"
         )
@@ -159,6 +177,7 @@ class CpkDbChangeLogEntityTest {
             persist(cpi1)
             persist(cpi2)
             persist(changeLog1)
+            persist(changeLog1b)
             persist(changeLog2)
             persist(changeLog3)
             flush()
@@ -172,7 +191,7 @@ class CpkDbChangeLogEntityTest {
             em.findDbChangeLogForCpi(CpiIdentifier(cpi1.name, cpi1.version, SecureHash("SHA1", cpi1.signerSummaryHash.toByteArray())))
         }
 
-        assertThat(changeLogs.size).isEqualTo(2)
+        assertThat(changeLogs.size).isEqualTo(3)
         assertThat(changeLogs.map { it.id }).containsAll(listOf(changeLog1.id, changeLog2.id))
     }
 }
