@@ -59,8 +59,8 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs`() {
-        val (cpi, cpk) = TestObject.createCpiWithCpk()
-
+        val (cpi, cpks) = TestObject.createCpiWithCpks()
+        val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
             CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
                 cpk.metadata.id.cpkSignerSummaryHash, "master"),
@@ -94,8 +94,8 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs to existing CPI`() {
-        val (cpi, cpk) = TestObject.createCpiWithCpk()
-
+        val (cpi, cpks) = TestObject.createCpiWithCpks()
+        val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
             CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion, cpk.metadata.id.cpkSignerSummaryHash, "master"),
             "master-checksum",
@@ -124,8 +124,10 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `findCpkDbChangeLog returns all for cpk`() {
-        val (cpi1, cpk1) = TestObject.createCpiWithCpk()
-        val (cpi2, cpk2) = TestObject.createCpiWithCpk()
+        val (cpi1, cpks1) = TestObject.createCpiWithCpks()
+        val (cpi2, cpks2) = TestObject.createCpiWithCpks()
+        val cpk1 = cpks1.first()
+        val cpk2 = cpks2.first()
 
         val changeLog1 = CpkDbChangeLogEntity(
             CpkDbChangeLogKey(cpk1.metadata.id.cpkName, cpk1.metadata.id.cpkVersion, cpk1.metadata.id.cpkSignerSummaryHash, "master"),
@@ -135,8 +137,7 @@ class CpkDbChangeLogEntityTest {
                    xsi:schemaLocation="https://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
 
     <changeSet author="R3.Corda" id="test-migrations-v1.0">
-        <createTable tableName="test_table_in_other_schema">
-            <column name="id" type="INT">
+        <createTablewmn name="id" type="INT">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -149,7 +150,7 @@ class CpkDbChangeLogEntityTest {
             "other-content"
         )
         val changeLog3 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk2.metadata.id.cpkName, cpk2.metadata.id.cpkVersion, cpk2.metadata.id.cpkSignerSummaryHash, "master"),
+    34        CpkDbChangeLogKey(cpk2.metadata.id.cpkName, cpk2.metadata.id.cpkVersion, cpk2.metadata.id.cpkSignerSummaryHash, "master"),
             "master-checksum",
             "master-content"
         )
