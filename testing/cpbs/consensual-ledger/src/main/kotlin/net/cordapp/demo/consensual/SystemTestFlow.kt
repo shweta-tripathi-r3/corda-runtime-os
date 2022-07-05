@@ -7,6 +7,7 @@ import net.corda.v5.application.flows.RPCStartableFlow
 import net.corda.v5.application.flows.getRequestBodyAs
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.messaging.FlowMessaging
+import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.ledger.consensual.ConsensualLedgerService
@@ -31,6 +32,7 @@ class SystemTestFlow : RPCStartableFlow {
         val log = contextLogger()
     }
 
+    @Suspendable
     override fun call(requestBody: RPCRequestData): String {
         log.info("SystemFlow test: Initiating Flow called - parsing out counterparty")
         val counterPartyString = requestBody.getRequestBodyAs<SystemTestRequest>(marshallingService).counterParty

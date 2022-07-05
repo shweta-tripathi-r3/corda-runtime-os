@@ -5,6 +5,8 @@ import net.corda.v5.application.flows.SubFlow
 import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.application.messaging.receive
 import net.corda.v5.application.messaging.unwrap
+import net.corda.v5.base.annotations.CordaSerializable
+import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.ledger.consensual.ConsensualLedgerService
 import net.corda.v5.ledger.consensual.ConsensualTestRequest
@@ -27,6 +29,7 @@ class ConsensualLedgerServiceImpl @Activate constructor(
     }
 
 
+    @CordaSerializable
     class DummyPayload
 
     companion object {
@@ -34,6 +37,7 @@ class ConsensualLedgerServiceImpl @Activate constructor(
     }
 
     class TestFlowImpl(private val session: FlowSession) : SubFlow<String> {
+        @Suspendable
         override fun call(): String {
             log.info("SystemFlow test: TestFlowImpl sending dummy")
             session.send(DummyPayload())
@@ -43,6 +47,7 @@ class ConsensualLedgerServiceImpl @Activate constructor(
     }
 
     class TestFlowResponderImpl(private val params: ConsensualTestResponse) : SubFlow<Unit> {
+        @Suspendable
         override fun call() {
             log.info("SystemFlow test: TestFlowResponder awaiting dummy")
             params.session.receive<DummyPayload>()
@@ -52,12 +57,14 @@ class ConsensualLedgerServiceImpl @Activate constructor(
         }
     }
 
+    @Suspendable
     override fun receiveTestFlow(request: ConsensualTestResponse) {
         log.info("SystemFlow test: receiveTestFlow called")
         flowEngine.subFlow(TestFlowResponderImpl(request))
         log.info("SystemFlow test: receiveTestFlow returning")
     }
 
+    @Suspendable
     override fun startTestFlow(request: ConsensualTestRequest): String {
         log.info("SystemFlow test: startTestFlow called")
         val result = flowEngine.subFlow(TestFlowImpl(request.session))

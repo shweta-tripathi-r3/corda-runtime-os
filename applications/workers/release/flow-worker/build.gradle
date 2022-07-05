@@ -34,7 +34,6 @@ dependencies {
     runtimeOnly "org.apache.felix:org.apache.felix.configadmin:$felixConfigAdminVersion"
     runtimeOnly "net.corda:corda-application"
 
-    runtimeOnly project(':libs:ledger:ledger-consensual-impl')
     runtimeOnly project(":libs:messaging:kafka-message-bus-impl")
 
     runtimeOnly("org.apache.felix:org.apache.felix.framework.security:$felixSecurityVersion") {

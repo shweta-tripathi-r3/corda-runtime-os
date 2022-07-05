@@ -73,14 +73,8 @@ class RPCRequestDataImplTest {
             startArgs = args
         }
         whenever(checkpoint.flowStartContext).thenReturn(startContext)
-<<<<<<< HEAD
+
         val holdingIdentity = HoldingIdentity("CN=Alice, O=Alice Corp, L=LDN, C=GB", "12345")
-=======
-        val holdingIdentity = HoldingIdentity().apply {
-            x500Name = "CN=Alice, O=Alice Corp, L=LDN, C=GB"
-            groupId = "12345"
-        }
->>>>>>> d2c6cac87 (CORE-5102: Flow marker interface and generic marshalling service (#1447))
         val executionContext = FlowFiberExecutionContext(checkpoint, mock(), holdingIdentity, mock())
         whenever(fiber.getExecutionContext()).thenReturn(executionContext)
         whenever(fiberService.getExecutingFiber()).thenReturn(fiber)

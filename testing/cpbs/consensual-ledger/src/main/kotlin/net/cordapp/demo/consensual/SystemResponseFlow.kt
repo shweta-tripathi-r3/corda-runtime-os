@@ -4,6 +4,7 @@ import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatedBy
 import net.corda.v5.application.flows.ResponderFlow
 import net.corda.v5.application.messaging.FlowSession
+import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.ledger.consensual.ConsensualLedgerService
 import net.corda.v5.ledger.consensual.ConsensualTestResponse
@@ -18,6 +19,7 @@ class SystemResponseFlow : ResponderFlow {
     @CordaInject
     lateinit var ledger: ConsensualLedgerService
 
+    @Suspendable
     override fun call(session: FlowSession) {
         log.info("SystemFlow test: Responder Flow called")
         val request = object : ConsensualTestResponse {
