@@ -53,6 +53,7 @@ class SandboxSetupImpl @Activate constructor(
             "net.corda.kotlin-stdlib-jdk8.osgi-bundle",
             "net.corda.ledger",
             "net.corda.ledger-consensual",
+            "net.corda.ledger-internal",
             "net.corda.membership",
             "net.corda.persistence",
             "net.corda.serialization",

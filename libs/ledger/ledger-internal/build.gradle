@@ -1,0 +1,19 @@
+plugins {
+    id 'corda.common-library'
+    id 'corda.common-publishing'
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+description 'Corda Ledger Internal Interfaces'
+
+dependencies {
+    api 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
+    api 'javax.persistence:javax.persistence-api'
+    api 'org.slf4j:slf4j-api'
+
+    compileOnly 'org.osgi:osgi.annotation'
+
+    implementation platform("net.corda:corda-api:$cordaApiVersion")
+    implementation "net.corda:corda-base"
+}
+
