@@ -1,5 +1,7 @@
 package net.corda.ledger.consensual
 
+import net.corda.ledger.internal.FunnyFarmService
+import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.FlowEngine
 import net.corda.v5.application.flows.SubFlow
 import net.corda.v5.application.messaging.FlowSession
@@ -47,12 +49,16 @@ class ConsensualLedgerServiceImpl @Activate constructor(
     }
 
     class TestFlowResponderImpl(private val params: ConsensualTestResponse) : SubFlow<Unit> {
+
+        @CordaInject
+        lateinit var funnyFarmService: FunnyFarmService
+
         @Suspendable
         override fun call() {
             log.info("SystemFlow test: TestFlowResponder awaiting dummy")
             params.session.receive<DummyPayload>()
             log.info("SystemFlow test: TestFlowResponder sending response")
-            params.session.send(params.createResponse())
+            params.session.send("${params.createResponse()} - service says ${funnyFarmService.sayMoo()}")
             log.info("SystemFlow test: TestFlowResponder returning")
         }
     }

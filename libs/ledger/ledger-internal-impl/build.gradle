@@ -25,8 +25,9 @@ dependencies {
 
     implementation "net.corda.kotlin:kotlin-stdlib-jdk8-osgi"
     implementation "net.corda:corda-base"
+    implementation "net.corda:corda-serialization"
 
-    implementation project(':libs:ledger:ledger-internal')
+    api project(':libs:ledger:ledger-internal')
 
     testCompileOnly 'org.osgi:osgi.core'
     testRuntimeOnly "org.apache.felix:org.apache.felix.framework:$felixVersion"
