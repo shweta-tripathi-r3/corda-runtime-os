@@ -1,6 +1,6 @@
 package net.corda.ledger.consensual
 
-import net.corda.ledger.internal.FunnyFarmService
+import net.corda.v5.ledger.internal.FunnyFarmService
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.FlowEngine
 import net.corda.v5.application.flows.SubFlow

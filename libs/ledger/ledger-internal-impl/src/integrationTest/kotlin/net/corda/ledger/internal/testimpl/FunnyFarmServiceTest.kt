@@ -1,6 +1,6 @@
 package net.corda.ledger.internal.testimpl
 
-import net.corda.ledger.internal.FunnyFarmService
+import net.corda.v5.ledger.internal.FunnyFarmService
 import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.testing.sandboxes.fetchService
 import net.corda.testing.sandboxes.groupcontext.VirtualNodeService

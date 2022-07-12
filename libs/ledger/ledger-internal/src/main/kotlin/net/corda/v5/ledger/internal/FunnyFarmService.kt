@@ -1,4 +1,4 @@
-package net.corda.ledger.internal
+package net.corda.v5.ledger.internal
 
 import net.corda.v5.base.annotations.Suspendable
 
