@@ -11,6 +11,9 @@
 -runsystempackages: \
     sun.security.x509
 
+-runsystemcapabilities: \
+   osgi.service;objectClass:List<String>='org.osgi.service.condpermadmin.ConditionalPermissionAdmin';effective:=active
+
 -runrequires: \
     bnd.identity;id='net.corda.virtual-node-testing',\
     bnd.identity;id='org.apache.felix.framework.security',\
@@ -21,6 +24,7 @@
     bnd.identity;id='net.corda.flow-service',\
     bnd.identity;id='net.corda.serialization-amqp',\
     bnd.identity;id='ledger-consensual-impl-tests',\
+    bnd.identity;id='net.corda.security-manager',\
     bnd.identity;id='net.corda.session-manager',\
     bnd.identity;id='net.corda.serialization-checkpoint-api',\
     bnd.identity;id='slf4j.simple'
@@ -30,5 +34,4 @@
     begin=-1
 
 -runproperties: \
-    org.osgi.framework.bsnversion=multiple,\
     org.osgi.framework.security=osgi
