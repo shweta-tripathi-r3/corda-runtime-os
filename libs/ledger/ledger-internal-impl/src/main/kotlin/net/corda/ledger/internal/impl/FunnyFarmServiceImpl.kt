@@ -4,9 +4,13 @@ import net.corda.v5.ledger.internal.FunnyFarmService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import org.osgi.service.component.annotations.Component
-import org.osgi.service.component.annotations.ServiceScope
+import org.osgi.service.component.annotations.ServiceScope.PROTOTYPE
 
-@Component(service = [FunnyFarmService::class, SingletonSerializeAsToken::class], scope = ServiceScope.PROTOTYPE)
+@Component(
+    service = [FunnyFarmService::class, SingletonSerializeAsToken::class],
+    property = [ "corda.system=true" ],
+    scope = PROTOTYPE
+)
 class FunnyFarmServiceImpl : FunnyFarmService, SingletonSerializeAsToken {
     @Suspendable
     override fun sayMoo(): String {
