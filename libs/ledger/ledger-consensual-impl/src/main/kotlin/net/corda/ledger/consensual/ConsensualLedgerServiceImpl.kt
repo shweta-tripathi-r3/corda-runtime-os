@@ -30,9 +30,6 @@ class ConsensualLedgerServiceImpl @Activate constructor(
         return n*2
     }
 
-    @CordaInject
-    private lateinit var funnyFarmService: FunnyFarmService
-
     @CordaSerializable
     class DummyPayload
 
@@ -50,7 +47,10 @@ class ConsensualLedgerServiceImpl @Activate constructor(
         }
     }
 
-    class TestFlowResponderImpl(private val funnyFarmService: FunnyFarmService, private val params: ConsensualTestResponse) : SubFlow<Unit> {
+    class TestFlowResponderImpl(private val params: ConsensualTestResponse) : SubFlow<Unit> {
+
+        @CordaInject
+        private lateinit var funnyFarmService: FunnyFarmService
 
         @Suspendable
         override fun call() {
@@ -65,7 +65,7 @@ class ConsensualLedgerServiceImpl @Activate constructor(
     @Suspendable
     override fun receiveTestFlow(request: ConsensualTestResponse) {
         log.info("SystemFlow test: receiveTestFlow called")
-        flowEngine.subFlow(TestFlowResponderImpl(funnyFarmService, request))
+        flowEngine.subFlow(TestFlowResponderImpl(request))
         log.info("SystemFlow test: receiveTestFlow returning")
     }
 
