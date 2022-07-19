@@ -36,6 +36,17 @@ java -jar -Dco.paralleluniverse.fibers.verifyInstrumentation=true \
   -ddatabase.jdbc.url=jdbc:postgresql://localhost:5432/cordacluster
 ```
 
+The powershell syntax for this command is sufficiently different to be noteworhty:
+
+```powershell
+java -jar "-Dco.paralleluniverse.fibers.verifyInstrumentation=true" `
+   (get-item .\applications\workers\release\combined-worker\build\bin\corda-combined-worker-*.jar).FullName `
+    --instanceId=0 "-mbus.busType=DATABASE" -spassphrase=password -ssalt=salt `
+    "-ddatabase.user=user" "-ddatabase.pass=password" `
+    "-ddatabase.jdbc.url=jdbc:postgresql://localhost:5432/cordacluster"
+```
+
+
 Or if you want to connect to "real" KAFKA (see below):
 ```bash
 java -jar -Dco.paralleluniverse.fibers.verifyInstrumentation=true \
