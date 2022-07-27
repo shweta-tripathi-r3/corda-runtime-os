@@ -1,6 +1,6 @@
 package net.corda.ledger.internal.impl
 
-import net.corda.v5.ledger.internal.FunnyFarmService
+import net.corda.ledger.internal.FunnyFarmService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import org.osgi.service.component.annotations.Component

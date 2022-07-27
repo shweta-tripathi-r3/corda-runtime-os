@@ -1,4 +1,4 @@
 @Export
-package net.corda.v5.ledger.internal;
+package net.corda.ledger.internal;
 
 import org.osgi.annotation.bundle.Export;
