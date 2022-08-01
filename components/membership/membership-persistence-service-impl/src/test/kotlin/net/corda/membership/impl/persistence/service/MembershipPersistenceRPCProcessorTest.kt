@@ -22,14 +22,15 @@ import net.corda.db.connection.manager.DbConnectionManager
 import net.corda.db.schema.CordaDb
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.membership.datamodel.GroupPolicyEntity
+import net.corda.membership.datamodel.MemberInfoEntity
 import net.corda.membership.datamodel.RegistrationRequestEntity
 import net.corda.membership.lib.MemberInfoFactory
 import net.corda.orm.JpaEntitiesRegistry
+import net.corda.test.util.identity.createTestHoldingIdentity
 import net.corda.test.util.time.TestClock
 import net.corda.utilities.time.Clock
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.uncheckedCast
-import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import net.corda.virtualnode.toAvro
@@ -41,6 +42,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.UUID
@@ -60,7 +62,7 @@ class MembershipPersistenceRPCProcessorTest {
     private val ourX500Name = MemberX500Name.parse("O=Alice, L=London, C=GB").toString()
     private val ourGroupId = UUID.randomUUID().toString()
     private val ourRegistrationId = UUID.randomUUID().toString()
-    private val ourHoldingIdentity = HoldingIdentity(ourX500Name, ourGroupId)
+    private val ourHoldingIdentity = createTestHoldingIdentity(ourX500Name, ourGroupId)
     private val context = "context".toByteArray()
 
     private val vaultDmlConnectionId = UUID.randomUUID()
@@ -223,6 +225,10 @@ class MembershipPersistenceRPCProcessorTest {
      */
     @Test
     fun `query member info returns success`() {
+        val memberInfoQuery = mock<TypedQuery<MemberInfoEntity>>()
+        whenever(entityManager.createQuery(any(), eq(MemberInfoEntity::class.java))).thenReturn(memberInfoQuery)
+        whenever(memberInfoQuery.resultList).thenReturn(emptyList())
+
         val rq = MembershipPersistenceRequest(
             rqContext,
             QueryMemberInfo(emptyList())

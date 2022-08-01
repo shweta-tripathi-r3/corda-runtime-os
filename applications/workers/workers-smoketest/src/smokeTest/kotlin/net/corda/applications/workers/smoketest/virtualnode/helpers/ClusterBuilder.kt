@@ -43,6 +43,11 @@ class ClusterBuilder {
     /** Assumes the resource is a CPB and converts it to CPI by adding a group policy file */
     fun cpiUpload(resourceName: String, groupId: String) = uploadCpiResource("/api/v1/cpi/", resourceName, groupId)
 
+    fun updateVirtualNodeState(holdingIdHash: String, newState: String) = put(
+        "/api/v1/maintenance/virtualnode",
+        vNodeUpdateBody(holdingIdHash, newState)
+    )
+
     /** Assumes the resource is a CPB and converts it to CPI by adding a group policy file */
     fun forceCpiUpload(resourceName: String, groupId: String) =
         uploadCpiResource("/api/v1/maintenance/virtualnode/forcecpiupload/", resourceName, groupId)
@@ -54,10 +59,13 @@ class ClusterBuilder {
     fun cpiList() = client!!.get("/api/v1/cpi")
 
     private fun vNodeBody(cpiHash: String, x500Name: String) =
-        """{ "request": { "cpiFileChecksum" : "$cpiHash", "x500Name" : "$x500Name"} }"""
+        """{ "cpiFileChecksum" : "$cpiHash", "x500Name" : "$x500Name"}"""
 
     private fun registerMemberBody() =
-        """{ "memberRegistrationRequest": { "action": "requestJoin", "context": { "corda.key.scheme" : "CORDA.ECDSA.SECP256R1" } } }""".trimMargin()
+        """{ "action": "requestJoin", "context": { "corda.key.scheme" : "CORDA.ECDSA.SECP256R1" } }""".trimMargin()
+
+    private fun vNodeUpdateBody(virtualNodeShortId: String, newState: String) =
+        """{ "virtualNodeShortId" : "$virtualNodeShortId", "newState" : "$newState"}"""
 
     /** Create a virtual node */
     fun vNodeCreate(cpiHash: String, x500Name: String) =
@@ -111,8 +119,8 @@ class ClusterBuilder {
     }
 
     private fun flowStartBody(clientRequestId: String, flowClassName: String, requestData: String) =
-        """{ "startFlow" : { "clientRequestId" : "$clientRequestId", "flowClassName" : "$flowClassName", "requestData" : 
-            |"$requestData"} }""".trimMargin()
+        """{ "clientRequestId" : "$clientRequestId", "flowClassName" : "$flowClassName", "requestData" : 
+            |"$requestData" }""".trimMargin()
 
 }
 

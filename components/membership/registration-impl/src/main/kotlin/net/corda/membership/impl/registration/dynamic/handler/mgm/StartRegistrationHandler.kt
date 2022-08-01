@@ -19,7 +19,6 @@ import net.corda.membership.lib.MemberInfoExtension.Companion.STATUS
 import net.corda.membership.lib.MemberInfoExtension.Companion.endpoints
 import net.corda.membership.lib.MemberInfoExtension.Companion.groupId
 import net.corda.membership.lib.MemberInfoExtension.Companion.isMgm
-import net.corda.membership.lib.toSortedMap
 import net.corda.membership.lib.registration.RegistrationRequest
 import net.corda.membership.persistence.client.MembershipPersistenceClient
 import net.corda.membership.persistence.client.MembershipPersistenceResult
@@ -30,7 +29,6 @@ import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas.Membership.Companion.REGISTRATION_COMMAND_TOPIC
 import net.corda.utilities.time.Clock
 import net.corda.v5.base.exceptions.CordaRuntimeException
-import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.membership.MemberInfo
 import net.corda.virtualnode.HoldingIdentity
@@ -84,7 +82,7 @@ class StartRegistrationHandler(
                 // Parse the registration request and verify contents
                 // The MemberX500Name matches the source MemberX500Name from the P2P messaging
                 validateRegistrationRequest(
-                    pendingMemberInfo.name == MemberX500Name.parse(pendingMemberHoldingId.x500Name)
+                    pendingMemberInfo.name == pendingMemberHoldingId.x500Name
                 ) { "MemberX500Name in registration request does not match member sending request over P2P." }
 
                 // The MemberX500Name is not a duplicate
@@ -146,7 +144,7 @@ class StartRegistrationHandler(
     private fun buildPendingMemberInfo(registrationRequest: RegistrationRequest): MemberInfo {
         val memberContext = keyValuePairListDeserializer
             .deserialize(registrationRequest.memberContext.array())
-            ?.toSortedMap()
+            ?.items?.associate { it.key to it.value }?.toSortedMap()
             ?: emptyMap()
 
         validateRegistrationRequest(memberContext.entries.isNotEmpty()) {
@@ -165,7 +163,7 @@ class StartRegistrationHandler(
     }
 
     private fun getMGMMemberInfo(mgm: HoldingIdentity): MemberInfo {
-        val mgmMemberName = MemberX500Name.parse(mgm.x500Name)
+        val mgmMemberName = mgm.x500Name
         return membershipGroupReaderProvider.getGroupReader(mgm).lookup(mgmMemberName).apply {
             validateRegistrationRequest(this != null) {
                 "Could not find MGM matching name: [$mgmMemberName]"

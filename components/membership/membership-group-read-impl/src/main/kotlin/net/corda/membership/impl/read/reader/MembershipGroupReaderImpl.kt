@@ -16,7 +16,7 @@ class MembershipGroupReaderImpl(
     private val membershipGroupReadCache: MembershipGroupReadCache
 ) : MembershipGroupReader {
     override val groupId: String = holdingIdentity.groupId
-    override val owningMember: MemberX500Name = MemberX500Name.parse(holdingIdentity.x500Name)
+    override val owningMember: MemberX500Name = holdingIdentity.x500Name
 
     private val memberList: List<MemberInfo>
         get() = membershipGroupReadCache.memberListCache.get(holdingIdentity)
@@ -30,7 +30,7 @@ class MembershipGroupReaderImpl(
 
     override fun lookup(): Collection<MemberInfo> = memberList.filter { it.isActive }
 
-    override fun lookup(ledgerKeyHash: PublicKeyHash): MemberInfo? =
+    override fun lookupByLedgerKey(ledgerKeyHash: PublicKeyHash): MemberInfo? =
         memberList.singleOrNull { it.isActive && ledgerKeyHash in it.ledgerKeyHashes }
 
     override fun lookupBySessionKey(sessionKeyHash: PublicKeyHash): MemberInfo? =

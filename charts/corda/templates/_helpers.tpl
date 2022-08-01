@@ -184,7 +184,9 @@ Worker environment variables
       -Dotel.metrics.exporter=logging
       -Dotel.traces.exporter=logging
       {{- end -}}
-    {{- end -}}
+    {{- end }}
+- name: LOG4J_CONFIG_FILE
+  value: "log4j2-console{{ if eq .Values.logging.format "json" }}-json{{ end }}.xml"
 {{- end }}
 
 {{/*
@@ -192,6 +194,27 @@ Kafka bootstrap servers
 */}}
 {{- define "corda.kafkaBootstrapServers" -}}
 {{ required "Must specify kafka.bootstrapServers" .Values.kafka.bootstrapServers }}
+{{- end }}
+
+{{/*
+Initial admin user secret name
+*/}}
+{{- define "corda.initialAdminUserSecretName" -}}
+{{ .Values.bootstrap.initialAdminUser.secretRef.name | default (printf "%s-initial-admin-user" (include "corda.fullname" .)) }}
+{{- end }}
+
+{{/*
+Initial admin user secret username key
+*/}}
+{{- define "corda.initialAdminUserSecretUsernameKey" -}}
+{{ .Values.bootstrap.initialAdminUser.secretRef.usernameKey }}
+{{- end }}
+
+{{/*
+Initial admin user secret password key
+*/}}
+{{- define "corda.initialAdminUserSecretPasswordKey" -}}
+{{ .Values.bootstrap.initialAdminUser.secretRef.passwordKey }}
 {{- end }}
 
 {{/*

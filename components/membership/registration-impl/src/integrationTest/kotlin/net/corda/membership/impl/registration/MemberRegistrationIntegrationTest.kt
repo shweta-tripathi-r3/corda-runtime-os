@@ -22,6 +22,12 @@ import net.corda.membership.impl.registration.dummy.TestCryptoOpsClient
 import net.corda.membership.impl.registration.dummy.TestGroupPolicy
 import net.corda.membership.impl.registration.dummy.TestGroupPolicyProvider
 import net.corda.membership.impl.registration.dummy.TestGroupReaderProvider
+import net.corda.membership.lib.MemberInfoExtension.Companion.GROUP_ID
+import net.corda.membership.lib.MemberInfoExtension.Companion.LEDGER_KEYS_KEY
+import net.corda.membership.lib.MemberInfoExtension.Companion.LEDGER_KEY_HASHES_KEY
+import net.corda.membership.lib.MemberInfoExtension.Companion.PARTY_NAME
+import net.corda.membership.lib.MemberInfoExtension.Companion.PARTY_SESSION_KEY
+import net.corda.membership.lib.MemberInfoExtension.Companion.SESSION_KEY_HASH
 import net.corda.membership.registration.RegistrationProxy
 import net.corda.messaging.api.processor.PubSubProcessor
 import net.corda.messaging.api.publisher.config.PublisherConfig
@@ -187,7 +193,7 @@ class MemberRegistrationIntegrationTest {
     fun `dynamic member registration service publishes unauthenticated message to be sent to the MGM`() {
         groupPolicyProvider.putGroupPolicy(TestGroupPolicy())
 
-        val member = HoldingIdentity(memberName.toString(), groupId)
+        val member = HoldingIdentity(memberName, groupId)
         val context = buildTestContext(member)
         val completableResult = CompletableFuture<Pair<String, AppMessage>>()
         // Set up subscription to gather results of processing p2p message
@@ -229,6 +235,14 @@ class MemberRegistrationIntegrationTest {
                 with(deserializedContext.items) {
                     it.assertThat(first { pair -> pair.key == URL_KEY }.value).isEqualTo(URL_VALUE)
                     it.assertThat(first { pair -> pair.key == PROTOCOL_KEY }.value).isEqualTo(PROTOCOL_VALUE)
+                    it.assertThat(first { pair -> pair.key == PARTY_NAME }.value).isEqualTo(memberName.toString())
+                    it.assertThat(first { pair -> pair.key == GROUP_ID }.value).isEqualTo(groupId)
+                    with (map { pair -> pair.key }) {
+                        it.assertThat(contains(String.format(LEDGER_KEYS_KEY, 0))).isTrue
+                        it.assertThat(contains(String.format(LEDGER_KEY_HASHES_KEY, 0))).isTrue
+                        it.assertThat(contains(PARTY_SESSION_KEY)).isTrue
+                        it.assertThat(contains(SESSION_KEY_HASH)).isTrue
+                    }
                 }
             }
         }

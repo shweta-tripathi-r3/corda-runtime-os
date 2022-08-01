@@ -204,7 +204,7 @@ class VirtualNodeRpcTest {
                 failMessage(ERROR_HOLDING_ID)
             }.toJson()
 
-            assertThat(vNodeJson["holdingIdentityShortHash"].textValue()).isNotNull.isNotEmpty
+            assertThat(vNodeJson["holdingIdentity"]["shortHash"].textValue()).isNotNull.isNotEmpty
         }
     }
 
@@ -232,6 +232,57 @@ class VirtualNodeRpcTest {
             }
 
             assertThat(nodes).contains(X500_ALICE)
+        }
+    }
+
+    @Test
+    @Order(61)
+    fun `set virtual node state`() {
+        cluster {
+            endpoint(CLUSTER_URI, USERNAME, PASSWORD)
+            val states = vNodeList().toJson()["virtualNodes"].map {
+                it["holdingIdentity"]["shortHash"].textValue() to it["state"].textValue()
+            }
+
+            val vnode = states.last()
+            val oldState = vnode.second
+            val newState = "IN_MAINTENANCE"
+
+            updateVirtualNodeState(vnode.first, newState)
+
+            assertWithRetry {
+                command { vNodeList() }
+                condition {
+                    it.code == 200 &&
+                        it.toJson()["virtualNodes"].single { virtualNode ->
+                            virtualNode["holdingIdentity"]["shortHash"].textValue() == vnode.first
+                        }["state"].textValue() == newState
+                }
+            }
+
+            updateVirtualNodeState(vnode.first, oldState)
+
+            assertWithRetry {
+                command { vNodeList() }
+                condition {
+                    it.code == 200 &&
+                        it.toJson()["virtualNodes"].single { virtualNode ->
+                            virtualNode["holdingIdentity"]["shortHash"].textValue() == vnode.first
+                        }["state"].textValue() == oldState
+                }
+            }
+        }
+    }
+
+    @Test
+    @Order(65)
+    fun `cpi status returns 400 for unknown request id`() {
+        cluster {
+            endpoint(CLUSTER_URI, USERNAME, PASSWORD)
+            assertWithRetry {
+                command { cpiStatus("THIS_WILL_NEVER_BE_A_CPI_STATUS") }
+                condition { it.code == 400 }
+            }
         }
     }
 

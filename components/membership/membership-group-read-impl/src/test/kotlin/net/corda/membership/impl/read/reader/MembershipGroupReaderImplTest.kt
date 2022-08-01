@@ -26,7 +26,7 @@ class MembershipGroupReaderImplTest {
     private lateinit var membershipGroupReaderImpl: MembershipGroupReaderImpl
 
     private val aliceName = TestProperties.aliceName
-    private val aliceIdGroup1 = HoldingIdentity(aliceName.toString(), GROUP_ID_1)
+    private val aliceIdGroup1 = HoldingIdentity(aliceName, GROUP_ID_1)
     private val memberCache: MemberListCache = mock()
     private val membershipGroupCache: MembershipGroupReadCache = mock<MembershipGroupReadCache>().apply {
         whenever(this.memberListCache).thenReturn(memberCache)
@@ -94,25 +94,25 @@ class MembershipGroupReaderImplTest {
     @Test
     fun `lookup known member with active status based on ledger public key hash`() {
         mockMemberList(listOf(activeMemberInfo))
-        assertEquals(activeMemberInfo, membershipGroupReaderImpl.lookup(mockLedgerKeyHash))
+        assertEquals(activeMemberInfo, membershipGroupReaderImpl.lookupByLedgerKey(mockLedgerKeyHash))
     }
 
     @Test
     fun `lookup known member with non active status based on ledger public key hash`() {
         mockMemberList(listOf(suspendedMemberInfo))
-        assertNull(membershipGroupReaderImpl.lookup(mockLedgerKeyHash))
+        assertNull(membershipGroupReaderImpl.lookupByLedgerKey(mockLedgerKeyHash))
     }
 
     @Test
     fun `lookup non-existing member based on ledger public key hash`() {
         mockMemberList(emptyList())
-        assertNull(membershipGroupReaderImpl.lookup(mockLedgerKeyHash))
+        assertNull(membershipGroupReaderImpl.lookupByLedgerKey(mockLedgerKeyHash))
     }
 
     @Test
     fun `lookup member based on ledger public key hash using session key fails`() {
         mockMemberList(listOf(activeMemberInfo))
-        assertNull(membershipGroupReaderImpl.lookup(mockSessionKeyHash))
+        assertNull(membershipGroupReaderImpl.lookupByLedgerKey(mockSessionKeyHash))
     }
 
     @Test

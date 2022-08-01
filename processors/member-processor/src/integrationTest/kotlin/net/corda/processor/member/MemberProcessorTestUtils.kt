@@ -3,8 +3,8 @@ package net.corda.processor.member
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
 import net.corda.cpiinfo.read.CpiInfoReadService
+import net.corda.crypto.config.impl.addDefaultBootCryptoConfig
 import net.corda.crypto.core.aes.KeyCredentials
-import net.corda.crypto.impl.config.addDefaultBootCryptoConfig
 import net.corda.data.config.Configuration
 import net.corda.data.config.ConfigurationSchemaVersion
 import net.corda.libs.configuration.SmartConfig
@@ -95,8 +95,7 @@ class MemberProcessorTestUtils {
                         ConfigFactory.parseString(BOOT_CONFIGURATION)
                     )
             ).addDefaultBootCryptoConfig(
-                fallbackCryptoRootKey = KeyCredentials("root-passphrase", "root-salt"),
-                fallbackSoftKey = KeyCredentials("soft-passphrase", "soft-salt")
+                fallbackMasterWrappingKey = KeyCredentials("soft-passphrase", "soft-salt")
             )
             extra.forEach {
                 cfg = cfg.withFallback(cfg.withValue(it.key, ConfigValueFactory.fromMap(it.value.root().unwrapped())))
@@ -112,8 +111,8 @@ class MemberProcessorTestUtils {
         val bobX500Name = MemberX500Name.parse(bobName)
         val charlieX500Name = MemberX500Name.parse(charlieName)
         const val groupId = "7c5d6948-e17b-44e7-9d1c-fa4a3f667cad"
-        val aliceHoldingIdentity = HoldingIdentity(aliceX500Name.toString(), groupId)
-        val bobHoldingIdentity = HoldingIdentity(bobX500Name.toString(), groupId)
+        val aliceHoldingIdentity = HoldingIdentity(aliceX500Name, groupId)
+        val bobHoldingIdentity = HoldingIdentity(bobX500Name, groupId)
 
         fun Publisher.publishRawGroupPolicyData(
             virtualNodeInfoReader: VirtualNodeInfoReadService,

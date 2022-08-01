@@ -17,6 +17,7 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import net.corda.httprpc.HttpFileUpload
+import net.corda.httprpc.exception.InvalidInputDataException
 
 @Component(service = [PluggableRPCOps::class])
 class CpiUploadRPCOpsImpl @Activate constructor(
@@ -28,7 +29,7 @@ class CpiUploadRPCOpsImpl @Activate constructor(
     private val cpiInfoReadService: CpiInfoReadService
 ) : CpiUploadRPCOps, PluggableRPCOps<CpiUploadRPCOps>, Lifecycle {
     companion object {
-        val logger = contextLogger()
+        private val logger = contextLogger()
     }
 
     private val coordinator = coordinatorFactory.createCoordinator<CpiUploadRPCOps>(
@@ -47,18 +48,18 @@ class CpiUploadRPCOpsImpl @Activate constructor(
 
     override fun stop() = coordinator.close()
 
-    override fun cpi(upload: HttpFileUpload): CpiUploadRPCOps.UploadResponse {
+    override fun cpi(upload: HttpFileUpload): CpiUploadRPCOps.CpiUploadResponse {
         logger.info("Uploading CPI: ${upload.fileName}")
         requireRunning()
         val cpiUploadRequestId = cpiUploadManager.uploadCpi(upload.fileName, upload.content)
-        return CpiUploadRPCOps.UploadResponse(cpiUploadRequestId.requestId)
+        return CpiUploadRPCOps.CpiUploadResponse(cpiUploadRequestId.requestId)
     }
 
     // We're mostly returning the enumeration to a string in this version
-    override fun status(id: String): CpiUploadRPCOps.Status {
+    override fun status(id: String): CpiUploadRPCOps.CpiUploadStatus {
         logger.info("Upload status request for CPI id: $id")
         requireRunning()
-        val status = cpiUploadManager.status(id) ?: throw InternalServerException("No such requestId=$id")
+        val status = cpiUploadManager.status(id) ?: throw InvalidInputDataException("No such requestId=$id")
 
         // Errors are passed back to the Javalin code via exceptions.
         if (status.exception != null) {
@@ -66,7 +67,7 @@ class CpiUploadRPCOpsImpl @Activate constructor(
         }
 
         val checksum = if (status.checksum != null) toShortHash(status.checksum.toCorda()) else ""
-        return CpiUploadRPCOps.Status(status.message, checksum)
+        return CpiUploadRPCOps.CpiUploadStatus(status.message, checksum)
     }
 
     override fun getAllCpis(): GetCPIsResponse {

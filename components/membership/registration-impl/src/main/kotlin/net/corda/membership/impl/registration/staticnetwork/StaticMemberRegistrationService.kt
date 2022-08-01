@@ -4,7 +4,6 @@ import net.corda.configuration.read.ConfigurationReadService
 import net.corda.crypto.client.CryptoOpsClient
 import net.corda.crypto.client.hsm.HSMRegistrationClient
 import net.corda.crypto.core.CryptoConsts
-import net.corda.crypto.core.CryptoConsts.HSMContext.NOT_FAIL_IF_ASSOCIATION_EXISTS
 import net.corda.crypto.core.CryptoConsts.SigningKeyFilters.ALIAS_FILTER
 import net.corda.data.crypto.wire.ops.rpc.queries.CryptoKeyOrderBy
 import net.corda.data.membership.PersistentMemberInfo
@@ -159,7 +158,7 @@ class StaticMemberRegistrationService @Activate constructor(
         assignSoftHsm(memberId)
 
         val staticMemberInfo = staticMemberList.firstOrNull {
-            MemberX500Name.parse(it.name!!) == MemberX500Name.parse(memberName)
+            MemberX500Name.parse(it.name!!) == memberName
         } ?: throw IllegalArgumentException("Our membership $memberName is not listed in the static member list.")
 
         validateStaticMemberDeclaration(staticMemberInfo)
@@ -170,7 +169,7 @@ class StaticMemberRegistrationService @Activate constructor(
         @Suppress("SpreadOperator")
         val memberInfo = memberInfoFactory.create(
             sortedMapOf(
-                PARTY_NAME to memberName,
+                PARTY_NAME to memberName.toString(),
                 PARTY_SESSION_KEY to encodedMemberKey,
                 GROUP_ID to groupId,
                 *generateLedgerKeys(encodedMemberKey).toTypedArray(),
@@ -189,7 +188,7 @@ class StaticMemberRegistrationService @Activate constructor(
 
         staticMemberList.forEach {
             val owningMemberName = MemberX500Name.parse(it.name!!).toString()
-            val owningMemberHoldingIdentity = HoldingIdentity(owningMemberName, groupId)
+            val owningMemberHoldingIdentity = HoldingIdentity(MemberX500Name.parse(owningMemberName), groupId)
             records.add(
                 Record(
                     MEMBER_LIST_TOPIC,
@@ -222,7 +221,7 @@ class StaticMemberRegistrationService @Activate constructor(
          * internal within the cluster. For this reason, we pass through a set of "dummy" certificates/keys.
          */
         val hostedIdentity = HostedIdentityEntry(
-            net.corda.data.identity.HoldingIdentity(memberName, groupId),
+            net.corda.data.identity.HoldingIdentity(memberName.toString(), groupId),
             memberId,
             memberId,
             listOf(DUMMY_CERTIFICATE),
@@ -259,7 +258,7 @@ class StaticMemberRegistrationService @Activate constructor(
     private fun assignSoftHsm(memberId: String) {
         CryptoConsts.Categories.all.forEach {
             if(hsmRegistrationClient.findHSM(memberId, it) == null) {
-                hsmRegistrationClient.assignSoftHSM(memberId, it, mapOf(NOT_FAIL_IF_ASSOCIATION_EXISTS to "YES"))
+                hsmRegistrationClient.assignSoftHSM(memberId, it)
             }
         }
     }

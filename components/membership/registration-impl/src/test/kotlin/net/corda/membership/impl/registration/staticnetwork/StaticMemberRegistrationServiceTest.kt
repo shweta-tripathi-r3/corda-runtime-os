@@ -5,7 +5,6 @@ import net.corda.configuration.read.ConfigurationReadService
 import net.corda.crypto.client.CryptoOpsClient
 import net.corda.crypto.client.hsm.HSMRegistrationClient
 import net.corda.crypto.core.CryptoConsts
-import net.corda.crypto.core.CryptoConsts.HSMContext.NOT_FAIL_IF_ASSOCIATION_EXISTS
 import net.corda.data.membership.PersistentMemberInfo
 import net.corda.layeredpropertymap.LayeredPropertyMapFactory
 import net.corda.layeredpropertymap.impl.LayeredPropertyMapFactoryImpl
@@ -34,8 +33,8 @@ import net.corda.membership.lib.MemberInfoExtension.Companion.softwareVersion
 import net.corda.membership.lib.MemberInfoExtension.Companion.status
 import net.corda.membership.lib.impl.MemberInfoFactoryImpl
 import net.corda.membership.lib.impl.converter.EndpointInfoConverter
-import net.corda.membership.lib.impl.converter.PublicKeyConverter
-import net.corda.membership.lib.impl.converter.PublicKeyHashConverter
+import net.corda.crypto.impl.converter.PublicKeyConverter
+import net.corda.crypto.impl.converter.PublicKeyHashConverter
 import net.corda.membership.lib.toSortedMap
 import net.corda.membership.registration.MembershipRequestRegistrationOutcome.NOT_SUBMITTED
 import net.corda.membership.registration.MembershipRequestRegistrationOutcome.SUBMITTED
@@ -75,11 +74,11 @@ class StaticMemberRegistrationServiceTest {
         private const val KEY_SCHEME = "corda.key.scheme"
     }
 
-    private val alice = HoldingIdentity(aliceName.toString(), DUMMY_GROUP_ID)
-    private val bob = HoldingIdentity(bobName.toString(), DUMMY_GROUP_ID)
-    private val charlie = HoldingIdentity(charlieName.toString(), DUMMY_GROUP_ID)
-    private val daisy = HoldingIdentity(daisyName.toString(), DUMMY_GROUP_ID)
-    private val eric = HoldingIdentity(ericName.toString(), DUMMY_GROUP_ID)
+    private val alice = HoldingIdentity(aliceName, DUMMY_GROUP_ID)
+    private val bob = HoldingIdentity(bobName, DUMMY_GROUP_ID)
+    private val charlie = HoldingIdentity(charlieName, DUMMY_GROUP_ID)
+    private val daisy = HoldingIdentity(daisyName, DUMMY_GROUP_ID)
+    private val eric = HoldingIdentity(ericName, DUMMY_GROUP_ID)
 
     private val aliceId = alice.shortHash
     private val bobId = bob.shortHash
@@ -205,7 +204,7 @@ class StaticMemberRegistrationServiceTest {
         Mockito.verify(mockPublisher, times(2)).publish(capturedPublishedList.capture())
         CryptoConsts.Categories.all.forEach {
             Mockito.verify(hsmRegistrationClient, times(1)).findHSM(aliceId, it)
-            Mockito.verify(hsmRegistrationClient, times(1)).assignSoftHSM(aliceId, it, mapOf(NOT_FAIL_IF_ASSOCIATION_EXISTS to "YES"))
+            Mockito.verify(hsmRegistrationClient, times(1)).assignSoftHSM(aliceId, it)
         }
         registrationService.stop()
 
@@ -247,7 +246,7 @@ class StaticMemberRegistrationServiceTest {
         assertEquals(P2P_HOSTED_IDENTITIES_TOPIC, publishedHostedIdentity.topic)
         val hostedIdentityPublished = publishedHostedIdentity.value as HostedIdentityEntry
         assertEquals(alice.groupId, hostedIdentityPublished.holdingIdentity.groupId)
-        assertEquals(alice.x500Name, hostedIdentityPublished.holdingIdentity.x500Name)
+        assertEquals(alice.x500Name.toString(), hostedIdentityPublished.holdingIdentity.x500Name)
 
         assertEquals(MembershipRequestRegistrationResult(SUBMITTED), registrationResult)
     }

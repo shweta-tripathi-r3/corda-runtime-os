@@ -14,15 +14,16 @@ import net.corda.httprpc.exception.HttpApiException
 import net.corda.httprpc.security.CURRENT_RPC_CONTEXT
 import net.corda.httprpc.security.RpcAuthContext
 import net.corda.libs.cpiupload.endpoints.v1.CpiIdentifier
-import net.corda.libs.virtualnode.endpoints.v1.types.CreateVirtualNodeParameters
-import net.corda.libs.virtualnode.endpoints.v1.types.CreateVirtualNodeResponse
+import net.corda.libs.virtualnode.endpoints.v1.types.VirtualNodeRequest
 import net.corda.messaging.api.publisher.RPCSender
 import net.corda.messaging.api.publisher.factory.PublisherFactory
 import net.corda.utilities.time.Clock
+import net.corda.virtualnode.VirtualNodeInfo
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import net.corda.virtualnode.rpcops.VirtualNodeRPCOpsServiceException
 import net.corda.virtualnode.rpcops.impl.v1.VirtualNodeRPCOpsImpl
 import net.corda.virtualnode.rpcops.impl.v1.VirtualNodeRPCOpsInternal
+import net.corda.virtualnode.toCorda
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -38,6 +39,8 @@ import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import net.corda.data.packaging.CpiIdentifier as CpiIdAvro
+import net.corda.libs.virtualnode.endpoints.v1.types.HoldingIdentity as HoldingIdentityEndpointType
+import net.corda.libs.virtualnode.endpoints.v1.types.VirtualNodeInfo as VirtualNodeInfoEndpointType
 
 /** Tests of [VirtualNodeRPCOpsImpl]. */
 class VirtualNodeRPCOpsImplTests {
@@ -68,7 +71,7 @@ class VirtualNodeRPCOpsImplTests {
         whenever(instant()).thenReturn(Instant.EPOCH)
     }
 
-    private val httpCreateVNRequest = CreateVirtualNodeParameters(holdingId.x500Name, "hash", null, null, null, null)
+    private val httpCreateVNRequest = VirtualNodeRequest(holdingId.x500Name, "hash", null, null, null, null)
     private val vnCreateSuccessfulResponse = VirtualNodeCreateResponse(
         httpCreateVNRequest.x500Name,
         cpiIdAvro,
@@ -80,7 +83,8 @@ class VirtualNodeRPCOpsImplTests {
         vaultDmlConnectionId,
         cryptoDdlConnectionId,
         cryptoDmlConnectionId,
-        hsmConnectionId
+        hsmConnectionId,
+        VirtualNodeInfo.DEFAULT_INITIAL_STATE.name
     )
 
     private val rpcRequestTimeoutDuration = 3000
@@ -134,11 +138,19 @@ class VirtualNodeRPCOpsImplTests {
 
     @Test
     fun `createVirtualNode returns VirtualNodeCreationResponse if response is success`() {
+        val id = holdingId.toCorda()
         val successResponse =
-            CreateVirtualNodeResponse(
-                holdingId.x500Name, cpiId, httpCreateVNRequest.cpiFileChecksum, holdingId.groupId, holdingIdentityShortHash,
-                vaultDdlConnectionId, vaultDmlConnectionId, cryptoDdlConnectionId, cryptoDmlConnectionId
+            VirtualNodeInfoEndpointType(
+                holdingIdentity = HoldingIdentityEndpointType(id.x500Name.toString(), id.groupId, id.shortHash, id.fullHash),
+                cpiIdentifier = cpiId,
+                vaultDdlConnectionId = vaultDdlConnectionId,
+                vaultDmlConnectionId = vaultDmlConnectionId,
+                cryptoDdlConnectionId = cryptoDdlConnectionId,
+                cryptoDmlConnectionId = cryptoDmlConnectionId,
+                hsmConnectionId = hsmConnectionId,
+                state = VirtualNodeInfo.DEFAULT_INITIAL_STATE.name,
             )
+
         val (_, vnodeRPCOps) = getVirtualNodeRPCOps()
 
         vnodeRPCOps.createAndStartRpcSender(mock())
@@ -152,7 +164,7 @@ class VirtualNodeRPCOpsImplTests {
         val (_, vnodeRPCOps) = getVirtualNodeRPCOps()
 
         val badX500 = "invalid"
-        val badX500Req = CreateVirtualNodeParameters(badX500, "hash", null, null, null, null)
+        val badX500Req = VirtualNodeRequest(badX500, "hash", null, null, null, null)
 
         vnodeRPCOps.createAndStartRpcSender(mock())
         vnodeRPCOps.setTimeout(rpcRequestTimeoutDuration)
