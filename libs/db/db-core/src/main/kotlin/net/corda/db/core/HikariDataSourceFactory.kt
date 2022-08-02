@@ -7,13 +7,14 @@ import java.util.UUID
 import javax.sql.DataSource
 
 class HikariDataSourceFactory(
-
     private val hikariDataSourceFactory: (c: HikariConfig) -> CloseableDataSource = { c ->
         val uuid = getNewUuid()
         println("New HikariDataSource - $uuid")
         DataSourceWrapper(HikariDataSource(c), uuid)
     }
 ) : DataSourceFactory {
+
+
     /**
      * [HikariDataSource] wrapper that makes it [CloseableDataSource]
      */
@@ -36,12 +37,18 @@ class HikariDataSourceFactory(
         override fun getConnection(): Connection {
             val uuid = getNewUuid()
             println("New Hikari connection - $uuid")
+            connectionMap[uuid] = true
 
             val c = delegate.connection
             return object : Connection by c {
                 override fun close() {
                     println("Close Hikari connection - $uuid")
+                    connectionMap[uuid] = false
                     c.close()
+
+                    println("total connections: ${connectionMap.count()}")
+                    val count = connectionMap.filter { it.value }.count()
+                    println("connections open: $count")
                 }
             }
         }
@@ -68,6 +75,10 @@ class HikariDataSourceFactory(
         conf.isAutoCommit = isAutoCommit
         conf.maximumPoolSize = maximumPoolSize
         return hikariDataSourceFactory(conf)
+    }
+
+    companion object {
+        private val connectionMap: MutableMap<String, Boolean> = mutableMapOf()
     }
 }
 
