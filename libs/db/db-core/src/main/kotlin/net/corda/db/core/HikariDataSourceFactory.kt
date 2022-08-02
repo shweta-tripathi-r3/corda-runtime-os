@@ -11,7 +11,7 @@ import kotlin.system.exitProcess
 class HikariDataSourceFactory(
     private val hikariDataSourceFactory: (c: HikariConfig) -> CloseableDataSource = { c ->
         val uuid = getNewUuid()
-        println("New HikariDataSource - $uuid")
+        println("New HikariDataSource - $uuid\n${Throwable().stackTraceToString()}")
         DataSourceWrapper(HikariDataSource(c), uuid)
     }
 ) : DataSourceFactory {
@@ -55,12 +55,13 @@ class HikariDataSourceFactory(
                     println("connections open: $count")
 
                     if (connectionMap.count() > 1000) {
-                        connectionSourceMap.toList().sortedBy { it.second }.forEach {
-                            println("${it.second} connections:")
-                            println(it.first.prependIndent("   "))
-                        }
-                        exitProcess(1)
-                    }
+                        synchronized(connectionSourceMap)
+                        {
+                            connectionSourceMap.asSequence().sortedBy { it.value }.forEach {
+                                println("${it.value} connections: \n${it.key.prependIndent("   ")}")
+                            }
+                            exitProcess(1)
+                        }                    }
                 }
             }
         }
