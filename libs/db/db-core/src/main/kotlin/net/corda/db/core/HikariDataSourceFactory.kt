@@ -2,9 +2,13 @@ package net.corda.db.core
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import com.zaxxer.hikari.util.ConcurrentBag
 import java.sql.Connection
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiFunction
 import javax.sql.DataSource
+import kotlin.system.exitProcess
 
 class HikariDataSourceFactory(
     private val hikariDataSourceFactory: (c: HikariConfig) -> CloseableDataSource = { c ->
@@ -38,6 +42,8 @@ class HikariDataSourceFactory(
             val uuid = getNewUuid()
             println("New Hikari connection - $uuid")
             connectionMap[uuid] = true
+            val stack = Throwable().stackTraceToString()
+            connectionSourceMap.compute(stack) { _, u -> u?.inc() ?: 1 }
 
             val c = delegate.connection
             return object : Connection by c {
@@ -49,6 +55,14 @@ class HikariDataSourceFactory(
                     println("total connections: ${connectionMap.count()}")
                     val count = connectionMap.filter { it.value }.count()
                     println("connections open: $count")
+
+                    if (connectionMap.count() > 1000) {
+                        connectionSourceMap.toList().sortedBy { it.second }.forEach {
+                            println("${it.second} connections:")
+                            println(it.first.prependIndent("   "))
+                        }
+                        exitProcess(1)
+                    }
                 }
             }
         }
@@ -78,7 +92,8 @@ class HikariDataSourceFactory(
     }
 
     companion object {
-        private val connectionMap: MutableMap<String, Boolean> = mutableMapOf()
+        private val connectionMap: ConcurrentHashMap<String, Boolean> = ConcurrentHashMap()
+        private val connectionSourceMap: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
     }
 }
 
