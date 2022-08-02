@@ -2,11 +2,9 @@ package net.corda.db.core
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import com.zaxxer.hikari.util.ConcurrentBag
 import java.sql.Connection
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiFunction
 import javax.sql.DataSource
 import kotlin.system.exitProcess
 
