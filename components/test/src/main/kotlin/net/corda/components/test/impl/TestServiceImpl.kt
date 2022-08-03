@@ -1,7 +1,6 @@
 package net.corda.components.test.internal
 
 import net.corda.configuration.read.ConfigurationReadService
-import net.corda.lifecycle.Lifecycle
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleEvent
@@ -18,15 +17,17 @@ import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 
-@Component(service = [TestServiceServer::class])
-class TestServiceServer @Activate constructor(
+@Component(service = [TestService::class])
+class TestServiceImpl @Activate constructor(
     @Reference(service = LifecycleCoordinatorFactory::class)
     private val coordinatorFactory: LifecycleCoordinatorFactory,
     @Reference(service = ConfigurationReadService::class)
-    private val configurationReadService: ConfigurationReadService
-) : Lifecycle {
+    private val configurationReadService: ConfigurationReadService,
+    @Reference(service = JavalinServerFactory::class)
+    private val javalinFactory: JavalinServerFactory,
+) : TestService {
 
-    private val coordinator = coordinatorFactory.createCoordinator<TestServiceServer>(::eventHandler)
+    private val coordinator = coordinatorFactory.createCoordinator<TestService>(::eventHandler)
     private fun eventHandler(event: LifecycleEvent, coordinator: LifecycleCoordinator) {
         logger.debug { "FlowService received: $event" }
         logger.debug { "FlowService received: ${coordinator.status}" }

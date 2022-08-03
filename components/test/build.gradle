@@ -16,6 +16,7 @@ dependencies {
     implementation "net.corda:corda-base"
     implementation 'net.corda:corda-config-schema'
 
+    implementation "io.javalin:javalin-osgi:$javalinVersion"
 
     integrationTestImplementation "org.osgi:org.osgi.service.component:$osgiServiceComponentVersion"
     integrationTestImplementation "net.corda:corda-application"
