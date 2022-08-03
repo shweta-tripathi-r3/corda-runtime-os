@@ -1,5 +1,6 @@
 package net.corda.sandboxgroupcontext.test
 
+import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.securitymanager.SecurityManagerService
 import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.testing.sandboxes.fetchService
@@ -78,7 +79,7 @@ class SecurityManagerPolicyTests {
     @Test
     fun `retrieving environment fails when permission denied`() {
         applyPolicyFile("security_01.policy")
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThrows<AccessControlException> {
             virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext)
@@ -88,7 +89,7 @@ class SecurityManagerPolicyTests {
     @Test
     fun `reflection fails when permission denied`() {
         applyPolicyFile("security_02.policy")
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThrows<AccessControlException> {
             virtualNode.runFlow<String>(CPK1_REFLECTION_FLOW, sandboxGroupContext)
@@ -98,7 +99,7 @@ class SecurityManagerPolicyTests {
     @Test
     fun `HTTP connection fails when permission denied`() {
         applyPolicyFile("security_03.policy")
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThrows<AccessControlException> {
             virtualNode.runFlow<Int>(CPK1_HTTP_FLOW, sandboxGroupContext)
@@ -108,7 +109,7 @@ class SecurityManagerPolicyTests {
     @Test
     fun `Reflection fails when permission denied on call stack`() {
         applyPolicyFile("security_04.policy")
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         val exception = assertThrows<Exception> {
             virtualNode.runFlow<String>(CPK1_JSON_FLOW, sandboxGroupContext)
@@ -119,7 +120,7 @@ class SecurityManagerPolicyTests {
     @Test
     fun `policy can be changed in runtime`() {
         applyPolicyFile("security_02.policy")
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThrows<AccessControlException> {
             virtualNode.runFlow<String>(CPK1_REFLECTION_FLOW, sandboxGroupContext)
@@ -134,7 +135,7 @@ class SecurityManagerPolicyTests {
 
     @Test
     fun `policy can forbid access to injectable service`() {
-        val context1 = virtualNode.loadSandbox(CPB1)
+        val context1 = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         try {
             val ex = assertThrows<UnsupportedOperationException> {
                 virtualNode.runFlow<String>(CPK1_FLOW_ENGINE_FLOW, context1)
@@ -147,7 +148,7 @@ class SecurityManagerPolicyTests {
         // Update the security policy to deny sandboxes access to FlowEngine.
         applyPolicyFile("security-deny-flow-engine.policy")
 
-        val context2 = virtualNode.loadSandbox(CPB1)
+        val context2 = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         try {
             assertThat(
                 virtualNode.runFlow<String>(CPK1_FLOW_ENGINE_FLOW, context2)

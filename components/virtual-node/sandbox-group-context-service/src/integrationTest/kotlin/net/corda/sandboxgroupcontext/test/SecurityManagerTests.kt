@@ -1,5 +1,6 @@
 package net.corda.sandboxgroupcontext.test
 
+import net.corda.sandboxgroupcontext.SandboxGroupType
 import net.corda.securitymanager.SecurityManagerService
 import net.corda.testing.sandboxes.SandboxSetup
 import net.corda.testing.sandboxes.fetchService
@@ -78,7 +79,7 @@ class SecurityManagerTests {
 
     @Test
     fun `retrieving environment allowed by default`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         assertThat(
             virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext)
         ).isNotNull
@@ -90,7 +91,7 @@ class SecurityManagerTests {
             RuntimePermission("getenv.*", null)
         ))
 
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         assertThrows<AccessControlException> {
             virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext)
         }
@@ -98,7 +99,7 @@ class SecurityManagerTests {
 
     @Test
     fun `reflection allowed by default`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThat(
             virtualNode.runFlow<String>(CPK1_REFLECTION_FLOW, sandboxGroupContext)
@@ -111,7 +112,7 @@ class SecurityManagerTests {
             ReflectPermission("suppressAccessChecks")
         ))
 
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThrows<AccessControlException> {
             virtualNode.runFlow<String>(CPK1_REFLECTION_FLOW, sandboxGroupContext)
@@ -124,7 +125,7 @@ class SecurityManagerTests {
             ReflectPermission("suppressAccessChecks")
         ))
 
-        val sandboxGroupContext1 = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext1 = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThat(
             virtualNode.runFlow<String>(CPK1_REFLECTION_FLOW, sandboxGroupContext1)
@@ -137,7 +138,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection used by json deserialization allowed by default`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThat(
             virtualNode.runFlow<String>(CPK1_JSON_FLOW, sandboxGroupContext)
@@ -146,7 +147,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection used by json fails when permission denied to CPK`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         securityManagerService.denyPermissions("FLOW/*", listOf(
             ReflectPermission("suppressAccessChecks")
@@ -160,7 +161,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection used by json fails when permission denied to json library`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         securityManagerService.denyPermissions("FLOW/*/lib/jackson*", listOf(
             ReflectPermission("suppressAccessChecks")
@@ -174,7 +175,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection allowed to CPK flow but not to json library`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         securityManagerService.denyPermissions("FLOW/*/lib/jackson*", listOf(
             ReflectPermission("suppressAccessChecks")
@@ -192,7 +193,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection fails when permission denied on call stack`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         securityManagerService.denyPermissions("FLOW/*", listOf(
             ReflectPermission("suppressAccessChecks")
@@ -210,7 +211,7 @@ class SecurityManagerTests {
 
     @Test
     fun `Reflection allowed via PrivilegedAction`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         // Permission denied to CPK1
         securityManagerService.denyPermissions("FLOW/*com.example.securitymanager.sandbox-security-manager-one*", listOf(
@@ -236,7 +237,7 @@ class SecurityManagerTests {
 
     @Test
     fun `HTTP connection allowed by default`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         assertThat(
             virtualNode.runFlow<Int>(CPK1_HTTP_FLOW, sandboxGroupContext)
@@ -245,7 +246,7 @@ class SecurityManagerTests {
 
     @Test
     fun `HTTP connection fails when permission denied`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
 
         securityManagerService.denyPermissions("FLOW/*", listOf(
             URLPermission("http://*:*"),
