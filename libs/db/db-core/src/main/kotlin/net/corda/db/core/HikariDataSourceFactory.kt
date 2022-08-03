@@ -24,13 +24,13 @@ class HikariDataSourceFactory(
         CloseableDataSource, DataSource by delegate {
 
         override fun getConnection(username: String?, password: String?): Connection {
-            val uuid = getNewUuid()
-            println("New Hikari connection - $uuid")
+//            val uuid = getNewUuid()
+//            println("New Hikari connection - $uuid")
 
             val c = delegate.getConnection(username, password)
             return object : Connection by c {
                 override fun close() {
-                    println("Close Hikari connection - $uuid")
+//                    println("Close Hikari connection - $uuid")
                     c.close()
                 }
             }
@@ -38,30 +38,48 @@ class HikariDataSourceFactory(
 
         override fun getConnection(): Connection {
             val uuid = getNewUuid()
-            println("New Hikari connection - $uuid")
+//            println("New Hikari connection - $uuid")
             connectionMap[uuid] = true
             val stack = Throwable().stackTraceToString()
             connectionSourceMap.compute(stack) { _, u -> u?.inc() ?: 1 }
+            stillOpen[uuid] = stack
 
-            val c = delegate.connection
-            return object : Connection by c {
-                override fun close() {
-                    println("Close Hikari connection - $uuid")
-                    connectionMap[uuid] = false
-                    c.close()
-
-                    println("total connections: ${connectionMap.count()}")
-                    val count = connectionMap.filter { it.value }.count()
-                    println("connections open: $count")
-
-                    if (connectionMap.count() > 1000) {
+            try {
+                val c = delegate.connection
+                return object : Connection by c {
+                    override fun close() {
                         synchronized(connectionSourceMap)
                         {
-                            connectionSourceMap.asSequence().sortedBy { it.value }.forEach {
-                                println("${it.value} connections: \n${it.key.prependIndent("   ")}")
-                            }
-                            exitProcess(1)
-                        }                    }
+                            stillOpen.remove(uuid)
+
+//                            println("Close Hikari connection - $uuid")
+                            connectionMap[uuid] = false
+                            c.close()
+
+//                            println("total connections: ${connectionMap.count()}")
+                            val count = connectionMap.filter { it.value }.count()
+                            println("connections open: $count")
+
+//                            if (count > 1000) {
+//                                connectionSourceMap.asSequence().sortedBy { it.value }.forEach {
+//                                    println("${it.value} connections: \n${it.key.prependIndent("   ")}")
+//                                }
+//                                exitProcess(1)
+//                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                synchronized(stillOpen)
+                {
+                    println(e)
+                    println("Still open:" + stillOpen
+                        .map { it.value }
+                        .groupBy { it }
+                        .map { it.key to it.value.count() }
+                        .sortedBy { it.second }
+                        .joinToString("\n"))
+                    exitProcess(1)
                 }
             }
         }
@@ -93,6 +111,7 @@ class HikariDataSourceFactory(
     companion object {
         private val connectionMap: ConcurrentHashMap<String, Boolean> = ConcurrentHashMap()
         private val connectionSourceMap: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
+        private val stillOpen: ConcurrentHashMap<String, String> = ConcurrentHashMap()
     }
 }
 

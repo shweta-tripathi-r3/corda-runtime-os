@@ -70,6 +70,7 @@ internal class CompactedSubscriptionImpl<K : Any, V : Any>(
     override fun start() {
         log.debug { "Starting subscription with config:\n${config}" }
         lock.withLock {
+            println("Starting CompactedSubscriptionImpl\n" + Throwable().stackTraceToString())
             if (consumeLoopThread == null) {
                 stopped = false
                 lifecycleCoordinator.start()
