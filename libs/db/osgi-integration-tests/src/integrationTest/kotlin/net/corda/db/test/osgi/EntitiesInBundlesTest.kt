@@ -6,6 +6,7 @@ import net.corda.db.testkit.DbUtils.getEntityManagerConfiguration
 import net.corda.orm.EntityManagerConfiguration
 import net.corda.orm.EntityManagerFactoryFactory
 import net.corda.orm.utils.transaction
+import net.corda.orm.utils.use
 import net.corda.test.util.LoggingUtils.emphasise
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
@@ -166,29 +167,23 @@ class EntitiesInBundlesTest {
     fun `validate entities are persisted`() {
         logger.info("Load persisted entities".emphasise())
 
-        val em = emf.createEntityManager()
-        try {
-            assertThat(
-                em.createQuery("from Cat", catClass).resultList
-            ).contains(cat)
-            assertThat(
-                em.createQuery("from Dog", dogClass).resultList
-            ).contains(dog)
-        } finally {
-            em.close()
+        emf.createEntityManager().use {em ->
+                assertThat(
+                    em.createQuery("from Cat", catClass).resultList
+                ).contains(cat)
+                assertThat(
+                    em.createQuery("from Dog", dogClass).resultList
+                ).contains(dog)
         }
     }
 
     @Test
     fun `check we can create lazy proxies`() {
-        val em = emf.createEntityManager()
-        val catKey = catKeyCtor.newInstance(catId, catName)
-        try {
+        emf.createEntityManager().use { em ->
+            val catKey = catKeyCtor.newInstance(catId, catName)
             val lazyCat = em.getReference(catClass, catKey)
             assertNotSame(catClass, lazyCat::class.java)
             assertEquals(cat, lazyCat)
-        } finally {
-            em.close()
         }
     }
 
@@ -201,8 +196,7 @@ class EntitiesInBundlesTest {
          */
         logger.info("Query cross-bundle entities".emphasise())
 
-        val em = emf.createEntityManager()
-        try {
+        emf.createEntityManager().use { em ->
             // finding an owner in the cats bundle based on a string value from the Dog class in the dogs bundle
             //  note: not a realistic real world query!
             val queryResults = em
@@ -211,8 +205,6 @@ class EntitiesInBundlesTest {
                 .resultList
             logger.info("Age(s) of owners with the same name as \"Faraway's\" (dog) owner: $queryResults".emphasise())
             assertThat(queryResults).contains(26)
-        } finally {
-            em.close()
         }
     }
 }

@@ -11,6 +11,7 @@ import net.corda.messagebus.db.datamodel.TopicRecordEntry
 import net.corda.messagebus.db.datamodel.TransactionRecordEntry
 import net.corda.messagebus.db.datamodel.TransactionState
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
+import net.corda.orm.utils.use
 import net.corda.test.util.LoggingUtils.emphasise
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
@@ -83,11 +84,8 @@ class DBAccessIntegrationTest {
         }
 
         fun <T> query(clazz: Class<T>, ql: String): List<T> {
-            val em = emf.createEntityManager()
-            return try {
+            return emf.createEntityManager().use { em ->
                 em.createQuery(ql, clazz).resultList
-            } finally {
-                em.close()
             }
         }
 

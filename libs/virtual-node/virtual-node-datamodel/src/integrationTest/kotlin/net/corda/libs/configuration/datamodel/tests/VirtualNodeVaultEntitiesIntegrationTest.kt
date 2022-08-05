@@ -8,6 +8,7 @@ import net.corda.db.testkit.DbUtils
 import net.corda.libs.virtualnode.datamodel.*
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
 import net.corda.orm.utils.transaction
+import net.corda.orm.utils.use
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -63,6 +64,6 @@ class VirtualNodeVaultEntitiesIntegrationTest {
             em.persist(vault)
         }
 
-        assertEquals(vault, entityManagerFactory.createEntityManager().find(VaultEntity::class.java, key))
+        assertEquals(vault, entityManagerFactory.createEntityManager().use { it.find(VaultEntity::class.java, key)) }
     }
 }

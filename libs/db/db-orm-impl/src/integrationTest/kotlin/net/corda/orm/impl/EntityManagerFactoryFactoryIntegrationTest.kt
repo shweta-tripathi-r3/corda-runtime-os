@@ -6,6 +6,7 @@ import net.corda.db.testkit.InMemoryEntityManagerConfiguration
 import net.corda.orm.EntityManagerConfiguration
 import net.corda.orm.impl.test.entities.Cat
 import net.corda.orm.impl.test.entities.Owner
+import net.corda.orm.utils.use
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -25,15 +26,16 @@ class EntityManagerFactoryFactoryIntegrationTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.transaction.begin()
-        em.persist(owner)
-        em.persist(cat)
-        em.transaction.commit()
+        emf.createEntityManager().use { em ->
+            em.transaction.begin()
+            em.persist(owner)
+            em.persist(cat)
+            em.transaction.commit()
 
-        val loadedCats = em.createQuery("from Cat", Cat::class.java)
+            val loadedCats = em.createQuery("from Cat", Cat::class.java)
 
-        assertThat(loadedCats.resultList).contains(cat)
+            assertThat(loadedCats.resultList).contains(cat)
+        }
     }
 
     @Test
@@ -51,20 +53,21 @@ class EntityManagerFactoryFactoryIntegrationTest {
         val cat2 = Cat(UUID.randomUUID(), "Thomas", "Tabby", owner1)
         val cat3 = Cat(UUID.randomUUID(), "Christopher", "Ginger", owner2)
 
-        val em = emf.createEntityManager()
-        em.transaction.begin()
-        em.persist(owner1)
-        em.persist(owner2)
-        em.persist(cat1)
-        em.persist(cat2)
-        em.persist(cat3)
-        em.transaction.commit()
+        emf.createEntityManager().use { em ->
+            em.transaction.begin()
+            em.persist(owner1)
+            em.persist(owner2)
+            em.persist(cat1)
+            em.persist(cat2)
+            em.persist(cat3)
+            em.transaction.commit()
 
-        val loadedCats = em
-            .createNamedQuery("Cat.findByOwner", String()::class.java)
-            .setParameter("owner", "Amy")
+            val loadedCats = em
+                .createNamedQuery("Cat.findByOwner", String()::class.java)
+                .setParameter("owner", "Amy")
 
-        assertThat(loadedCats.resultList).containsExactlyInAnyOrder("Felix", "Thomas")
+            assertThat(loadedCats.resultList).containsExactlyInAnyOrder("Felix", "Thomas")
+        }
     }
 
     @Test

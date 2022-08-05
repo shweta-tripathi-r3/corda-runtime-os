@@ -27,7 +27,7 @@ class EntityManagerUtilsTest {
             it.persist(cat)
         }
 
-        val loadedCats = emf.createEntityManager().createQuery("from Cat", Cat::class.java)
+        val loadedCats = emf.createEntityManager().use { it.createQuery("from Cat", Cat::class.java) }
         Assertions.assertThat(loadedCats.resultList).contains(cat)
     }
 
@@ -46,7 +46,7 @@ class EntityManagerUtilsTest {
             it.transaction.commit()
         }
 
-        val loadedCats = emf.createEntityManager().createQuery("from Cat", Cat::class.java)
+        val loadedCats = emf.createEntityManager().use { it.createQuery("from Cat", Cat::class.java) }
         Assertions.assertThat(loadedCats.resultList).contains(cat)
     }
 
@@ -58,13 +58,12 @@ class EntityManagerUtilsTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.transaction {
+        emf.createEntityManager().transaction {
             it.persist(owner)
             it.persist(cat)
         }
 
-        val loadedCats = emf.createEntityManager().createQuery("from Cat", Cat::class.java)
+        val loadedCats = emf.createEntityManager().use { it.createQuery("from Cat", Cat::class.java) }
         Assertions.assertThat(loadedCats.resultList).contains(cat)
     }
 
@@ -76,15 +75,14 @@ class EntityManagerUtilsTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.use {
+        emf.createEntityManager().use {
             it.transaction.begin()
             it.persist(owner)
             it.persist(cat)
             it.transaction.commit()
         }
 
-        val loadedCats = emf.createEntityManager().createQuery("from Cat", Cat::class.java)
+        val loadedCats = emf.createEntityManager().use { it.createQuery("from Cat", Cat::class.java) }
         Assertions.assertThat(loadedCats.resultList).contains(cat)
     }
 
@@ -136,8 +134,7 @@ class EntityManagerUtilsTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.use {
+        emf.createEntityManager().use {
             it.transaction.begin()
             it.persist(owner)
             it.persist(cat)
@@ -158,8 +155,7 @@ class EntityManagerUtilsTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.use {
+        emf.createEntityManager().use {
             it.transaction.begin()
             it.persist(owner)
             it.persist(cat)
@@ -202,8 +198,7 @@ class EntityManagerUtilsTest {
         val owner = Owner(UUID.randomUUID(), "Fred", 25)
         val cat = Cat(UUID.randomUUID(), "Tom", "Black & White", owner)
 
-        val em = emf.createEntityManager()
-        em.use {
+        emf.createEntityManager().use {
             it.transaction.begin()
             it.persist(owner)
             it.persist(cat)

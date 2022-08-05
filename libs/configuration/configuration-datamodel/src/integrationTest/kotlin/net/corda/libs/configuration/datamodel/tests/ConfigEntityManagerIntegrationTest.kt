@@ -14,6 +14,7 @@ import net.corda.libs.configuration.datamodel.DbConnectionConfig
 import net.corda.libs.configuration.datamodel.findDbConnectionByNameAndPrivilege
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
 import net.corda.orm.utils.transaction
+import net.corda.orm.utils.use
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -79,7 +80,7 @@ class ConfigEntityManagerIntegrationTest {
 
         assertEquals(
             config,
-            entityManagerFactory.createEntityManager().find(ConfigEntity::class.java, config.section)
+            entityManagerFactory.createEntityManager().use { it.find(ConfigEntity::class.java, config.section) }
         )
     }
 
@@ -98,7 +99,7 @@ class ConfigEntityManagerIntegrationTest {
 
         assertEquals(
             configAudit,
-            entityManagerFactory.createEntityManager().find(ConfigAuditEntity::class.java, configAudit.changeNumber)
+            entityManagerFactory.createEntityManager().use { it.find(ConfigAuditEntity::class.java, configAudit.changeNumber) }
         )
     }
 
@@ -124,7 +125,9 @@ hello=world
 
         assertEquals(
             dbConnection,
-            entityManagerFactory.createEntityManager().findDbConnectionByNameAndPrivilege("batman", DbPrivilege.DDL)
+            entityManagerFactory.createEntityManager().use {
+                it.findDbConnectionByNameAndPrivilege("batman", DbPrivilege.DDL)
+            }
         )
 
         entityManagerFactory.createEntityManager().transaction { em ->

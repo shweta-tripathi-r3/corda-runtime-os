@@ -81,8 +81,9 @@ class VirtualNodeEntitiesIntegrationTest {
 
         assertEquals(
             holdingIdentity,
-            entityManagerFactory.createEntityManager()
-                .find(HoldingIdentityEntity::class.java, holdingIdentity.holdingIdentityShortHash)
+            entityManagerFactory.createEntityManager().use {
+                it.find(HoldingIdentityEntity::class.java, holdingIdentity.holdingIdentityShortHash)
+            }
         )
     }
 
@@ -108,7 +109,7 @@ class VirtualNodeEntitiesIntegrationTest {
 
         val key = VirtualNodeEntityKey(holdingIdentityEntity, name, version, hash)
 
-        assertEquals(virtualNode, entityManagerFactory.createEntityManager().find(VirtualNodeEntity::class.java, key))
+        assertEquals(virtualNode, entityManagerFactory.createEntityManager().use { it.find(VirtualNodeEntity::class.java, key) })
     }
 
     @Test
@@ -138,7 +139,7 @@ class VirtualNodeEntitiesIntegrationTest {
             .transaction { em -> em.getReference(HoldingIdentityEntity::class.java, holdingIdentityShortHash) }
         val key = VirtualNodeEntityKey(holdingIdentityReference, name, version, hash)
 
-        assertEquals(virtualNode, entityManagerFactory.createEntityManager().find(VirtualNodeEntity::class.java, key))
+        assertEquals(virtualNode, entityManagerFactory.createEntityManager().use { it.find(VirtualNodeEntity::class.java, key) })
     }
 
     @Test
@@ -150,7 +151,7 @@ class VirtualNodeEntitiesIntegrationTest {
         }
 
         // Now check the query - and also we should look at the console output for this
-        val virtualNodes = entityManagerFactory.createEntityManager().findAllVirtualNodes().toList()
+        val virtualNodes = entityManagerFactory.createEntityManager().use { it.findAllVirtualNodes().toList() }
 
         // Might be more than 3 due to junk from other tests.
         println("Found ${virtualNodes.size} virtual nodes in db table")

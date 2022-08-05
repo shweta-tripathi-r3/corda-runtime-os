@@ -52,7 +52,7 @@ inline fun <R> EntityManager.use(block: (EntityManager) -> R): R {
  * @see use
  */
 inline fun <R> EntityManagerFactory.transaction(block: (EntityManager) -> R): R {
-    return createEntityManager().transaction(block)
+    return createEntityManager().use { it.transaction(block) }
 }
 
 /**

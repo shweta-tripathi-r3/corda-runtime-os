@@ -14,6 +14,7 @@ import net.corda.lifecycle.RegistrationHandle
 import net.corda.lifecycle.RegistrationStatusChangeEvent
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
+import net.corda.orm.utils.use
 import net.corda.reconciliation.ReconcilerReader
 import net.corda.reconciliation.VersionedRecord
 import net.corda.v5.base.annotations.VisibleForTesting
@@ -99,14 +100,15 @@ class DbReconcilerReader<K : Any, V : Any>(
      */
     override fun getAllVersionedRecords(): Stream<VersionedRecord<K, V>>? {
         return try {
-            val em = entityManagerFactory!!.createEntityManager()
-            val currentTransaction = em.transaction
-            currentTransaction.begin()
-            doGetAllVersionedRecords(em).onClose {
-                // This class only have access to this em and transaction. This is a read only transaction,
-                // only used for making streaming DB data possible.
-                currentTransaction.rollback()
-                em.close()
+            entityManagerFactory!!.createEntityManager().use { em ->
+                val currentTransaction = em.transaction
+                currentTransaction.begin()
+                doGetAllVersionedRecords(em).onClose {
+                    // This class only have access to this em and transaction. This is a read only transaction,
+                    // only used for making streaming DB data possible.
+                    currentTransaction.rollback()
+                    em.close()
+                }
             }
         } catch (e: Exception) {
             logger.warn("Error while retrieving records for reconciliation", e)
