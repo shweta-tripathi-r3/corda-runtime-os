@@ -7,6 +7,7 @@ import net.corda.data.membership.db.request.MembershipRequestContext
 import net.corda.data.membership.db.request.command.RegistrationStatus
 import net.corda.data.membership.db.request.command.UpdateRegistrationRequestStatus
 import net.corda.db.connection.manager.DbConnectionManager
+import net.corda.db.connection.manager.VirtualNodeDbType
 import net.corda.db.schema.CordaDb
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.membership.datamodel.RegistrationRequestEntity
@@ -37,8 +38,6 @@ import javax.persistence.EntityTransaction
 
 class UpdateRegistrationRequestStatusHandlerTest {
     private val clock = TestClock(Instant.ofEpochSecond(0))
-    private val vaultDmlConnectionId = UUID.randomUUID()
-    private val cryptoDmlConnectionId = UUID.randomUUID()
 
     private val ourX500Name = MemberX500Name.parse("O=Alice,L=London,C=GB")
     private val ourGroupId = "cbdc24f5-35b0-4ef3-be9e-f428d273d7b1"
@@ -50,8 +49,8 @@ class UpdateRegistrationRequestStatusHandlerTest {
     private val virtualNodeInfo = VirtualNodeInfo(
         ourHoldingIdentity,
         CpiIdentifier("TEST_CPI", "1.0", null),
-        vaultDmlConnectionId = vaultDmlConnectionId,
-        cryptoDmlConnectionId = cryptoDmlConnectionId,
+        vaultDmlConnectionId = UUID(0, 0),
+        cryptoDmlConnectionId = UUID(0, 0),
         timestamp = clock.instant()
     )
 
@@ -64,7 +63,13 @@ class UpdateRegistrationRequestStatusHandlerTest {
     }
 
     private val dbConnectionManager: DbConnectionManager = mock {
-        on { createEntityManagerFactory(eq(vaultDmlConnectionId), any()) } doReturn entityManagerFactory
+        on {
+            getOrCreateEntityManagerFactory(
+                eq(VirtualNodeDbType.VAULT.getConnectionName(ourHoldingIdentity.shortHash)),
+                any(),
+                any()
+            )
+        } doReturn entityManagerFactory
     }
     private val jpaEntitiesRegistry: JpaEntitiesRegistry = mock {
         on { get(eq(CordaDb.Vault.persistenceUnitName)) } doReturn mock()

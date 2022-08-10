@@ -13,6 +13,7 @@ import net.corda.data.virtualnode.VirtualNodeManagementResponse
 import net.corda.data.virtualnode.VirtualNodeManagementResponseFailure
 import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.connection.manager.DbConnectionManager
+import net.corda.db.connection.manager.VirtualNodeDbType
 import net.corda.db.core.CloseableDataSource
 import net.corda.db.core.DbPrivilege
 import net.corda.libs.configuration.SmartConfig
@@ -32,6 +33,7 @@ import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.membership.MGMContext
 import net.corda.v5.membership.MemberContext
 import net.corda.v5.membership.MemberInfo
+import net.corda.virtualnode.ShortHash
 import net.corda.virtualnode.HoldingIdentity
 import net.corda.virtualnode.toAvro
 import net.corda.virtualnode.toCorda
@@ -41,7 +43,6 @@ import net.corda.virtualnode.write.db.impl.writer.DbConnection
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeDb
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeDbChangeLog
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeDbFactory
-import net.corda.virtualnode.write.db.impl.writer.VirtualNodeDbType
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeEntityRepository
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeWriterProcessor
 import org.assertj.core.api.SoftAssertions.assertSoftly
@@ -76,6 +77,7 @@ class VirtualNodeWriterProcessorTests {
         private const val dummyGroupPolicy = "{\"groupId\": \"efc27942-9d2a-4f72-ac39-320d38743173\"}"
         private const val dummyGroupPolicyWithMGMInfo = "{\"groupId\": \"da1623ea-e6d4-4314-84f8-6e3b84a869cd\"}"
         private const val mgmGroupPolicy = "{\"groupId\": \"$MGM_DEFAULT_GROUP_ID\"}"
+        private val HOLDING_ID_SHORT_HASH = ShortHash.of("1234567890ab")
     }
 
     private val groupId = "f3676687-ab69-4ca1-a17b-ab20b7bc6d03"
@@ -150,9 +152,9 @@ class VirtualNodeWriterProcessorTests {
     )
 
     private val vaultDb = VirtualNodeDb(
-        VirtualNodeDbType.VAULT, true, "holdingIdentityShortHash", dbConnections, mock(), connectionManager, mock())
+        VirtualNodeDbType.VAULT, true, HOLDING_ID_SHORT_HASH, dbConnections, mock(), connectionManager, mock())
     private val cryptoDb = VirtualNodeDb(
-        VirtualNodeDbType.CRYPTO, true, "holdingIdentityShortHash", dbConnections, mock(), connectionManager, mock())
+        VirtualNodeDbType.CRYPTO, true, HOLDING_ID_SHORT_HASH, dbConnections, mock(), connectionManager, mock())
     private val vNodeFactory = mock<VirtualNodeDbFactory>() {
         on { createVNodeDbs(any(), any()) }.doReturn(mapOf(
             VirtualNodeDbType.VAULT to vaultDb,
@@ -397,7 +399,7 @@ class VirtualNodeWriterProcessorTests {
                 vnodeCreationReq.cpiFileChecksum,
                 vnodeInfo.holdingIdentity.groupId,
                 vnodeInfo.holdingIdentity,
-                holdingIdentity.shortHash,
+                holdingIdentity.shortHash.value,
                 connectionId,
                 connectionId,
                 connectionId,

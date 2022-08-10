@@ -7,11 +7,13 @@ import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.connection.manager.DBConfigurationException
 import net.corda.db.connection.manager.DbAdmin
 import net.corda.db.connection.manager.DbConnectionManager
+import net.corda.db.connection.manager.VirtualNodeDbType
 import net.corda.db.core.DbPrivilege
 import net.corda.db.core.DbPrivilege.DDL
 import net.corda.db.core.DbPrivilege.DML
 import net.corda.db.schema.DbSchema
 import net.corda.v5.base.util.contextLogger
+import net.corda.virtualnode.ShortHash
 
 /**
  * Encapsulates access to a single database, either of type VAULT or CONFIG, at muliple different provilege levels
@@ -23,7 +25,7 @@ import net.corda.v5.base.util.contextLogger
  */
 @Suppress("LongParameterList")
 class VirtualNodeDb(
-    private val dbType: VirtualNodeDbType, val isClusterDb: Boolean, private val holdingIdentityShortHash: String,
+    private val dbType: VirtualNodeDbType, val isClusterDb: Boolean, private val holdingIdentityShortHash: ShortHash,
     val dbConnections: Map<DbPrivilege, DbConnection?>, private val dbAdmin: DbAdmin,
     private val dbConnectionManager: DbConnectionManager, private val schemaMigrator: LiquibaseSchemaMigrator
 ) {

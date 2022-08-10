@@ -34,8 +34,10 @@ import net.corda.flow.testing.fakes.FakeFlowFiberFactory
 import net.corda.flow.testing.fakes.FakeMembershipGroupReaderProvider
 import net.corda.flow.testing.fakes.FakeSandboxGroupContextComponent
 import net.corda.flow.testing.tests.FLOW_NAME
+import net.corda.flow.utils.emptyKeyValuePairList
 import net.corda.libs.configuration.SmartConfigFactory
 import net.corda.libs.packaging.core.CordappManifest
+import net.corda.libs.packaging.core.CordappType
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.libs.packaging.core.CpiMetadata
 import net.corda.libs.packaging.core.CpkFormatVersion
@@ -43,7 +45,6 @@ import net.corda.libs.packaging.core.CpkIdentifier
 import net.corda.libs.packaging.core.CpkManifest
 import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.libs.packaging.core.CpkType
-import net.corda.libs.packaging.core.ManifestCorDappInfo
 import net.corda.messaging.api.processor.StateAndEventProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas.Flow.Companion.FLOW_EVENT_TOPIC
@@ -132,15 +133,16 @@ class FlowServiceTestContext @Activate constructor(
     }
 
     override fun cpkMetadata(cpiId: String, cpkId: String, cpkChecksum: SecureHash) {
-        val manifestCordAppInfo = ManifestCorDappInfo(null, null, null, null)
-
         val cordAppManifest = CordappManifest(
             "",
             "",
             0,
             0,
-            manifestCordAppInfo,
-            manifestCordAppInfo,
+            CordappType.WORKFLOW,
+            "",
+            "",
+            0,
+            "",
             mapOf()
         )
 
@@ -217,6 +219,7 @@ class FlowServiceTestContext @Activate constructor(
             this.cpiId = cpiId
             this.initiatorType = FlowInitiatorType.RPC
             this.flowClassName = FLOW_NAME
+            this.contextPlatformProperties = emptyKeyValuePairList()
             this.createdTimestamp = Instant.now()
         }.build()
 
@@ -242,6 +245,8 @@ class FlowServiceTestContext @Activate constructor(
                 .setFlowId(flowId)
                 .setCpiId(cpiId)
                 .setPayload(ByteBuffer.wrap(byteArrayOf()))
+                .setContextPlatformProperties(emptyKeyValuePairList())
+                .setContextUserProperties(emptyKeyValuePairList())
                 .build(),
             sequenceNum = 0,
             receivedSequenceNum = 1,

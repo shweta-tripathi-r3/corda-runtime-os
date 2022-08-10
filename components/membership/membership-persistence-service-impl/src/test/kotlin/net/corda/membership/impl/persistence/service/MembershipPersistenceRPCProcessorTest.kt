@@ -19,6 +19,8 @@ import net.corda.data.membership.db.response.query.MemberInfoQueryResponse
 import net.corda.data.membership.db.response.query.PersistenceFailedResponse
 import net.corda.data.membership.p2p.MembershipRegistrationRequest
 import net.corda.db.connection.manager.DbConnectionManager
+import net.corda.db.connection.manager.VirtualNodeDbType
+import net.corda.db.core.DbPrivilege
 import net.corda.db.schema.CordaDb
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.membership.datamodel.GroupPolicyEntity
@@ -65,19 +67,17 @@ class MembershipPersistenceRPCProcessorTest {
     private val ourHoldingIdentity = createTestHoldingIdentity(ourX500Name, ourGroupId)
     private val context = "context".toByteArray()
 
-    private val vaultDmlConnectionId = UUID.randomUUID()
-    private val cryptoDmlConnectionId = UUID.randomUUID()
     private val virtualNodeInfo = VirtualNodeInfo(
         ourHoldingIdentity,
         CpiIdentifier("TEST_CPI", "1.0", null),
-        vaultDmlConnectionId = vaultDmlConnectionId,
-        cryptoDmlConnectionId = cryptoDmlConnectionId,
-        timestamp = clock.instant()
+        timestamp = clock.instant(),
+        vaultDmlConnectionId = UUID(0, 0),
+        cryptoDmlConnectionId = UUID(0, 0),
     )
 
     private val registrationRequest = RegistrationRequestEntity(
         ourRegistrationId,
-        ourHoldingIdentity.shortHash,
+        ourHoldingIdentity.shortHash.value,
         RegistrationStatus.NEW.name,
         clock.instant(),
         clock.instant(),
@@ -99,7 +99,13 @@ class MembershipPersistenceRPCProcessorTest {
     }
 
     private val dbConnectionManager: DbConnectionManager = mock {
-        on { createEntityManagerFactory(eq(vaultDmlConnectionId), any()) } doReturn entityManagerFactory
+        on {
+            getOrCreateEntityManagerFactory(
+                eq(VirtualNodeDbType.VAULT.getConnectionName(ourHoldingIdentity.shortHash)),
+                eq(DbPrivilege.DML),
+                any()
+            )
+        } doReturn entityManagerFactory
     }
     private val jpaEntitiesRegistry: JpaEntitiesRegistry = mock {
         on { get(eq(CordaDb.Vault.persistenceUnitName)) } doReturn mock()
