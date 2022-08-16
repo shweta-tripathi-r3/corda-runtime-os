@@ -118,13 +118,20 @@ pipeline {
             }            
         }
         stage('connect to worker') {
-            options {
-                timeout(time: 3, unit: 'MINUTES')
-            }  
             steps {
-                checkConnection()
+                script{
+                    try {
+                       timeout(time: 3, unit: 'MINUTES') {
+                            checkConnection()
+                       }
+                    } catch(err) {
+                        // If a timeout is reached fail the build as we want the calling job to result in a failure
+                        // without this the calling job will result in a aborted status
+                        error 'Could not connect to the Combined Worker in a 3 minute window'
+                    }
+                }
             }
-        } 
+        }
         stage('smoketests') {
             options {
                 timeout(time: 15, unit: 'MINUTES')
@@ -155,6 +162,9 @@ pipeline {
             junit allowEmptyResults: true, testResults: '**/test-results/**/TEST-*.xml'
             archiveArtifacts artifacts: 'forward.txt, workerLogs.txt, podLogs.txt', allowEmptyArchive: true
             sh 'rm -f forward.txt workerLogs.txt podLogs.txt'
+        }
+        failure {
+            sendSlackNotifications("danger", "BUILD FAILURE - Combined Worker E2E Tests", true, "#corda-corda5-build-notifications")
         }
     }
 }
