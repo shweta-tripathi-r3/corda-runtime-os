@@ -1,6 +1,6 @@
 package net.corda.processors.test.internal
 
-import net.corda.components.test.internal.TestService
+import net.corda.components.test.TestService
 import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.libs.configuration.SmartConfig

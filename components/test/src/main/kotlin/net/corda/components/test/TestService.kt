@@ -1,4 +1,4 @@
-package net.corda.components.test.internal
+package net.corda.components.test
 
 import net.corda.lifecycle.Lifecycle
 
