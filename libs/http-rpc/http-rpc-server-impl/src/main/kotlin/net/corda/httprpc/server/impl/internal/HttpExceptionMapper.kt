@@ -40,7 +40,7 @@ internal object HttpExceptionMapper {
             is IllegalArgumentException -> HttpResponseException(
                 ResponseCode.INTERNAL_SERVER_ERROR.statusCode,
                 "Illegal argument occurred.",
-                addDetails(ResponseCode.INTERNAL_SERVER_ERROR, e)
+                addExceptionDetailsAndCode(ResponseCode.INTERNAL_SERVER_ERROR, e)
             )
 
             // Http API exceptions
@@ -49,13 +49,13 @@ internal object HttpExceptionMapper {
             is CordaRuntimeException -> HttpResponseException(
                 ResponseCode.INTERNAL_SERVER_ERROR.statusCode,
                 "Internal server error.",
-                addDetails(ResponseCode.INTERNAL_SERVER_ERROR, e)
+                addExceptionDetailsAndCode(ResponseCode.INTERNAL_SERVER_ERROR, e)
             )
 
             else -> HttpResponseException(
                 ResponseCode.UNEXPECTED_ERROR.statusCode,
                 "Unexpected error occurred.",
-                addDetails(ResponseCode.UNEXPECTED_ERROR, e)
+                addExceptionDetailsAndCode(ResponseCode.UNEXPECTED_ERROR, e)
             )
         }
     }
@@ -64,7 +64,7 @@ internal object HttpExceptionMapper {
         return HttpResponseException(
             responseCode.statusCode,
             message,
-            details.toMutableMap().addDetails(responseCode, exceptionDetails)
+            details.toMutableMap().addExceptionDetailsAndCode(responseCode, exceptionDetails)
         )
     }
 
@@ -78,28 +78,28 @@ internal object HttpExceptionMapper {
         return (e.cause as? HttpApiException)?.asHttpResponseException() ?: HttpResponseException(
             ResponseCode.BAD_REQUEST.statusCode,
             message,
-            addDetails(ResponseCode.BAD_REQUEST, e)
+            addExceptionDetailsAndCode(ResponseCode.BAD_REQUEST, e)
         )
     }
 
     /**
      * We'll add the code and exception details to the response.
      */
-    private fun addDetails(responseCode: ResponseCode, e: Exception?): MutableMap<String, String> {
-        return addDetails(responseCode, e?.let { ExceptionDetails(e::class.java.name, e.message ?: "") })
+    private fun addExceptionDetailsAndCode(responseCode: ResponseCode, e: Exception?): MutableMap<String, String> {
+        return addExceptionDetailsAndCode(responseCode, e?.let { ExceptionDetails(e::class.java.name, e.message ?: "") })
     }
 
     /**
      * We'll add the code and exception details to the response.
      */
-    private fun addDetails(responseCode: ResponseCode, exceptionDetails: ExceptionDetails?): MutableMap<String, String> {
-        return mutableMapOf<String, String>().addDetails(responseCode, exceptionDetails)
+    private fun addExceptionDetailsAndCode(responseCode: ResponseCode, exceptionDetails: ExceptionDetails?): MutableMap<String, String> {
+        return mutableMapOf<String, String>().addExceptionDetailsAndCode(responseCode, exceptionDetails)
     }
 
     /**
      * We'll add the code and exception details to the response.
      */
-    private fun MutableMap<String, String>.addDetails(
+    private fun MutableMap<String, String>.addExceptionDetailsAndCode(
         responseCode: ResponseCode,
         exceptionDetails: ExceptionDetails?
     ): MutableMap<String, String> {
