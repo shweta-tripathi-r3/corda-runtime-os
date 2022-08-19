@@ -11,6 +11,7 @@ import net.corda.httprpc.server.impl.exception.MissingParameterException
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import java.util.concurrent.TimeoutException
 import javax.security.auth.login.FailedLoginException
+import net.corda.httprpc.exception.ExceptionDetails
 
 internal object HttpExceptionMapper {
 
@@ -39,7 +40,7 @@ internal object HttpExceptionMapper {
             is IllegalArgumentException -> HttpResponseException(
                 ResponseCode.INTERNAL_SERVER_ERROR.statusCode,
                 "Illegal argument occurred.",
-                buildExceptionCauseDetails(e).addResponseCode(ResponseCode.INTERNAL_SERVER_ERROR)
+                addDetails(ResponseCode.INTERNAL_SERVER_ERROR, e)
             )
 
             // Http API exceptions
@@ -48,13 +49,13 @@ internal object HttpExceptionMapper {
             is CordaRuntimeException -> HttpResponseException(
                 ResponseCode.INTERNAL_SERVER_ERROR.statusCode,
                 "Internal server error.",
-                buildExceptionCauseDetails(e).addResponseCode(ResponseCode.INTERNAL_SERVER_ERROR)
+                addDetails(ResponseCode.INTERNAL_SERVER_ERROR, e)
             )
 
             else -> HttpResponseException(
                 ResponseCode.UNEXPECTED_ERROR.statusCode,
                 "Unexpected error occurred.",
-                buildExceptionCauseDetails(e).addResponseCode(ResponseCode.UNEXPECTED_ERROR)
+                addDetails(ResponseCode.UNEXPECTED_ERROR, e)
             )
         }
     }
@@ -63,7 +64,7 @@ internal object HttpExceptionMapper {
         return HttpResponseException(
             responseCode.statusCode,
             message,
-            details.addResponseCode(responseCode)
+            details.toMutableMap().addDetails(responseCode, exceptionDetails)
         )
     }
 
@@ -77,25 +78,36 @@ internal object HttpExceptionMapper {
         return (e.cause as? HttpApiException)?.asHttpResponseException() ?: HttpResponseException(
             ResponseCode.BAD_REQUEST.statusCode,
             message,
-            buildExceptionCauseDetails(e).addResponseCode(ResponseCode.BAD_REQUEST)
+            addDetails(ResponseCode.BAD_REQUEST, e)
         )
     }
 
     /**
-     * We'll add the name of the exception and the exception's message to the extra details map.
-     * This will give the user extra information to resolving their issue.
+     * We'll add the code and exception details to the response.
      */
-    private fun buildExceptionCauseDetails(e: Exception) = mapOf(
-        "cause" to e::class.java.name,
-        "reason" to (e.message ?: "")
-    )
+    private fun addDetails(responseCode: ResponseCode, e: Exception?): MutableMap<String, String> {
+        return addDetails(responseCode, e?.let { ExceptionDetails(e::class.java.name, e.message ?: "") })
+    }
 
     /**
-     * We'll add the code to the response.
+     * We'll add the code and exception details to the response.
      */
-    private fun Map<String, String>.addResponseCode(responseCode: ResponseCode): Map<String, String> {
-        val mutable = this.toMutableMap()
-        mutable["code"] = responseCode.name
-        return mutable
+    private fun addDetails(responseCode: ResponseCode, exceptionDetails: ExceptionDetails?): MutableMap<String, String> {
+        return mutableMapOf<String, String>().addDetails(responseCode, exceptionDetails)
+    }
+
+    /**
+     * We'll add the code and exception details to the response.
+     */
+    private fun MutableMap<String, String>.addDetails(
+        responseCode: ResponseCode,
+        exceptionDetails: ExceptionDetails?
+    ): MutableMap<String, String> {
+        exceptionDetails?.let {
+            this["cause"] = it.cause
+            this["reason"] = it.reason
+        }
+        this["code"] = responseCode.name
+        return this
     }
 }

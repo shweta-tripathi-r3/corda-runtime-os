@@ -11,9 +11,11 @@ import net.corda.v5.base.exceptions.CordaRuntimeException
  * @param responseCode HTTP error response code
  * @param message the response message
  * @param details additional problem details
+ * @param exceptionDetails optional exception information to be converted to cause and reason properties in details map
  */
 abstract class HttpApiException(
     val responseCode: ResponseCode,
     override val message: String,
-    val details: Map<String, String> = emptyMap()
+    val details: Map<String, String> = emptyMap(),
+    val exceptionDetails: ExceptionDetails? = null
 ) : CordaRuntimeException(message)
