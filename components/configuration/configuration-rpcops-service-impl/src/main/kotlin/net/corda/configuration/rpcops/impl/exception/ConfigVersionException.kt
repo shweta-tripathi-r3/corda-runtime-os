@@ -1,7 +1,7 @@
 package net.corda.configuration.rpcops.impl.exception
 
 import net.corda.data.config.ConfigurationSchemaVersion
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 import net.corda.httprpc.exception.ExceptionDetails
 import net.corda.httprpc.exception.HttpApiException
 

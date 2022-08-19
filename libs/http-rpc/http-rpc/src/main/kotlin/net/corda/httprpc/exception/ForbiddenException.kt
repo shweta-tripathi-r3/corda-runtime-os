@@ -1,6 +1,6 @@
 package net.corda.httprpc.exception
 
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 
 /**
  * Authorization has failed for the user and prevented the user from carrying out the operation.

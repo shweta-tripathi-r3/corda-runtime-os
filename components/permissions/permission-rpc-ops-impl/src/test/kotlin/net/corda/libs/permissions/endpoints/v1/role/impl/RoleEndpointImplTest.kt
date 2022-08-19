@@ -20,7 +20,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.Instant
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 import net.corda.permissions.management.PermissionManagementService
 
 internal class RoleEndpointImplTest {

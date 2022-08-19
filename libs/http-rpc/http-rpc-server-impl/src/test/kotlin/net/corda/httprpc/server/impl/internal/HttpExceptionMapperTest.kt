@@ -1,6 +1,6 @@
 package net.corda.httprpc.server.impl.internal
 
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 import net.corda.httprpc.exception.BadRequestException
 import net.corda.httprpc.exception.ForbiddenException
 import net.corda.httprpc.exception.InternalServerException

@@ -1,6 +1,6 @@
 package net.corda.httprpc.exception
 
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 import net.corda.v5.base.exceptions.CordaRuntimeException
 
 /**

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
 import io.javalin.http.HttpResponseException
 import io.javalin.http.InternalServerErrorResponse
 import io.javalin.http.UnauthorizedResponse
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 import net.corda.httprpc.exception.HttpApiException
 import net.corda.httprpc.server.impl.exception.MissingParameterException
 import net.corda.v5.base.exceptions.CordaRuntimeException

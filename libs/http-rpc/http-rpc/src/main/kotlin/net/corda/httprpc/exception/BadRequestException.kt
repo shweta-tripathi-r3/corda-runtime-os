@@ -1,6 +1,6 @@
 package net.corda.httprpc.exception
 
-import net.corda.httprpc.ResponseCode
+import net.corda.httprpc.response.ResponseCode
 
 /**
  * Indicates the request was syntactically bad or contained invalid input data and the request could not be serviced.
