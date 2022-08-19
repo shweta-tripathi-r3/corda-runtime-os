@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import java.lang.IllegalArgumentException
 import javax.security.auth.login.FailedLoginException
+import net.corda.httprpc.annotations.HttpRpcDELETE
+import net.corda.httprpc.response.ResponseCode
+import net.corda.httprpc.response.HttpResponse
 
 internal object ContextUtils {
 
@@ -142,8 +145,16 @@ internal object ContextUtils {
         when {
             (result as? String) != null ->
                 ctx.contentType(contentTypeApplicationJson).result(result)
+            result is HttpResponse<*> -> {
+                ctx.json(result.responseBody ?: "null")
+                ctx.status(result.responseCode.statusCode)
+            }
             result != null ->
                 ctx.json(result)
+            routeInfo.method.method.annotations.any { it is HttpRpcDELETE } -> {
+                // DELETE APIs return NO_CONTENT with empty body upon success.
+                ctx.status(ResponseCode.NO_CONTENT.statusCode)
+            }
             else -> {
                 // if the method has no return type we don't return null
                 if (routeInfo.method.method.returnType != Void.TYPE) {
