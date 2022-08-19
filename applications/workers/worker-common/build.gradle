@@ -29,6 +29,14 @@ dependencies {
     implementation "io.javalin:javalin-osgi:$javalinVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
 
+    // micrometer JARS - TMP wrapped
+    //  NOTE: I don't think all these are needed (including some in the wrapped dir)
+    implementation 'io.prometheus:simpleclient_tracer_common:0.15.0'
+    implementation 'io.prometheus:simpleclient_tracer_otel:0.15.0'
+    implementation 'io.prometheus:simpleclient_tracer_otel_agent:0.15.0'
+    // runtime only? 'io.opentelemetry:opentelemetry-api:1.17.0'
+    implementation fileTree("../../../osgi-wrapped-jars/micrometer/")
+
     runtimeOnly project(':libs:lifecycle:lifecycle-impl')
     runtimeOnly "org.apache.commons:commons-lang3:$commonsLangVersion"
 

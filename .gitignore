@@ -133,3 +133,7 @@ node_modules/
 
 values.yaml
 debug.yaml
+
+/monitoring/data/
+/monitoring/grafana/
+/applications/workers/release/combined-worker/drivers/

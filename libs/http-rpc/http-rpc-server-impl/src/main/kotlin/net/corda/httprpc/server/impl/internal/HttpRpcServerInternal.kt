@@ -7,6 +7,8 @@ import io.javalin.http.staticfiles.Location
 import io.javalin.http.util.MultipartUtil
 import io.javalin.http.util.RedirectToLowercasePathPlugin
 import io.javalin.plugin.json.JavalinJackson
+import io.javalin.plugin.metrics.MicrometerPlugin
+import io.micrometer.core.instrument.Metrics
 import net.corda.httprpc.server.config.HttpRpcSettingsProvider
 import net.corda.httprpc.server.impl.apigen.processing.RouteInfo
 import net.corda.httprpc.server.impl.apigen.processing.RouteProvider
@@ -66,9 +68,31 @@ internal class HttpRpcServerInternal(
     }
 
     private val credentialResolver = DefaultCredentialResolver()
-    private val server = Javalin.create {
+    private val server = Javalin.create() {
         it.jsonMapper(JavalinJackson(serverJacksonObjectMapper))
         it.registerPlugin(RedirectToLowercasePathPlugin())
+
+        // it.registerPlugin(MicrometerPlugin(Metrics.globalRegistry))
+        /* plugin ^ doesn't work:
+
+        2022-08-19 17:08:39.759 [lifecycle-coordinator-6] ERROR net.corda.lifecycle.impl.LifecycleProcessor - net.corda.components.rpc.HttpRpcGateway Lifecycle: An unhandled error was encountered while processing RegistrationStatusChangeEvent(registration=Registration(registeringCoordinator=net.corda.components.rpc.HttpRpcGateway,coordinators=net.corda.permissions.management.PermissionManagementService, net.corda.configuration.read.ConfigurationReadService, net.corda.components.rbac.RBACSecurityManagerService), status=UP) in a lifecycle coordinator: null. This coordinator will now shut down.
+java.lang.NullPointerException: null
+	at org.apache.felix.framework.BundleWiringImpl$BundleClassLoader.defineClass(BundleWiringImpl.java:2338) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl$BundleClassLoader.defineClassParallel(BundleWiringImpl.java:2156) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl$BundleClassLoader.findClass(BundleWiringImpl.java:2090) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl.findClassOrResourceByDelegation(BundleWiringImpl.java:1556) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl.access$300(BundleWiringImpl.java:79) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl$BundleClassLoader.loadClass(BundleWiringImpl.java:1976) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:522) ~[?:?]
+	at org.apache.felix.framework.BundleWiringImpl.getClassByDelegation(BundleWiringImpl.java:1358) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl.searchImports(BundleWiringImpl.java:1612) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl.findClassOrResourceByDelegation(BundleWiringImpl.java:1528) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl.access$300(BundleWiringImpl.java:79) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at org.apache.felix.framework.BundleWiringImpl$BundleClassLoader.loadClass(BundleWiringImpl.java:1976) ~[corda-combined-worker-5.0.0.0-SNAPSHOT.jar:?]
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:522) ~[?:?]
+	at io.javalin.plugin.metrics.MicrometerPlugin.apply(MicrometerPlugin.kt:41) ~[?:?]
+
+         */
 
         val swaggerUiBundle = getSwaggerUiBundle()
         // In an OSGi context, webjars cannot be loaded automatically using `JavalinConfig.enableWebJars`.

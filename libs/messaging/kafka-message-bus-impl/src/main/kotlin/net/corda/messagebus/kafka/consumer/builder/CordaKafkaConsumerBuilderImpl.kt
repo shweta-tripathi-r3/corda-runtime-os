@@ -1,5 +1,7 @@
 package net.corda.messagebus.kafka.consumer.builder
 
+import io.micrometer.core.instrument.Metrics
+import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics
 import net.corda.libs.configuration.SmartConfig
 import net.corda.messagebus.api.configuration.ConsumerConfig
 import net.corda.messagebus.api.consumer.CordaConsumer
@@ -13,7 +15,9 @@ import net.corda.messagebus.kafka.utils.OsgiDelegatedClassLoader
 import net.corda.schema.registry.AvroSchemaRegistry
 import net.corda.v5.base.util.contextLogger
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.internals.KafkaConsumerMetrics
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.common.metrics.KafkaMetric
 import org.osgi.framework.FrameworkUtil
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -48,6 +52,7 @@ class CordaKafkaConsumerBuilderImpl @Activate constructor(
         return executeKafkaActionWithRetry(
             action = {
                 val consumer = createKafkaConsumer(kafkaProperties, kClazz, vClazz, onSerializationError)
+                KafkaClientMetrics(consumer).bindTo(Metrics.globalRegistry)
                 CordaKafkaConsumerImpl(resolvedConfig, consumer, listener)
             },
             errorMessage = { "MessageBusConsumerBuilder failed to create consumer for group ${consumerConfig.group}, " +

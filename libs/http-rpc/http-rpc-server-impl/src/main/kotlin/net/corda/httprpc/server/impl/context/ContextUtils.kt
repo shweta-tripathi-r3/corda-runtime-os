@@ -4,6 +4,7 @@ import io.javalin.core.util.Header
 import io.javalin.http.Context
 import io.javalin.http.ForbiddenResponse
 import io.javalin.http.UnauthorizedResponse
+import io.micrometer.core.instrument.Metrics
 import net.corda.httprpc.security.Actor
 import net.corda.httprpc.security.AuthorizingSubject
 import net.corda.httprpc.security.CURRENT_RPC_CONTEXT
@@ -80,38 +81,42 @@ internal object ContextUtils {
         }
     }
 
+
     fun RouteInfo.invokeHttpMethod(): (Context) -> Unit {
         return { ctx ->
-            MDC.put("http.method", ctx.method())
-            MDC.put("http.path", ctx.path())
-            MDC.put("http.user", rpcContext()?.principal ?: "<anonymous>")
-            log.info("Servicing ${ctx.method()} request to '${ctx.path()}'")
-            log.debug { "Invoke method \"${this.method.method.name}\" for route info." }
-            log.trace { "Get parameter values." }
-            try {
-                validateRequestContentType(this, ctx)
+            Metrics.counter("http.invoke.counter", ctx.path(), ctx.method()).increment()
+            Metrics.timer("http.invoke.timer", ctx.path(), ctx.method()).record {
+                MDC.put("http.method", ctx.method())
+                MDC.put("http.path", ctx.path())
+                MDC.put("http.user", rpcContext()?.principal ?: "<anonymous>")
+                log.info("Servicing ${ctx.method()} request to '${ctx.path()}'")
+                log.debug { "Invoke method \"${this.method.method.name}\" for route info." }
+                log.trace { "Get parameter values." }
+                try {
+                    validateRequestContentType(this, ctx)
 
-                val clientHttpRequestContext = ClientHttpRequestContext(ctx)
-                val paramValues = retrieveParameters(clientHttpRequestContext)
+                    val clientHttpRequestContext = ClientHttpRequestContext(ctx)
+                    val paramValues = retrieveParameters(clientHttpRequestContext)
 
-                log.debug { "Invoke method \"${method.method.name}\" with paramValues \"${paramValues.joinToString(",")}\"." }
+                    log.debug { "Invoke method \"${method.method.name}\" with paramValues \"${paramValues.joinToString(",")}\"." }
 
-                @Suppress("SpreadOperator")
-                val result = invokeDelegatedMethod(*paramValues.toTypedArray())
+                    @Suppress("SpreadOperator")
+                    val result = invokeDelegatedMethod(*paramValues.toTypedArray())
 
-                buildJsonResult(result, ctx, this)
+                    buildJsonResult(result, ctx, this)
 
-                ctx.header(Header.CACHE_CONTROL, "no-cache")
-                log.debug { "Invoke method \"${this.method.method.name}\" for route info completed." }
-            } catch (e: Exception) {
-                log.warn("Error invoking path '${this.fullPath}'.", e)
-                throw HttpExceptionMapper.mapToResponse(e)
-            } finally {
-                MDC.remove("http.method")
-                MDC.remove("http.path")
-                MDC.remove("http.user")
-                if(ctx.isMultipartFormData()) {
-                    cleanUpMultipartRequest(ctx)
+                    ctx.header(Header.CACHE_CONTROL, "no-cache")
+                    log.debug { "Invoke method \"${this.method.method.name}\" for route info completed." }
+                } catch (e: Exception) {
+                    log.warn("Error invoking path '${this.fullPath}'.", e)
+                    throw HttpExceptionMapper.mapToResponse(e)
+                } finally {
+                    MDC.remove("http.method")
+                    MDC.remove("http.path")
+                    MDC.remove("http.user")
+                    if (ctx.isMultipartFormData()) {
+                        cleanUpMultipartRequest(ctx)
+                    }
                 }
             }
         }

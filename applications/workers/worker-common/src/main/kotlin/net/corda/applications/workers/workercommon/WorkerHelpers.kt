@@ -106,6 +106,12 @@ class WorkerHelpers {
             }
         }
 
+        fun setUpMetricsServer(metricsServer: MetricsServer, params: DefaultWorkerParams) {
+            if (!params.disableHealthMonitor) {
+                metricsServer.listen(9000)
+            }
+        }
+
         /**
          * Prints help if `params.helpRequested` is true. Else prints version if `params.versionRequested` is true.
          *

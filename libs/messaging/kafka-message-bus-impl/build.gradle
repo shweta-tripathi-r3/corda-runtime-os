@@ -25,6 +25,8 @@ dependencies {
 
     implementation "com.typesafe:config:$typeSafeConfigVersion"
 
+    implementation files("../../../osgi-wrapped-jars/micrometer/micrometer-core-osgi-1.9.3.jar")
+
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
     testImplementation project(":testing:test-utilities")

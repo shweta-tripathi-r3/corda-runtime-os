@@ -43,6 +43,8 @@ dependencies {
 
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
 
+    implementation files("../../../osgi-wrapped-jars/micrometer/micrometer-core-osgi-1.9.3.jar")
+
     testImplementation project(":libs:http-rpc:http-rpc-test-common")
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
