@@ -5,9 +5,9 @@ import net.corda.httprpc.response.ResponseCode
 /**
  * Indicates a requested resource is unavailable.
  *
- * @param message the exception message
+ * @param title the exception message
  */
-class ServiceUnavailableException(message: String) : HttpApiException(ResponseCode.SERVICE_UNAVAILABLE, message) {
+class ServiceUnavailableException(title: String) : HttpApiException(ResponseCode.SERVICE_UNAVAILABLE, title) {
     /**
      * @param resource The resource which is unavailable.
      * @param id The ID of the resource.

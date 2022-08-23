@@ -34,6 +34,7 @@ import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import java.time.Duration
+import net.corda.httprpc.exception.ExceptionDetails
 
 /** An implementation of [ConfigRPCOpsInternal]. */
 @Suppress("Unused")
@@ -111,6 +112,7 @@ internal class ConfigRPCOpsImpl @Activate constructor(
             }
             logger.warn("Remote request to update config responded with exception: ${exception.errorType}: ${exception.errorMessage}")
             throw ConfigVersionException(
+                "Configuration could not be updated.",
                 exception.errorType,
                 exception.errorMessage,
                 response.schemaVersion,
@@ -147,8 +149,12 @@ internal class ConfigRPCOpsImpl @Activate constructor(
         )
         logger.debug { "UpdatedConfig: $updatedConfig" }
     } catch (e: Exception) {
-        val message = "Configuration \"${request.config}\" could not be validated. Valid JSON or HOCON expected. Cause: ${e.message}"
-        throw BadRequestException(message)
+        val message = "Configuration could not be validated. Valid JSON or HOCON expected."
+        throw BadRequestException(
+            title = message,
+            details = mapOf("config" to request.config),
+            exceptionDetails = ExceptionDetails(e::class.java.name, e.message)
+        )
     }
 
     /**

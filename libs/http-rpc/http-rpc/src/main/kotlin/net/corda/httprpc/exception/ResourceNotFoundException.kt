@@ -5,9 +5,9 @@ import net.corda.httprpc.response.ResponseCode
 /**
  * Indicates a requested resource does not exist.
  *
- * @param message the exception message
+ * @param title title of the exception response. Keep this brief by including extra information in the [details] section.
  */
-class ResourceNotFoundException(message: String) : HttpApiException(ResponseCode.RESOURCE_NOT_FOUND, message) {
+class ResourceNotFoundException(title: String) : HttpApiException(ResponseCode.RESOURCE_NOT_FOUND, title) {
     /**
      * @param resource The resource which could not be found.
      * @param id The ID of the resource.

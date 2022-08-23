@@ -5,16 +5,17 @@ import net.corda.httprpc.response.ResponseCode
 /**
  * The server encountered an internal error which prevented it from fulfilling the request.
  *
- * For errors that are unexpected, use [UnexpectedErrorException].
- *
- * @param message the response message
- * @param details additional problem details
+ * @param title title of the exception response. Keep this brief by including extra information in the [details] section.
+ * @param details optionally include any additional details that may be useful.
+ * @param exceptionDetails optionally include details of the exception, the `cause` and `reason` will be output in details section.
  */
 class InternalServerException(
-    message: String = "Internal server error.",
-    details: Map<String, String> = emptyMap()
+    title: String = "Internal server error.",
+    details: Map<String, String> = emptyMap(),
+    exceptionDetails: ExceptionDetails? = null
 ) : HttpApiException(
     ResponseCode.INTERNAL_SERVER_ERROR,
-    message,
-    details
+    title,
+    details,
+    exceptionDetails
 )

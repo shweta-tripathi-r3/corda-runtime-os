@@ -8,10 +8,16 @@ import net.corda.httprpc.exception.HttpApiException
 /**
  * Config version related exceptions.
  */
-class ConfigVersionException(errorType: String, errorMessage: String, schemaVersion: ConfigurationSchemaVersion, config: String) :
+class ConfigVersionException(
+    title: String,
+    errorType: String,
+    errorMessage: String,
+    schemaVersion: ConfigurationSchemaVersion,
+    config: String
+) :
     HttpApiException(
         responseCode = ResponseCode.INTERNAL_SERVER_ERROR,
-        message = "Config version error.",
+        title = title,
         details = mapOf(
             "schemaVersion" to "${schemaVersion.majorVersion}.${schemaVersion.minorVersion}",
             "config" to config

@@ -53,9 +53,9 @@ internal object HttpExceptionMapper {
             )
 
             else -> HttpResponseException(
-                ResponseCode.UNEXPECTED_ERROR.statusCode,
-                "Unexpected error occurred.",
-                addExceptionDetailsAndCode(ResponseCode.UNEXPECTED_ERROR, e)
+                ResponseCode.INTERNAL_SERVER_ERROR.statusCode,
+                "Internal server error.",
+                addExceptionDetailsAndCode(ResponseCode.INTERNAL_SERVER_ERROR, e)
             )
         }
     }
@@ -63,7 +63,7 @@ internal object HttpExceptionMapper {
     private fun HttpApiException.asHttpResponseException(): HttpResponseException {
         return HttpResponseException(
             responseCode.statusCode,
-            message,
+            title,
             details.toMutableMap().addExceptionDetailsAndCode(responseCode, exceptionDetails)
         )
     }
@@ -103,9 +103,9 @@ internal object HttpExceptionMapper {
         responseCode: ResponseCode,
         exceptionDetails: ExceptionDetails?
     ): MutableMap<String, String> {
-        exceptionDetails?.let {
-            this["cause"] = it.cause
-            this["reason"] = it.reason
+        exceptionDetails?.let { e ->
+            this["cause"] = e.cause
+            e.reason ?.let { this["reason"] = it }
         }
         this["code"] = responseCode.name
         return this

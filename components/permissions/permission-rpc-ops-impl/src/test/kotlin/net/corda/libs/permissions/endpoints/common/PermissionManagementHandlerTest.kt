@@ -2,7 +2,6 @@ package net.corda.libs.permissions.endpoints.common
 
 import java.util.concurrent.TimeoutException
 import net.corda.httprpc.exception.InternalServerException
-import net.corda.httprpc.exception.UnexpectedErrorException
 import net.corda.libs.permissions.manager.PermissionManager
 import net.corda.libs.permissions.manager.exception.RemotePermissionManagementException
 import net.corda.libs.permissions.manager.exception.UnexpectedPermissionResponseException
@@ -117,20 +116,5 @@ internal class PermissionManagementHandlerTest {
         assertEquals(2, e.details.size)
         assertEquals("javax.persistence.OptimisticLockException", e.details["cause"])
         assertEquals("JPA exception handled", e.details["reason"])
-    }
-
-    @Suppress("TooGenericExceptionThrown")
-    @Test
-    fun `test random exception returns UnexpectedErrorException`() {
-
-        val e = assertThrows<UnexpectedErrorException> {
-            withPermissionManager(permissionManager, logger){
-                throw Exception("random exception")
-            }
-        }
-        assertEquals("Unexpected permission management error occurred.", e.message)
-        assertEquals(2, e.details.size)
-        assertEquals(Exception::class.java.name, e.details["cause"])
-        assertEquals("random exception", e.details["reason"])
     }
 }

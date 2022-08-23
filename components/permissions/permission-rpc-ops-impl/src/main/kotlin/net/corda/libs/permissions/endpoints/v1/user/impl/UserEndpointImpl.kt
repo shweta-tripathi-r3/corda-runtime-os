@@ -3,8 +3,6 @@ package net.corda.libs.permissions.endpoints.v1.user.impl
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.exception.ResourceNotFoundException
 import net.corda.httprpc.response.HttpResponse
-import net.corda.httprpc.response.buildNewResourceCreatedResponse
-import net.corda.httprpc.response.buildResourceUpdatedResponse
 import net.corda.libs.permissions.endpoints.common.PermissionEndpointEventHandler
 import net.corda.libs.permissions.endpoints.v1.converter.convertToDto
 import net.corda.libs.permissions.endpoints.v1.converter.convertToEndpointType
