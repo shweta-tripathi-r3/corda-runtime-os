@@ -55,7 +55,7 @@ class UserEndpointImpl @Activate constructor(
             createUser(createUserType.convertToDto(principal))
         }
 
-        return buildNewResourceCreatedResponse(createUserResult!!.convertToEndpointType())
+        return HttpResponse.resourceCreated(createUserResult!!.convertToEndpointType())
     }
 
     override fun getUser(loginName: String): UserResponseType {
@@ -74,7 +74,7 @@ class UserEndpointImpl @Activate constructor(
         val result = withPermissionManager(permissionManagementService.permissionManager, logger) {
             addRoleToUser(AddRoleToUserRequestDto(principal, loginName.lowercase(), roleId))
         }
-        return buildResourceUpdatedResponse(result!!.convertToEndpointType())
+        return HttpResponse.ok(result!!.convertToEndpointType())
     }
 
     override fun removeRole(loginName: String, roleId: String) {
