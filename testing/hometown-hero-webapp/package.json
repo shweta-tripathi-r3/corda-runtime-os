@@ -10,6 +10,7 @@
     "dependencies": {
         "@r3/r3-tooling-design-system": "file:r3-tooling-design-system-2.1.1.tgz",
         "axios": "^0.27.2",
+        "prettier": "^2.7.1",
         "react": "^18.0.0",
         "react-dom": "^18.0.0",
         "react-graph-vis": "^1.0.6",

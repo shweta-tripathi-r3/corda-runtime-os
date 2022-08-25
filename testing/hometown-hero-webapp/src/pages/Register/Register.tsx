@@ -97,10 +97,16 @@ const Register = () => {
         const userCreated = await createUser(username, password, newNode.holdingIdentity.shortHash);
         if (!userCreated) return;
 
-        const postPermissionId = await createPermission(`POST:/api/v1/flow/${newNode.holdingIdentity.shortHash}`, 'ALLOW');
+        const postPermissionId = await createPermission(
+            `POST:/api/v1/flow/${newNode.holdingIdentity.shortHash}`,
+            'ALLOW'
+        );
         if (!postPermissionId) return;
 
-        const getPermissionId = await createPermission(`GET:/api/v1/flow/${newNode.holdingIdentity.shortHash}/.*`, 'ALLOW');
+        const getPermissionId = await createPermission(
+            `GET:/api/v1/flow/${newNode.holdingIdentity.shortHash}/.*`,
+            'ALLOW'
+        );
         if (!getPermissionId) return;
 
         const userPermissionId = await createPermission(`GET:/api/v1/user\\?loginname=${username}`, 'ALLOW');

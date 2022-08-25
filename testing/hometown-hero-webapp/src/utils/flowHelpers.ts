@@ -67,7 +67,6 @@ export const setupFlowStatusPolling = ({
     onError,
     auth,
 }: FlowStatusPollingParams) => {
-
     const flowPollingInterval = setInterval(async () => {
         const response = await requestFlowStatus(holderShortId, clientRequestId, auth);
         if (response.error) {
