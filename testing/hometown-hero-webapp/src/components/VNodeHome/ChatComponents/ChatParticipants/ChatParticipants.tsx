@@ -36,16 +36,14 @@ const ChatParticipants: React.FC<Props> = ({
     const networkParticipants = useMemo(
         () =>
             vNodes
-                .map((node) => node.holdingIdentity.x500Name)
                 .filter(
-                    (x500) =>
-                        x500 !== myVNode?.holdingIdentity.x500Name &&
-                        !(nodeFilterQuery !== '' &&
-                        !x500.includes(nodeFilterQuery))
+                    (node) =>
+                        node.holdingIdentity.x500Name !== myVNode?.holdingIdentity.x500Name &&
+                        !(nodeFilterQuery !== '' && !node.holdingIdentity.x500Name.includes(nodeFilterQuery))
                 )
                 .sort((a, b) => {
-                    const aMessages = getTotalIncomingMessagesForSender(a);
-                    const bMessages = getTotalIncomingMessagesForSender(b);
+                    const aMessages = getTotalIncomingMessagesForSender(a.holdingIdentity.x500Name);
+                    const bMessages = getTotalIncomingMessagesForSender(b.holdingIdentity.x500Name);
 
                     if (aMessages > bMessages) return -1;
 
@@ -70,30 +68,31 @@ const ChatParticipants: React.FC<Props> = ({
                 }}
             />
             <div className={style.participantsWrapper}>
-                {networkParticipants.map((nP) => {
-                    const selected = selectedParticipants.includes(nP);
+                {networkParticipants.map((node) => {
+                    const selected = selectedParticipants.includes(node.holdingIdentity.x500Name);
+                    const x500Name = node.holdingIdentity.x500Name;
                     return (
-                        <div className={style.participantContainer} key={nP}>
+                        <div className={style.participantContainer} key={x500Name + node.cluster}>
                             <Checkbox
                                 checked={selected}
-                                value={nP}
+                                value={node.holdingIdentity.x500Name}
                                 onChange={(e) => {
-                                    handleCheckboxClicked(!selected, nP);
+                                    handleCheckboxClicked(!selected, x500Name);
                                     e.stopPropagation();
                                 }}
                             />
                             <p
                                 className={`${selected ? 'text-blue' : ''} cursor-pointer`}
                                 onClick={(e) => {
-                                    handleCheckboxClicked(!selected, nP);
+                                    handleCheckboxClicked(!selected, x500Name);
                                     e.stopPropagation();
                                 }}
                             >
-                                {nP}
+                                {x500Name}
                             </p>
 
                             <p className="ml-auto mr-5 text-lg">
-                                <strong>{getTotalIncomingMessagesForSender(nP)}</strong>
+                                <strong>{getTotalIncomingMessagesForSender(x500Name)}</strong>
                             </p>
                         </div>
                     );

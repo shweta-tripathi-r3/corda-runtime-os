@@ -37,7 +37,7 @@ const [useMessagesContext, Provider] = createCtx<MessagesContextProps>();
 export default useMessagesContext;
 
 export const MessagesContextProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-    const { username, password, holderShortId } = useUserContext();
+    const { username, password, holderShortId, cluster } = useUserContext();
     const [userChatHistory, setUserChatHistory] = useLocalStorage<UsersChatHistory>(`${username}chatHistory`, {
         username: username,
         chatHistories: [],
@@ -97,7 +97,7 @@ export const MessagesContextProvider: React.FC<{ children?: React.ReactNode }> =
 
         const fetchMessages = async () => {
             const clientRequestId = 'fetchMessage' + Date.now();
-            const flowStatusInterval = await handleFlow({
+            await handleFlow({
                 holderShortId,
                 clientRequestId,
                 flowType: 'net.cordapp.testing.chat.ChatReaderFlow',
@@ -111,7 +111,7 @@ export const MessagesContextProvider: React.FC<{ children?: React.ReactNode }> =
                 },
                 onStatusSuccess: (flowResult) => {
                     const messages = JSON.parse(flowResult) as Messages;
-                    if (messages.messages.length > 0) {
+                    if (messages.messages?.length > 0) {
                         setUserChatHistory((prev) => handleAppendMessagesToChatHistories(prev, messages));
                     }
                 },
@@ -123,6 +123,7 @@ export const MessagesContextProvider: React.FC<{ children?: React.ReactNode }> =
                     );
                 },
                 auth: { username, password },
+                cluster,
             });
 
             // setTimeout(() => {

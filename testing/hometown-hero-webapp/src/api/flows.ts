@@ -6,6 +6,7 @@ export const requestStartFlow = async (
     holderShortId: string,
     clientRequestId: string,
     flowType: FlowTypes,
+    cluster: string,
     payload?: any,
     auth?: { username: string; password: string }
 ) => {
@@ -19,12 +20,14 @@ export const requestStartFlow = async (
         },
         auth: auth,
         dontTrackRequest: true,
+        cluster,
     });
 };
 
 export const requestFlowStatus = async (
     shortId: string,
     clientRequestId: string,
+    cluster: string,
     auth?: { username: string; password: string }
 ) => {
     return apiCall({
@@ -32,5 +35,6 @@ export const requestFlowStatus = async (
         path: `/api/v1/flow/${shortId}/${clientRequestId}`,
         auth: auth,
         dontTrackRequest: true,
+        cluster,
     });
 };

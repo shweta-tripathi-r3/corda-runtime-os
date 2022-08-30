@@ -1,4 +1,4 @@
-import { Button, PasswordInput, TextInput } from '@r3/r3-tooling-design-system/exports';
+import {Button, Option, PasswordInput, Select, TextInput} from '@r3/r3-tooling-design-system/exports';
 
 import FormContentWrapper from '@/components/FormContentWrapper/FormContentWrapper';
 import LoginViz from '@/components/Visualizations/LoginViz';
@@ -11,12 +11,13 @@ import { useState } from 'react';
 import useUserContext from '@/contexts/userContext';
 
 const Login = () => {
-    const { username: savedUsername, password: savedPassword, login, saveLoginDetails } = useUserContext();
+    const { username: savedUsername, password: savedPassword, login, saveLoginDetails, cluster: savedCluster } = useUserContext();
 
     const navigate = useNavigate();
 
     const [username, setUsername] = useState<string>(savedUsername);
     const [password, setPassword] = useState<string>(savedPassword);
+    const [cluster, setCluster] = useState<string>(savedCluster || "cluster0");
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
@@ -29,13 +30,13 @@ const Login = () => {
     };
 
     const handleSubmit = async () => {
-        const loggedInSuccessfully = await login(username, password);
+        const loggedInSuccessfully = await login(username, password, cluster);
         if (!loggedInSuccessfully) {
             setUsername('');
             setPassword('');
             return;
         }
-        saveLoginDetails(username, password);
+        saveLoginDetails(username, password, cluster);
         navigate(VNODE_HOME);
     };
 
@@ -59,6 +60,11 @@ const Login = () => {
                     onChange={handleInputChange}
                     invalid={password.length === 0}
                 />
+                <Select value={cluster} label="Cluster" onChange={(event) => setCluster(event.target.value)}>
+                    <Option value="cluster0">Cluster 0</Option>
+                    <Option value="cluster1">Cluster 1</Option>
+                    <Option value="cluster2">Cluster 2</Option>
+                </Select>
                 <Button
                     className="h-12 w-32"
                     size={'large'}

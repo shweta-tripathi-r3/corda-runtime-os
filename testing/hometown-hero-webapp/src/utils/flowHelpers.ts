@@ -14,6 +14,7 @@ type HandleFlowParams = {
     onStatusFailure?: (errorText: string) => void;
     onStatusSuccess?: (flowResult: string) => void;
     auth?: { username: string; password: string };
+    cluster: string
 };
 
 export const handleFlow = async ({
@@ -27,8 +28,9 @@ export const handleFlow = async ({
     onStatusSuccess,
     onStatusFailure,
     auth,
+    cluster
 }: HandleFlowParams) => {
-    const response = await requestStartFlow(holderShortId, clientRequestId, flowType, payload, auth);
+    const response = await requestStartFlow(holderShortId, clientRequestId, flowType, cluster, payload, auth);
     if (response.error) {
         if (onStartFailure) {
             onStartFailure(response.error);
@@ -45,6 +47,7 @@ export const handleFlow = async ({
         onStatusSuccess,
         onStatusFailure,
         auth,
+        cluster
     });
 };
 
@@ -56,6 +59,7 @@ type FlowStatusPollingParams = {
     onStatusSuccess?: (flowResult: string) => void;
     onError?: (errorText: string) => void;
     auth?: { username: string; password: string };
+    cluster: string
 };
 
 export const setupFlowStatusPolling = ({
@@ -66,9 +70,10 @@ export const setupFlowStatusPolling = ({
     onStatusFailure,
     onError,
     auth,
+    cluster
 }: FlowStatusPollingParams) => {
     const flowPollingInterval = setInterval(async () => {
-        const response = await requestFlowStatus(holderShortId, clientRequestId, auth);
+        const response = await requestFlowStatus(holderShortId, clientRequestId, cluster, auth);
         if (response.error) {
             if (onError) {
                 onError(response.error);

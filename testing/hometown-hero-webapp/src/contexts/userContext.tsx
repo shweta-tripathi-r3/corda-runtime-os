@@ -10,11 +10,12 @@ type UserContextProps = {
     holderShortId: string;
     username: string;
     password: string;
+    cluster: string;
     vNode: VirtualNode | undefined;
     setVNode: (vNode: VirtualNode | undefined) => void;
-    login: (username: string, password: string) => Promise<boolean>;
+    login: (username: string, password: string, cluster: string) => Promise<boolean>;
     clearData: () => void;
-    saveLoginDetails: (username: string, password: string, vNode?: VirtualNode) => void;
+    saveLoginDetails: (username: string, password: string, cluster: string, vNode?: VirtualNode) => void;
 };
 
 const [useUserContext, Provider] = createCtx<UserContextProps>();
@@ -30,8 +31,9 @@ export const UserContextProvider: React.FC<ProviderProps> = ({ children }) => {
     const [holderShortId, setHolderShortId] = useSessionStorage<string>('holdershortid', '');
     const [username, setUsername] = useSessionStorage<string>('username', '');
     const [password, setPassword] = useSessionStorage<string>('password', '');
+    const [cluster, setCluster] = useSessionStorage<string>('cluster', 'cluster0');
 
-    const login = async (username: string, password: string) => {
+    const login = async (username: string, password: string, cluster: string) => {
         const response = await apiCall({
             method: 'get',
             path: `/api/v1/user?loginname=${username}`,
@@ -39,6 +41,7 @@ export const UserContextProvider: React.FC<ProviderProps> = ({ children }) => {
                 username: username,
                 password: password,
             },
+            cluster,
         });
 
         if (response.error) {
@@ -56,21 +59,25 @@ export const UserContextProvider: React.FC<ProviderProps> = ({ children }) => {
         }
     };
 
-    const saveLoginDetails = (username: string, password: string, vNode?: VirtualNode) => {
+    const saveLoginDetails = (username: string, password: string, cluster: string, vNode?: VirtualNode) => {
         setUsername(username);
         setPassword(password);
+        setCluster(cluster);
         setVNode(vNode);
     };
 
     const clearData = () => {
         setUsername('');
         setPassword('');
+        setCluster('cluster0');
         setVNode(undefined);
         setHolderShortId('');
     };
 
     return (
-        <Provider value={{ holderShortId, username, password, vNode, login, clearData, saveLoginDetails, setVNode }}>
+        <Provider
+            value={{ holderShortId, username, password, vNode, cluster, login, clearData, saveLoginDetails, setVNode }}
+        >
             {children}
         </Provider>
     );

@@ -42,15 +42,15 @@ export const LOCATIONS: string[] = ['Ireland', 'UK', 'USA'];
 const DEFAULT_COLOR = '#000';
 
 export const LOCATION_COLORS: Map<string, string> = new Map([
-    ['IE', '#84DE6C'],
-    ['GB', '#839FF0'],
-    ['US', '#F65D5D'],
+    ['cluster0', '#84DE6C'],
+    ['cluster1', '#839FF0'],
+    ['cluster2', '#F65D5D'],
     ['default', DEFAULT_COLOR],
 ]);
 
 export const LOCATION_GROUP_COORDS = new Map([
-    ['IE', { x: 800, y: 0 }],
-    ['GB', { x: 0, y: 800 }],
-    ['US', { x: 800, y: -800 }],
+    ['cluster0', { x: 800, y: 0 }],
+    ['cluster1', { x: 0, y: 800 }],
+    ['cluster2', { x: 800, y: -800 }],
     ['default', { x: -800, y: 0 }],
 ]);

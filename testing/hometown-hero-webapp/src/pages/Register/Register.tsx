@@ -1,4 +1,11 @@
-import { Button, Checkbox, NotificationService, PasswordInput, TextInput } from '@r3/r3-tooling-design-system/exports';
+import {
+    Button,
+    Checkbox,
+    NotificationService,
+    Option,
+    PasswordInput, Select,
+    TextInput
+} from '@r3/r3-tooling-design-system/exports';
 import { LOGIN, VNODE_HOME } from '@/constants/routes';
 import { addPermissionToRole, addRoleToUser, createPermission, createRole, createUser, createVNode } from './utils';
 import { useEffect, useState } from 'react';
@@ -16,11 +23,12 @@ import { useNavigate } from 'react-router-dom';
 import useUserContext from '@/contexts/userContext';
 
 const Register = () => {
-    const { login, saveLoginDetails, username: savedUserUsername, password: savedUserPassword } = useUserContext();
+    const { login, saveLoginDetails, username: savedUserUsername, password: savedUserPassword, cluster: savedUserCluster } = useUserContext();
     const navigate = useNavigate();
 
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [cluster, setCluster] = useState<string>('cluster0');
     const [confirmPassword, setConfirmPassword] = useState<string>('');
     const [newVNode, setNewVNode] = useState<VirtualNode | undefined>(undefined);
 
@@ -44,7 +52,7 @@ const Register = () => {
     };
 
     const handleVNodeLogin = async () => {
-        const isLoggedIn = await login(savedUserUsername, savedUserPassword);
+        const isLoggedIn = await login(savedUserUsername, savedUserPassword, savedUserCluster);
         if (!isLoggedIn) return;
         navigate(VNODE_HOME);
     };
@@ -65,15 +73,13 @@ const Register = () => {
 
         const ipLocResponse = await apiCall({ method: 'get', path: 'https://ipapi.co/json/' });
         let city = 'City';
-        let countryCode = 'Unknown';
         if (!ipLocResponse.error) {
-            countryCode = ipLocResponse.data.country_code;
             city = ipLocResponse.data.country_capital;
         }
 
-        const x500Name = `O=${username} node, L=${city}, C=US`;
+        const x500Name = `O=${username} node, L=${city}, C=${cluster}`;
 
-        const vNodeCreated = await createVNode(x500Name, cpiFileChecksum);
+        const vNodeCreated = await createVNode(x500Name, cpiFileChecksum, cluster);
         if (!vNodeCreated) return;
 
         //give some time for vNodes list to update
@@ -94,55 +100,58 @@ const Register = () => {
 
         setNewVNode(newNode);
 
-        const userCreated = await createUser(username, password, newNode.holdingIdentity.shortHash);
+        const userCreated = await createUser(username, password, newNode.holdingIdentity.shortHash, cluster);
         if (!userCreated) return;
 
         const postPermissionId = await createPermission(
             `POST:/api/v1/flow/${newNode.holdingIdentity.shortHash}`,
-            'ALLOW'
+            'ALLOW',
+            cluster
         );
         if (!postPermissionId) return;
 
         const getPermissionId = await createPermission(
             `GET:/api/v1/flow/${newNode.holdingIdentity.shortHash}/.*`,
-            'ALLOW'
+            'ALLOW',
+            cluster
         );
         if (!getPermissionId) return;
 
-        const userPermissionId = await createPermission(`GET:/api/v1/user\\?loginname=${username}`, 'ALLOW');
+        const userPermissionId = await createPermission(`GET:/api/v1/user\\?loginname=${username}`, 'ALLOW', cluster);
         if (!userPermissionId) return;
 
-        const virtualNodesListPermissionId = await createPermission(`GET:/api/v1/virtualnode`, 'ALLOW');
+        const virtualNodesListPermissionId = await createPermission(`GET:/api/v1/virtualnode`, 'ALLOW', cluster);
         if (!virtualNodesListPermissionId) return;
 
-        const roleId = await createRole();
+        const roleId = await createRole(cluster);
         if (!roleId) return;
 
-        const addedPostPermission = await addPermissionToRole(postPermissionId, roleId);
+        const addedPostPermission = await addPermissionToRole(postPermissionId, roleId, cluster);
         if (!addedPostPermission) return;
 
-        const addedGetPermission = await addPermissionToRole(getPermissionId, roleId);
+        const addedGetPermission = await addPermissionToRole(getPermissionId, roleId, cluster);
         if (!addedGetPermission) return;
 
-        const addedUserPermission = await addPermissionToRole(userPermissionId, roleId);
+        const addedUserPermission = await addPermissionToRole(userPermissionId, roleId, cluster);
         if (!addedUserPermission) return;
 
-        const addedVirtualNodesPermission = await addPermissionToRole(virtualNodesListPermissionId, roleId);
+        const addedVirtualNodesPermission = await addPermissionToRole(virtualNodesListPermissionId, roleId, cluster);
         if (!addedVirtualNodesPermission) return;
 
         NotificationService.notify(`Created permissions and added to new role for user!`, 'Success!', 'success');
 
-        const addedRoleToUser = await addRoleToUser(username, roleId);
+        const addedRoleToUser = await addRoleToUser(username, roleId, cluster);
         if (!addedRoleToUser) return;
 
         NotificationService.notify(`Added new role to user!`, 'Success!', 'success');
 
         NotificationService.notify(`Registration complete!`, 'Success!', 'success');
 
-        saveLoginDetails(username, password, newNode);
+        saveLoginDetails(username, password, cluster, newNode);
 
         setUsername('');
         setPassword('');
+        setCluster('cluster0');
         setConfirmPassword('');
     };
 
@@ -184,7 +193,11 @@ const Register = () => {
                             onChange={handleInputChange}
                             invalid={confirmPassword !== password || confirmPassword.length === 0}
                         />
-
+                        <Select value={cluster} label="Cluster" onChange={(event) => setCluster(event.target.value)}>
+                            <Option value="cluster0">Cluster 0</Option>
+                            <Option value="cluster1">Cluster 1</Option>
+                            <Option value="cluster2">Cluster 2</Option>
+                        </Select>
                         <Button
                             style={{ width: 142 }}
                             className="h-12"

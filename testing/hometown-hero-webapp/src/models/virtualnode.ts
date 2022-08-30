@@ -26,6 +26,7 @@ export interface VirtualNode {
     hsmConnectionId: string;
     vaultDdlConnectionId: string;
     vaultDmlConnectionId: string;
+    cluster: string;
 }
 
 export interface VirtualNodes {

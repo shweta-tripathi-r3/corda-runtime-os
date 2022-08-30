@@ -20,7 +20,7 @@ const Chat: React.FC<Props> = ({ handleOpenParticipantsModal, handleSelectReplyP
     const [messageValue, setMessageValue] = useState<string>('');
 
     const { getChatHistoryForSender, addMessageToChatHistoryForSender, userChatHistory } = useMessagesContext();
-    const { vNode, holderShortId, username, password } = useUserContext();
+    const { vNode, holderShortId, username, password, cluster } = useUserContext();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +64,7 @@ const Chat: React.FC<Props> = ({ handleOpenParticipantsModal, handleSelectReplyP
                 message: messageValue,
             }),
             auth: { username, password },
+            cluster,
             onStartFailure: (errorText) => {
                 NotificationService.notify(`Failed to start ChatOutgoingFlow ${errorText}`, 'Error', 'danger');
             },

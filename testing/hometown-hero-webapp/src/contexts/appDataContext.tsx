@@ -26,18 +26,58 @@ export const AppDataContextProvider: React.FC<Props> = ({ children }) => {
     const [vNodes, setVNodes] = useState<VirtualNode[]>([]);
 
     const refreshCpiList = async () => {
-        const response = await apiCall({ method: 'get', path: '/api/v1/cpi', axiosInstance: adminAxiosInstance });
-        setCpiList(response.data.cpis);
+        const response0 = await apiCall({
+            method: 'get',
+            path: '/api/v1/cpi',
+            axiosInstance: adminAxiosInstance['cluster0'],
+            cluster: 'cluster0',
+        });
+        const response1 = await apiCall({
+            method: 'get',
+            path: '/api/v1/cpi',
+            axiosInstance: adminAxiosInstance['cluster1'],
+            cluster: 'cluster1',
+        });
+        const response2 = await apiCall({
+            method: 'get',
+            path: '/api/v1/cpi',
+            axiosInstance: adminAxiosInstance['cluster2'],
+            cluster: 'cluster2',
+        });
+        const allCPIs = [...response0.data.cpis, ...response1.data.cpis, ...response2.data.cpis];
+
+        setCpiList(allCPIs);
     };
     const refreshVNodes = async () => {
-        const response = await apiCall({
+        const response0 = await apiCall({
             method: 'get',
             path: '/api/v1/virtualnode',
-            axiosInstance: adminAxiosInstance,
+            axiosInstance: adminAxiosInstance['cluster0'],
             dontTrackRequest: true,
+            cluster: 'cluster0',
         });
-        setVNodes(response.data.virtualNodes);
-        return response.data.virtualNodes;
+        const response1 = await apiCall({
+            method: 'get',
+            path: '/api/v1/virtualnode',
+            axiosInstance: adminAxiosInstance['cluster1'],
+            dontTrackRequest: true,
+            cluster: 'cluster1',
+        });
+        const response2 = await apiCall({
+            method: 'get',
+            path: '/api/v1/virtualnode',
+            axiosInstance: adminAxiosInstance['cluster2'],
+            dontTrackRequest: true,
+            cluster: 'cluster2',
+        });
+
+        const allNodes = [
+            ...response0.data.virtualNodes.map((vn: VirtualNode) => ({ ...vn, cluster: 'cluster0' })),
+            ...response1.data.virtualNodes.map((vn: VirtualNode) => ({ ...vn, cluster: 'cluster1' })),
+            ...response2.data.virtualNodes.map((vn: VirtualNode) => ({ ...vn, cluster: 'cluster2' })),
+        ];
+        setVNodes(allNodes);
+        return allNodes;
     };
 
     useEffect(() => {

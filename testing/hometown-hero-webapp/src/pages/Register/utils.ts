@@ -3,7 +3,7 @@ import { NotificationService } from '@r3/r3-tooling-design-system/exports';
 import adminAxiosInstance from '@/api/adminAxios';
 import apiCall from '@/api/apiCall';
 
-export const createVNode = async (x500Name: string, cpiFileChecksum: string): Promise<boolean> => {
+export const createVNode = async (x500Name: string, cpiFileChecksum: string, cluster: string): Promise<boolean> => {
     const response = await apiCall({
         method: 'post',
         path: '/api/v1/virtualnode',
@@ -13,7 +13,8 @@ export const createVNode = async (x500Name: string, cpiFileChecksum: string): Pr
                 x500Name: x500Name,
             },
         },
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(`Failed to create VNode: Error: ${response.error}`, 'Error', 'danger');
@@ -24,7 +25,7 @@ export const createVNode = async (x500Name: string, cpiFileChecksum: string): Pr
     return true;
 };
 
-export const createUser = async (username: string, password: string, holdingShortId: string): Promise<boolean> => {
+export const createUser = async (username: string, password: string, holdingShortId: string, cluster: string): Promise<boolean> => {
     const response = await apiCall({
         method: 'post',
         path: '/api/v1/user',
@@ -36,7 +37,8 @@ export const createUser = async (username: string, password: string, holdingShor
                 loginName: username,
             },
         },
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(
@@ -54,7 +56,8 @@ export const createUser = async (username: string, password: string, holdingShor
 
 export const createPermission = async (
     permissionString: string,
-    permissionType: 'DENY' | 'ALLOW'
+    permissionType: 'DENY' | 'ALLOW',
+    cluster: string
 ): Promise<string | undefined> => {
     const response = await apiCall({
         method: 'post',
@@ -65,7 +68,8 @@ export const createPermission = async (
                 permissionType: permissionType,
             },
         },
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(
@@ -79,7 +83,7 @@ export const createPermission = async (
     return response.data.id;
 };
 
-export const createRole = async (): Promise<string | undefined> => {
+export const createRole = async (cluster: string): Promise<string | undefined> => {
     const response = await apiCall({
         method: 'post',
         path: '/api/v1/role',
@@ -88,7 +92,8 @@ export const createRole = async (): Promise<string | undefined> => {
                 roleName: 'user_role',
             },
         },
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(`Failed to create new role: Error: ${response.error}`, 'Error', 'danger');
@@ -100,11 +105,12 @@ export const createRole = async (): Promise<string | undefined> => {
     return response.data.id;
 };
 
-export const addPermissionToRole = async (permissionId: string, roleId: string) => {
+export const addPermissionToRole = async (permissionId: string, roleId: string, cluster: string) => {
     const response = await apiCall({
         method: 'put',
         path: `/api/v1/role/${roleId}/permission/${permissionId}`,
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(
@@ -118,11 +124,12 @@ export const addPermissionToRole = async (permissionId: string, roleId: string) 
     return true;
 };
 
-export const addRoleToUser = async (loginName: string, roleId: string): Promise<boolean> => {
+export const addRoleToUser = async (loginName: string, roleId: string, cluster: string): Promise<boolean> => {
     const response = await apiCall({
         method: 'put',
         path: `/api/v1/user/${loginName}/role/${roleId}`,
-        axiosInstance: adminAxiosInstance,
+        axiosInstance: adminAxiosInstance[cluster],
+        cluster
     });
     if (response.error) {
         NotificationService.notify(

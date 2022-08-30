@@ -83,7 +83,7 @@ const NetworkVisualizer = () => {
 
     useEffect(() => {
         const newNodes: any[] = [];
-        vNodes.forEach(({ holdingIdentity }) => {
+        vNodes.forEach(({ holdingIdentity, cluster }) => {
             const x500Name = holdingIdentity.x500Name;
 
             if (!x500Name.includes(nodeFilterQuery)) {
@@ -98,14 +98,14 @@ const NetworkVisualizer = () => {
             } else if (x500Name.includes('C=US')) {
                 location = 'US';
             }
-            const locCoords = LOCATION_GROUP_COORDS.get(location);
+            const locCoords = LOCATION_GROUP_COORDS.get(cluster);
             const newNode = {
-                id: x500Name,
+                id: x500Name+cluster,
                 label: x500Name.split('node,')[0],
                 title: `${name} tooltip text`,
                 x: locCoords?.x ?? undefined,
                 y: locCoords?.y ?? undefined,
-                color: LOCATION_COLORS.get(location),
+                color: LOCATION_COLORS.get(cluster),
                 location: location,
             };
             newNodes.push(newNode);
@@ -119,7 +119,7 @@ const NetworkVisualizer = () => {
     const groupNodes = useCallback(() => {
         if (!network) return;
         graphData.nodes.forEach((node: any) => {
-            const locCoords = LOCATION_GROUP_COORDS.get(node.location);
+            const locCoords = LOCATION_GROUP_COORDS.get(node.cluster);
             if (locCoords) {
                 network.moveNode(node.id, locCoords.x, locCoords.y);
             }

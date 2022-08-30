@@ -22,7 +22,8 @@ const UploadCpi = () => {
             method: 'post',
             path: '/api/v1/cpi',
             params: formData,
-            axiosInstance: adminAxiosInstance,
+            //TODO: Make dynamic
+            axiosInstance: adminAxiosInstance["cluster0"],
         });
 
         if (response.error) {
