@@ -6,9 +6,9 @@ import { trackPromise } from 'react-promise-tracker';
 //Globally tracking all api calls with react-promise-tracker
 //TODO Make dynamic
 export const CLUSTERS: { [key: string]: string } = {
-    cluster0: 'https://localhost:8888',
-    cluster1: 'https://localhost:8888',
-    cluster2: 'https://localhost:8888',
+    cluster0: 'https://localhost:10001',
+    cluster1: 'https://localhost:10002',
+    cluster2: 'https://localhost:10003',
 };
 
 export const P2P_GATEWAYS: { [key: string]: string } = {
