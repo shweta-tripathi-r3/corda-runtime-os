@@ -3,11 +3,25 @@ import {
     Checkbox,
     NotificationService,
     Option,
-    PasswordInput, Select,
-    TextInput
+    PasswordInput,
+    Select,
+    TextInput,
 } from '@r3/r3-tooling-design-system/exports';
 import { LOGIN, VNODE_HOME } from '@/constants/routes';
-import { addPermissionToRole, addRoleToUser, createPermission, createRole, createUser, createVNode } from './utils';
+import {
+    addPermissionToRole,
+    addRoleToUser,
+    createPermission,
+    createRole,
+    createSessionHSM,
+    createUser,
+    createVNode,
+    generateLedgerHSM,
+    generateLedgerKey,
+    generateSessionKey,
+    memberRegistration,
+    networkCommunicationSetup,
+} from './utils';
 import { useEffect, useState } from 'react';
 
 import FormContentWrapper from '@/components/FormContentWrapper/FormContentWrapper';
@@ -23,7 +37,13 @@ import { useNavigate } from 'react-router-dom';
 import useUserContext from '@/contexts/userContext';
 
 const Register = () => {
-    const { login, saveLoginDetails, username: savedUserUsername, password: savedUserPassword, cluster: savedUserCluster } = useUserContext();
+    const {
+        login,
+        saveLoginDetails,
+        username: savedUserUsername,
+        password: savedUserPassword,
+        cluster: savedUserCluster,
+    } = useUserContext();
     const navigate = useNavigate();
 
     const [username, setUsername] = useState<string>('');
@@ -142,9 +162,26 @@ const Register = () => {
 
         const addedRoleToUser = await addRoleToUser(username, roleId, cluster);
         if (!addedRoleToUser) return;
-
         NotificationService.notify(`Added new role to user!`, 'Success!', 'success');
 
+        await createSessionHSM(newNode.holdingIdentity.shortHash, cluster);
+        const sessionKey = await generateSessionKey(newNode.holdingIdentity.shortHash, cluster);
+        if (!sessionKey) {
+            return;
+        }
+        NotificationService.notify(`Generate Session Key`, 'Success!', 'success');
+
+        await generateLedgerHSM(newNode.holdingIdentity.shortHash, cluster);
+        const ledgerKey = await generateLedgerKey(newNode.holdingIdentity.shortHash, cluster);
+        if (!ledgerKey) {
+            return;
+        }
+        NotificationService.notify(`Generate Ledger Key`, 'Success!', 'success');
+
+        await networkCommunicationSetup(newNode.holdingIdentity.shortHash, sessionKey, cluster);
+        NotificationService.notify(`Network communication setup complete!`, 'Success!', 'success');
+
+        await memberRegistration(newNode.holdingIdentity.shortHash, sessionKey, ledgerKey, cluster);
         NotificationService.notify(`Registration complete!`, 'Success!', 'success');
 
         saveLoginDetails(username, password, cluster, newNode);

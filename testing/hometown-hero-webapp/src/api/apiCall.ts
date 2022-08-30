@@ -11,6 +11,14 @@ export const CLUSTERS: { [key: string]: string } = {
     cluster2: 'https://localhost:8888',
 };
 
+export const P2P_GATEWAYS: { [key: string]: string } = {
+    cluster0: 'corda-p2p-gateway-worker.corda-con-demo-cluster-a',
+    cluster1: 'corda-p2p-gateway-worker.corda-con-demo-cluster-b',
+    cluster2: 'corda-p2p-gateway-worker.corda-con-demo-cluster-c',
+};
+
+export const P2P_GATEWAY_PORT = "8080"
+
 export type ApiCallParams = {
     method: 'get' | 'post' | 'put';
     path: string;
