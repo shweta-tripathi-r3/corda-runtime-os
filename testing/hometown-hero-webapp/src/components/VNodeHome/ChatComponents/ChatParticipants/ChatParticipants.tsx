@@ -1,9 +1,9 @@
-import { Button, Checkbox } from '@r3/r3-tooling-design-system/exports';
+import { Button, Checkbox, TextInput } from '@r3/r3-tooling-design-system/exports';
 
 import SelectedParticipants from '../SelectedParticipants/SelectedParticipants';
 import style from './chatParticipants.module.scss';
 import useAppDataContext from '@/contexts/appDataContext';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import useMessagesContext from '@/contexts/messagesContext';
 import useUserContext from '@/contexts/userContext';
 
@@ -21,6 +21,7 @@ const ChatParticipants: React.FC<Props> = ({
     const { vNodes, refreshVNodes } = useAppDataContext();
     const { vNode: myVNode } = useUserContext();
     const { getTotalIncomingMessagesForSender } = useMessagesContext();
+    const [nodeFilterQuery, setNodeFilterQuery] = useState<string>('');
 
     const handleCheckboxClicked = (checkBoxChecked: boolean, participant: string) => {
         if (!checkBoxChecked) {
@@ -36,7 +37,12 @@ const ChatParticipants: React.FC<Props> = ({
         () =>
             vNodes
                 .map((node) => node.holdingIdentity.x500Name)
-                .filter((x500) => x500 !== myVNode?.holdingIdentity.x500Name)
+                .filter(
+                    (x500) =>
+                        x500 !== myVNode?.holdingIdentity.x500Name &&
+                        !(nodeFilterQuery !== '' &&
+                        !x500.includes(nodeFilterQuery))
+                )
                 .sort((a, b) => {
                     const aMessages = getTotalIncomingMessagesForSender(a);
                     const bMessages = getTotalIncomingMessagesForSender(b);
@@ -47,11 +53,16 @@ const ChatParticipants: React.FC<Props> = ({
 
                     return 0;
                 }),
-        [vNodes, myVNode]
+        [vNodes, myVNode, nodeFilterQuery]
     );
 
     return (
         <div className={style.chatParticipants}>
+            <TextInput
+                label="Filter Nodes"
+                value={nodeFilterQuery}
+                onChange={(event) => setNodeFilterQuery(event.target.value)}
+            />
             <SelectedParticipants
                 selectedParticipants={selectedParticipants}
                 handleClearParticipants={() => {

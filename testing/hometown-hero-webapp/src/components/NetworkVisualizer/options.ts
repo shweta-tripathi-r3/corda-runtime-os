@@ -43,7 +43,7 @@ const DEFAULT_COLOR = '#000';
 
 export const LOCATION_COLORS: Map<string, string> = new Map([
     ['IE', '#84DE6C'],
-    ['GB', '839FF0'],
+    ['GB', '#839FF0'],
     ['US', '#F65D5D'],
     ['default', DEFAULT_COLOR],
 ]);

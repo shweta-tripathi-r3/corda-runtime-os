@@ -1,7 +1,7 @@
 import { GRAPH_OPTIONS, LOCATIONS, LOCATION_COLORS, LOCATION_GROUP_COORDS } from './options';
 import { useCallback, useEffect, useState } from 'react';
 
-import { Button } from '@r3/r3-tooling-design-system/exports';
+import { Button, TextInput } from '@r3/r3-tooling-design-system/exports';
 import Graph from 'react-graph-vis';
 import style from './networkVisualizer.module.scss';
 import useAppDataContext from '@/contexts/appDataContext';
@@ -20,6 +20,7 @@ const NetworkVisualizer = () => {
     const [network, setNetwork] = useState<any | undefined>(undefined);
     const [graphData, setGraphData] = useState<any>(GRAPH_INITIAL_STATE);
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
+    const [nodeFilterQuery, setNodeFilterQuery] = useState<string>("");
 
     const cleanUpOldMessages = useCallback(() => {
         const filterOldMessages = (graphData: any) => {
@@ -84,6 +85,11 @@ const NetworkVisualizer = () => {
         const newNodes: any[] = [];
         vNodes.forEach(({ holdingIdentity }) => {
             const x500Name = holdingIdentity.x500Name;
+
+            if (!x500Name.includes(nodeFilterQuery)) {
+                return
+            }
+
             let location = 'default';
             if (x500Name.includes('C=IE')) {
                 location = 'IE';
@@ -108,7 +114,7 @@ const NetworkVisualizer = () => {
         tempGraphData.counter = tempGraphData.counter + 1;
         tempGraphData.nodes = newNodes;
         setGraphData(tempGraphData);
-    }, [vNodes]);
+    }, [vNodes, nodeFilterQuery]);
 
     const groupNodes = useCallback(() => {
         if (!network) return;
@@ -123,27 +129,6 @@ const NetworkVisualizer = () => {
     return (
         <div>
             <div className="flex gap-6 mt-6 mb-6">
-                {/* <Button
-                    size={'small'}
-                    variant={'primary'}
-                    onClick={() => {
-                        addMessage(getRandomInt(graphData.nodes.length - 1), getRandomInt(graphData.nodes.length - 1));
-                    }}
-                >
-                    Add Message
-                </Button>
-                <Button
-                    size={'small'}
-                    variant={'primary'}
-                    onClick={() => {
-                        addNode(
-                            `O=${'Node' + (graphData.nodes.length + 1)}`,
-                            LOCATIONS[getRandomInt(LOCATIONS.length)]
-                        );
-                    }}
-                >
-                    Add New Node
-                </Button> */}
                 <div className="flex gap-6 ml-4">
                     <Button
                         size={'small'}
@@ -157,8 +142,15 @@ const NetworkVisualizer = () => {
                     <Button size={'small'} variant={'primary'} onClick={groupNodes}>
                         Group Nodes
                     </Button>
+                    <TextInput
+                        label="Filter Nodes"
+                        value={nodeFilterQuery}
+                        onChange={(event) => setNodeFilterQuery(event.target.value)}
+                    />
                 </div>
             </div>
+
+
             <div className={`${style.networkVizWrapper} ${isEnlarged ? style.enlarged : ''} shadow-xl`}>
                 <Graph
                     graph={{ nodes: graphData.nodes, edges: graphData.edges }}
