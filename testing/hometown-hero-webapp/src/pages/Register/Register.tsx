@@ -93,11 +93,13 @@ const Register = () => {
 
         const ipLocResponse = await apiCall({ method: 'get', path: 'https://ipapi.co/json/' });
         let city = 'City';
+        let countryCode = 'Unknown';
         if (!ipLocResponse.error) {
+            countryCode = ipLocResponse.data.country_code;
             city = ipLocResponse.data.country_capital;
         }
 
-        const x500Name = `O=${username} node, L=${city}, C=${cluster}`;
+        const x500Name = `O=${username} node, L=${city}, C=${countryCode}`;
 
         const vNodeCreated = await createVNode(x500Name, cpiFileChecksum, cluster);
         if (!vNodeCreated) return;
