@@ -8,7 +8,7 @@ import createCtx from './createCtx';
 import { REFRESH_NODES_INTERVAL } from '@/config';
 
 type AppDataContextProps = {
-    cpiList: Cpi[];
+    cpiList: {[key: string]: Cpi[]};
     vNodes: VirtualNode[];
     refreshCpiList: () => void;
     refreshVNodes: () => Promise<VirtualNode[]>;
@@ -22,7 +22,7 @@ type Props = {
 };
 
 export const AppDataContextProvider: React.FC<Props> = ({ children }) => {
-    const [cpiList, setCpiList] = useState<Cpi[]>([]);
+    const [cpiList, setCpiList] = useState<{[key: string]: Cpi[]}>({});
     const [vNodes, setVNodes] = useState<VirtualNode[]>([]);
 
     const refreshCpiList = async () => {
@@ -44,7 +44,11 @@ export const AppDataContextProvider: React.FC<Props> = ({ children }) => {
             axiosInstance: adminAxiosInstance['cluster2'],
             cluster: 'cluster2',
         });
-        const allCPIs = [...response0.data.cpis, ...response1.data.cpis, ...response2.data.cpis];
+        const allCPIs = {
+            cluster0: response0.data.cpis,
+            cluster1: response1.data.cpis,
+            cluster2: response2.data.cpis,
+        };
 
         setCpiList(allCPIs);
     };

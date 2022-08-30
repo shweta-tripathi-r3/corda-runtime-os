@@ -1,8 +1,10 @@
 import { IconButton } from '@r3/r3-tooling-design-system/exports';
 import useAppDataContext from '@/contexts/appDataContext';
+import useUserContext from '@/contexts/userContext';
 
 const CpiList = () => {
     const { cpiList, refreshCpiList } = useAppDataContext();
+    const { cluster } = useUserContext();
     return (
         <div className="ml-20 mt-12" style={{ maxHeight: 600, overflowY: 'auto' }}>
             <div className="flex">
@@ -15,9 +17,11 @@ const CpiList = () => {
                     onClick={refreshCpiList}
                 />
             </div>
-            {cpiList.length === 0 && <h3 className="mt-6 ml-4 opacity-75">No CPIs Uploaded</h3>}
+            {[...cpiList.cluster0, ...cpiList.cluster1, ...cpiList.cluster2].length === 0 && (
+                <h3 className="mt-6 ml-4 opacity-75">No CPIs Uploaded</h3>
+            )}
             <div style={{ maxHeight: 500 }}>
-                {cpiList.map((cpi, index) => {
+                {cpiList[cluster].map((cpi, index) => {
                     return (
                         <div
                             style={{

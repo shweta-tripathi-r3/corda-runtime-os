@@ -35,6 +35,7 @@ import { trackPromise } from 'react-promise-tracker';
 import useAppDataContext from '@/contexts/appDataContext';
 import { useNavigate } from 'react-router-dom';
 import useUserContext from '@/contexts/userContext';
+import { Cpi } from '@/models/cpi';
 
 const Register = () => {
     const {
@@ -80,7 +81,7 @@ const Register = () => {
     const handleSubmit = async () => {
         setNewVNode(undefined);
         //If theres no cpis prevent user from registering
-        if (cpiList.length === 0) {
+        if (cpiList[cluster].length === 0) {
             NotificationService.notify(
                 `No CPIs are uploaded to the cluster. Cannot register a new VNode and User.`,
                 'Error',
@@ -89,7 +90,7 @@ const Register = () => {
             return;
         }
 
-        const cpiFileChecksum = cpiList[0].cpiFileChecksum;
+        const cpiFileChecksum = cpiList[cluster].filter((cpi: Cpi) => cpi.id.cpiName !== 'mgm')[0].cpiFileChecksum;
 
         const ipLocResponse = await apiCall({ method: 'get', path: 'https://ipapi.co/json/' });
         let city = 'City';
