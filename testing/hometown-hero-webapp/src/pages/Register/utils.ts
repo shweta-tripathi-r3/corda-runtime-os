@@ -254,7 +254,7 @@ export const memberRegistration = async (
 ): Promise<boolean> => {
     const response = await apiCall({
         method: 'post',
-        path: `/api/v1/network/setup/${holdingId}`,
+        path: `/api/v1/membership/${holdingId}`,
         params: {
             memberRegistrationRequest: {
                 action: 'requestJoin',
