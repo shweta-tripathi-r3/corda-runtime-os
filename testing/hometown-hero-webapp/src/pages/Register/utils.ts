@@ -210,7 +210,7 @@ export const generateLedgerHSM = async (holdingId: string, cluster: string): Pro
 export const generateLedgerKey = async (holdingId: string, cluster: string): Promise<string | undefined> => {
     const response = await apiCall({
         method: 'post',
-        path: `/api/v1/keys/${holdingId}/alias/${holdingId}-session/category/LEDGER/scheme/CORDA.ECDSA.SECP256R1`,
+        path: `/api/v1/keys/${holdingId}/alias/${holdingId}-ledger/category/LEDGER/scheme/CORDA.ECDSA.SECP256R1`,
         axiosInstance: adminAxiosInstance[cluster],
         cluster,
     });
