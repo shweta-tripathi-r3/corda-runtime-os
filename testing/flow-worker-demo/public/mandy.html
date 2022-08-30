@@ -31,7 +31,7 @@
     const pending_colour = "#95acb7";
     const processing_colour = "#498f63";
 
-    const holdingIdentityShortHash = "28FD92C043BE";
+    const holdingIdentityShortHash = "35593B84EEAB";
     const flowClass = "net.cordapp.demo.mandelbrot.CalculateBlockFlow";
     const apiAddress = "http://localhost:3000/flow/"
     const blockIndex = new Map();
@@ -221,7 +221,16 @@
 
       Http.open("POST", url, false);
       Http.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      var postData = { requestBody: startMessage }
+
+      let body = {
+        "startFlow": {
+          "clientRequestId": requestId,
+          "flowClassName": flowClass,
+          "requestData": startMessage
+        }
+      }
+
+      var postData = { requestBody: body }
       Http.send(JSON.stringify(postData));
 
       if (Http.readyState == 4 && Http.status == 200) {

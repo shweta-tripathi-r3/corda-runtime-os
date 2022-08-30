@@ -19,7 +19,7 @@ router.post('/start/:holdingidentityshorthash/:clientrequestid/:flowclassname', 
     var requestId = req.params.clientrequestid;
     var flowclassname = req.params.flowclassname;
  
-    axios.post(`https://localhost:8888/api/v1/flow/start/${shortId}/${requestId}/${flowclassname}`,req.body, authConfig)
+    axios.post(`https://localhost:8888/api/v1/flow/${shortId}/${requestId}/${flowclassname}`,req.body, authConfig)
     .then( function(response){
         res.status = response.status;
         res.send(response.data);
@@ -34,7 +34,7 @@ router.get('/:holdingidentityshorthash/:clientrequestid/', function (req, res, n
     var shortId = req.params.holdingidentityshorthash;
     var clientrequestid = req.params.clientrequestid;
     
-    axios.get(`https://localhost:8888/api/v1/flow/status/${shortId}/${clientrequestid}`, authConfig)
+    axios.get(`https://localhost:8888/api/v1/flow/${shortId}/${clientrequestid}`, authConfig)
     .then( function(response){
         res.status = response.status;
         res.send(response.data);
