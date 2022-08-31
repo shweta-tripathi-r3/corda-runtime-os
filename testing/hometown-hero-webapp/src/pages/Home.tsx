@@ -1,10 +1,8 @@
 import { LOGIN, REGISTER, VNODE_NETWORK } from '../constants/routes';
 
 import { Button } from '@r3/r3-tooling-design-system/exports';
-import HomeViz from '../components/Visualizations/HomeViz';
 import PageContentWrapper from '../components/PageContentWrapper/PageContentWrapper';
 import PageHeader from '../components/PageHeader/PageHeader';
-import VisualizationWrapper from '../components/Visualizations/VisualizationWrapper';
 
 const Home = () => {
     return (
@@ -22,9 +20,6 @@ const Home = () => {
                     V-Node Network
                 </Button>
             </div>
-            <VisualizationWrapper width={1200}>
-                <HomeViz qrContent={document.location.href} />
-            </VisualizationWrapper>
         </PageContentWrapper>
     );
 };
