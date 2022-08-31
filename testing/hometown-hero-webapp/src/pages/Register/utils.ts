@@ -262,7 +262,7 @@ export const memberRegistration = async (
                     'corda.session.key.id': sessionKey,
                     'corda.ledger.keys.0.id': ledgerKey,
                     'corda.ledger.keys.0.signature.spec': 'CORDA.ECDSA.SECP256R1',
-                    'corda.endpoints.0.connectionURL': `https://'${P2P_GATEWAYS[cluster]}:${P2P_GATEWAY_PORT}`,
+                    'corda.endpoints.0.connectionURL': `https://${P2P_GATEWAYS[cluster]}:${P2P_GATEWAY_PORT}`,
                     'corda.endpoints.0.protocolVersion': '1',
                 },
             },
