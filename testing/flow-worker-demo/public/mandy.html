@@ -230,8 +230,7 @@
         }
       }
 
-      var postData = { requestBody: body }
-      Http.send(JSON.stringify(postData));
+      Http.send(JSON.stringify(body));
 
       if (Http.readyState == 4 && Http.status == 200) {
         var startResponse = JSON.parse(Http.responseText)

@@ -19,7 +19,7 @@ router.post('/start/:holdingidentityshorthash/:clientrequestid/:flowclassname', 
     var requestId = req.params.clientrequestid;
     var flowclassname = req.params.flowclassname;
  
-    axios.post(`https://localhost:8888/api/v1/flow/${shortId}/${requestId}/${flowclassname}`,req.body, authConfig)
+    axios.post(`https://localhost:8888/api/v1/flow/${shortId}`,req.body, authConfig)
     .then( function(response){
         res.status = response.status;
         res.send(response.data);
