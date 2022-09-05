@@ -22,6 +22,12 @@ pluginManagement {
                 }
             }
             maven {
+                url "${artifactoryContextUrl}/corda-dev"
+                content {
+                    includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
+                }
+            }
+            maven {
                 url "${artifactoryContextUrl}/corda-os-maven"
                 content {
                     includeGroupByRegex 'net\\.corda\\.cordapp(\\..*)?'
@@ -46,6 +52,8 @@ pluginManagement {
         id 'org.jetbrains.kotlin.plugin.jpa' version kotlinVersion
         id 'net.corda.plugins.cordapp-cpk' version cordaGradlePluginsVersion
         id 'net.corda.plugins.cordapp-cpb' version cordaGradlePluginsVersion
+        id 'net.corda.plugins.cordapp-cpk2' version cordaGradlePluginsVersion2
+        id 'net.corda.plugins.cordapp-cpb2' version cordaGradlePluginsVersion2
         id 'io.gitlab.arturbosch.detekt' version detektPluginVersion
         id 'com.github.ben-manes.versions' version dependencyCheckVersion
         id "org.gradle.test-retry" version gradleTestRetryPluginVersion
