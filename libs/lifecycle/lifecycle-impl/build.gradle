@@ -15,6 +15,7 @@ dependencies {
     implementation "com.google.guava:guava:$guavaVersion"
     implementation 'net.corda.kotlin:kotlin-stdlib-jdk8-osgi'
     implementation 'net.corda:corda-base'
+    implementation 'net.corda:corda-base-utils'
     implementation 'org.slf4j:slf4j-api'
 
     testImplementation project(":testing:test-utilities")

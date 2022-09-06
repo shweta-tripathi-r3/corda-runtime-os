@@ -12,6 +12,7 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation "net.corda.kotlin:kotlin-stdlib-jdk8-osgi"
     implementation "net.corda:corda-base"
+    implementation 'net.corda:corda-base-utils'
     api "net.corda:corda-membership-schema"
 
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"

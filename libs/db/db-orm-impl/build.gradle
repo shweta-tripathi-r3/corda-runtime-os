@@ -8,6 +8,7 @@ description 'Database ORM Implementation'
 dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation "net.corda:corda-base"
+    implementation 'net.corda:corda-base-utils'
     compileOnly "org.osgi:osgi.annotation"
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
     implementation "org.slf4j:slf4j-api"

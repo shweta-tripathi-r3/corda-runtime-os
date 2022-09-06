@@ -26,6 +26,7 @@ dependencies {
     implementation platform("net.corda:corda-api:$cordaApiVersion")
     implementation project(":components:configuration:configuration-read-service")
     implementation "net.corda:corda-base"
+    implementation 'net.corda:corda-base-utils'
     implementation 'net.corda:corda-config-schema'
 
     testRuntimeOnly("org.apache.felix:org.apache.felix.framework.security:$felixSecurityVersion") {

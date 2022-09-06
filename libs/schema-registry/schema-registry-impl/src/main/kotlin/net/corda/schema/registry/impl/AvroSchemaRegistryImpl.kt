@@ -7,9 +7,9 @@ import net.corda.data.SchemaLoadException
 import net.corda.schema.registry.AvroSchemaRegistry
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.base.util.uncheckedCast
-import net.corda.v5.base.types.toHexString
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.debug
+import net.corda.v5.base.util.toHexString
 import org.apache.avro.Schema
 import org.apache.avro.SchemaNormalization
 import org.apache.avro.io.DecoderFactory

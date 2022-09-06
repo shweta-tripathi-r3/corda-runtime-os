@@ -5,11 +5,11 @@ import net.corda.layeredpropertymap.impl.PropertyConverter
 import net.corda.test.util.createTestCase
 import net.corda.v5.base.exceptions.ValueNotFoundException
 import net.corda.v5.base.types.LayeredPropertyMap
-import net.corda.v5.base.types.toHexString
 import net.corda.v5.base.util.parse
 import net.corda.v5.base.util.parseList
 import net.corda.v5.base.util.parseOrNull
 import net.corda.v5.base.util.parseSet
+import net.corda.v5.base.util.toHexString
 import net.corda.v5.crypto.PublicKeyHash
 import net.corda.v5.crypto.sha256Bytes
 import org.junit.jupiter.api.Test

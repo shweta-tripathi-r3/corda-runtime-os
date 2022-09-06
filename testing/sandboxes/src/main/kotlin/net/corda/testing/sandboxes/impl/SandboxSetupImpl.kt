@@ -49,6 +49,7 @@ class SandboxSetupImpl @Activate constructor(
             "jcl.over.slf4j",
             "net.corda.application",
             "net.corda.base",
+            "net.corda.base-utils",
             "net.corda.cipher-suite",
             "net.corda.crypto",
             "net.corda.crypto-extensions",

@@ -7,8 +7,8 @@ import net.corda.data.test.EvolvedMessage
 import net.corda.schema.registry.AvroSchemaRegistry
 import net.corda.schema.registry.deserialize
 import net.corda.v5.base.exceptions.CordaRuntimeException
-import net.corda.v5.base.types.parseAsHex
-import net.corda.v5.base.types.toHexString
+import net.corda.v5.base.util.parseAsHex
+import net.corda.v5.base.util.toHexString
 import org.apache.avro.Schema
 import org.apache.avro.SchemaNormalization
 import org.apache.avro.generic.GenericContainer
@@ -175,7 +175,7 @@ internal class AvroSchemaRegistryImplTest {
         registry.addSchemaOnly(previousSchema)
 
         val evolvedMessage = EvolvedMessage(0, "")
-        val decoded = registry.deserialize<EvolvedMessage>(ByteBuffer.wrap(encoded), evolvedMessage)
+        val decoded = registry.deserialize(ByteBuffer.wrap(encoded), evolvedMessage)
         assertThat(decoded.flags).isEqualTo(5)
         assertThat(decoded.extraField).isEqualTo("new_string") // The default for evolution
     }

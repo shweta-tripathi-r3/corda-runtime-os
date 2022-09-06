@@ -20,7 +20,7 @@ import net.cordacon.example.utils.createScript
 import net.cordacon.example.utils.findStudents
 
 
-@InitiatingFlow("roll-call")
+@InitiatingFlow(protocol = "roll-call")
 class RollCallFlow: RPCStartableFlow {
 
     private data class SessionAndRecipient(val flowSession: FlowSession, val receipient : MemberX500Name)

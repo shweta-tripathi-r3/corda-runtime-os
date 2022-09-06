@@ -20,13 +20,10 @@ class BlockingQueueFlowSession(
         TODO("Not yet implemented")
     }
 
-    override val contextProperties: FlowContextProperties
-        get() {
-            TODO("Not yet implemented")
-        }
+    override fun getContextProperties(): FlowContextProperties
+        = TODO("Not yet implemented")
 
-    override val counterparty: MemberX500Name
-        get() = flowDetails.member
+    override fun getCounterparty(): MemberX500Name = flowDetails.member
 
     override fun <R : Any> receive(receiveType: Class<R>): R {
         val start = configuration.clock.instant()

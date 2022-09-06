@@ -26,20 +26,20 @@ import java.util.UUID
  */
 class InjectingFlowEngine(
     private val configuration: SimulatorConfiguration,
-    override val virtualNodeName: MemberX500Name,
+    private val virtualNodeName: MemberX500Name,
     private val fiber: SimFiber,
     private val injector: FlowServicesInjector = DefaultServicesInjector(configuration),
     private val flowChecker: FlowChecker = CordaFlowChecker()
 ) : FlowEngine {
-    companion object {
-        val log = contextLogger()
+    private companion object {
+        private val log = contextLogger()
     }
 
-    override val flowId: UUID
-        get() = TODO("Not yet implemented")
+    override fun getVirtualNodeName() = virtualNodeName
 
-    override val flowContextProperties: FlowContextProperties
-        get() = TODO("Not yet implemented")
+    override fun getFlowId(): UUID = TODO("Not yet implemented")
+
+    override fun getFlowContextProperties(): FlowContextProperties = TODO("Not yet implemented")
 
     override fun <R> subFlow(subFlow: SubFlow<R>): R {
         log.info("Running subflow ${SubFlow::class.java} for \"$virtualNodeName\"")

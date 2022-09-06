@@ -8,7 +8,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import net.corda.crypto.impl.decorators.CryptoServiceDecorator
 import net.corda.crypto.tck.ExecutionOptions
-import net.corda.v5.base.types.toHexString
+import net.corda.v5.base.util.toHexString
 import net.corda.v5.cipher.suite.CryptoService
 import net.corda.v5.crypto.sha256Bytes
 import java.util.UUID

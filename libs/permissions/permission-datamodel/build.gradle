@@ -23,6 +23,7 @@ dependencies {
     integrationTestImplementation project(":testing:test-utilities")
     integrationTestImplementation project(":testing:db-testkit")
     integrationTestImplementation 'net.corda:corda-base'
+    integrationTestImplementation "net.corda:corda-base-utils"
     implementation 'net.corda:corda-db-schema'
 
     integrationTestRuntimeOnly project(":libs:db:db-orm-impl")

@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.osgi.service.component.annotations.ServiceScope
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 /**
  * TODO Add more specific KDocs once CORE-4730 is finished
@@ -54,7 +54,7 @@ class UniquenessCheckerClientServiceImpl @Activate constructor(
 ): LedgerUniquenessCheckerClientService, SingletonSerializeAsToken {
 
     private companion object {
-        val log = contextLogger()
+        private val log = contextLogger()
     }
 
     @Suspendable

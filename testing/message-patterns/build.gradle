@@ -38,6 +38,7 @@ dependencies {
     integrationTestImplementation platform("net.corda:corda-api:$cordaApiVersion")
     integrationTestImplementation "net.corda:corda-avro-schema"
     integrationTestImplementation "net.corda:corda-base"
+    integrationTestImplementation "net.corda:corda-base-utils"
     integrationTestImplementation 'net.corda:corda-config-schema'
     integrationTestImplementation 'net.corda:corda-topic-schema'
 
