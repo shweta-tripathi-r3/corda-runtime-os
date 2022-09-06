@@ -6,6 +6,10 @@ plugins {
     id 'corda.common-publishing'
 }
 
+ext {
+    releasable = false
+}
+
 group 'net.corda.cli.deployment'
 
 dependencies {
@@ -18,6 +22,10 @@ dependencies {
     testImplementation "net.corda.cli.host:api:$pluginHostVersion"
     testImplementation "org.pf4j:pf4j:${pf4jVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter:${junit5Version}"
+    testImplementation project(":testing:test-utilities")
+    testImplementation project(":testing:packaging-test-utilities")
+
+    testRuntimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
 }
 
 cliPlugin {

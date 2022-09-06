@@ -13,7 +13,7 @@ import net.corda.httprpc.server.impl.internal.HttpRpcServerInternal.Companion.SS
 import net.corda.httprpc.server.impl.rpcops.impl.MultipleParamAnnotationApiImpl
 import net.corda.httprpc.server.impl.security.SecurityManagerRPCImpl
 import net.corda.httprpc.test.TestHealthCheckAPIImpl
-import net.corda.v5.base.util.NetworkHostAndPort
+import net.corda.utilities.NetworkHostAndPort
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,6 +24,7 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import java.nio.file.Path
 import java.nio.file.Paths
+import org.mockito.kotlin.mock
 
 class HttpRpcServerTest {
 
@@ -51,7 +52,8 @@ class HttpRpcServerTest {
                     SecurityManagerRPCImpl(emptySet()),
                     configProvider,
                     OpenApiInfoProvider(APIStructureRetriever(listOf(TestHealthCheckAPIImpl())).structure, configProvider),
-                    multiPartDir
+                    multiPartDir,
+                    mock()
                 )
             },
             SSL_PASSWORD_MISSING
@@ -78,7 +80,8 @@ class HttpRpcServerTest {
                     SecurityManagerRPCImpl(emptySet()),
                     configProvider,
                     OpenApiInfoProvider(APIStructureRetriever(listOf(TestHealthCheckAPIImpl())).structure, configProvider),
-                    multiPartDir
+                    multiPartDir,
+                    mock()
                 )
             },
             INSECURE_SERVER_DEV_MODE_WARNING
@@ -127,7 +130,8 @@ class HttpRpcServerTest {
                 SecurityManagerRPCImpl(emptySet()),
                 configProvider,
                 OpenApiInfoProvider(APIStructureRetriever(listOf(TestHealthCheckAPIImpl())).structure, configProvider),
-                multiPartDir
+                multiPartDir,
+                mock()
             )
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage(

@@ -8,7 +8,7 @@ import net.corda.httprpc.test.utils.findFreePort
 import net.corda.httprpc.test.utils.multipartDir
 import net.corda.httprpc.tools.HttpVerb.GET
 import net.corda.httprpc.tools.HttpVerb.POST
-import net.corda.v5.base.util.NetworkHostAndPort
+import net.corda.utilities.NetworkHostAndPort
 import org.apache.http.HttpStatus
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -25,7 +25,7 @@ class HttpRpcServerCaseSensitiveUrlTest: HttpRpcServerTestBase() {
             val httpRpcSettings = HttpRpcSettings(NetworkHostAndPort("localhost", findFreePort()), context, null, null, HttpRpcSettings.MAX_CONTENT_LENGTH_DEFAULT_VALUE)
             server = HttpRpcServerImpl(
                 listOf(TestHealthCheckAPIImpl()),
-                securityManager,
+                ::securityManager,
                 httpRpcSettings,
                 multipartDir,
                 true

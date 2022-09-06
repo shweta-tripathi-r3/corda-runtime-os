@@ -4,7 +4,17 @@ import net.corda.data.KeyValuePair
 import net.corda.data.KeyValuePairList
 
 fun mutableKeyValuePairList() = KeyValuePairList(mutableListOf())
+
 fun emptyKeyValuePairList() = KeyValuePairList(emptyList())
+
+/**
+ * Creates a mutable [KeyValuePairList] (this is a [KeyValuePairList] backed by a mutable list) out of another
+ * [KeyValuePairList]. This method can be used to create a new [KeyValuePairList] with a new backing list which contains
+ * copies of the list passed to it.
+ */
+fun mutableKeyValuePairListOf(initialProperties: KeyValuePairList) = mutableKeyValuePairList().apply {
+    items.addAll(initialProperties.items)
+}
 
 /**
  * Creates a [KeyValueStore] from a variable number of pairs of strings.

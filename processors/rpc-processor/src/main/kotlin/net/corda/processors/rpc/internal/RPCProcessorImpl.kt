@@ -2,7 +2,6 @@ package net.corda.processors.rpc.internal
 
 import net.corda.components.rpc.HttpRpcGateway
 import net.corda.configuration.read.ConfigurationReadService
-import net.corda.configuration.rpcops.ConfigRPCOpsService
 import net.corda.cpi.upload.endpoints.service.CpiUploadRPCOpsService
 import net.corda.cpiinfo.read.CpiInfoReadService
 import net.corda.crypto.client.CryptoOpsClient
@@ -41,8 +40,6 @@ class RPCProcessorImpl @Activate constructor(
     private val coordinatorFactory: LifecycleCoordinatorFactory,
     @Reference(service = ConfigurationReadService::class)
     private val configReadService: ConfigurationReadService,
-    @Reference(service = ConfigRPCOpsService::class)
-    private val configRPCOpsService: ConfigRPCOpsService,
     @Reference(service = HttpRpcGateway::class)
     private val httpRpcGateway: HttpRpcGateway,
     @Reference(service = PublisherFactory::class)
@@ -81,12 +78,10 @@ class RPCProcessorImpl @Activate constructor(
         const val CLIENT_ID_RPC_PROCESSOR = "rpc.processor"
     }
 
-    private val lifecycleCoordinator = coordinatorFactory.createCoordinator<RPCProcessorImpl>(::eventHandler)
     private val dependentComponents = DependentComponents.of(
         ::configReadService,
         ::httpRpcGateway,
         ::flowRPCOpsService,
-        ::configRPCOpsService,
         ::cpiUploadRPCOpsService,
         ::cpiInfoReadService,
         ::memberOpsClient,
@@ -99,6 +94,7 @@ class RPCProcessorImpl @Activate constructor(
         ::groupPolicyProvider,
         ::membershipQueryClient,
     )
+    private val lifecycleCoordinator = coordinatorFactory.createCoordinator<RPCProcessorImpl>(dependentComponents, ::eventHandler)
 
     override fun start(bootConfig: SmartConfig) {
         log.info("RPC processor starting.")
@@ -115,7 +111,7 @@ class RPCProcessorImpl @Activate constructor(
         log.debug { "RPC processor received event $event." }
         when (event) {
             is StartEvent -> {
-                dependentComponents.registerAndStartAll(coordinator)
+                // Nothing to do
             }
             is RegistrationStatusChangeEvent -> {
                 log.info("RPC processor is ${event.status}")
@@ -125,7 +121,7 @@ class RPCProcessorImpl @Activate constructor(
                 configReadService.bootstrapConfig(event.config)
             }
             is StopEvent -> {
-                dependentComponents.stopAll()
+                // Nothing to do
             }
             else -> {
                 log.error("Unexpected event $event!")

@@ -13,6 +13,7 @@ import net.corda.lifecycle.LifecycleCoordinatorFactory
 import net.corda.lifecycle.LifecycleEvent
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationStatusChangeEvent
+import net.corda.lifecycle.Resource
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
 import net.corda.lifecycle.createCoordinator
@@ -42,27 +43,26 @@ class FlowPersistenceServiceImpl  @Activate constructor(
     @Reference(service = EntityProcessorFactory::class)
     private val flowEventProcessorFactory: EntityProcessorFactory
 ) : FlowPersistenceService {
-    private var configHandle: AutoCloseable? = null
+    private var configHandle: Resource? = null
     private var flowPersistenceProcessor: FlowPersistenceProcessor? = null
 
     companion object {
         private val logger = contextLogger()
     }
 
-    private val coordinator = coordinatorFactory.createCoordinator<FlowPersistenceService>(::eventHandler)
     private val dependentComponents = DependentComponents.of(
         ::configurationReadService,
         ::sandboxGroupContextComponent,
         ::virtualNodeInfoReadService,
         ::cpiInfoReadService,
     )
+    private val coordinator = coordinatorFactory.createCoordinator<FlowPersistenceService>(dependentComponents, ::eventHandler)
 
     private fun eventHandler(event: LifecycleEvent, coordinator: LifecycleCoordinator) {
         logger.debug { "FlowPersistenceService received: $event" }
         when (event) {
             is StartEvent -> {
                 logger.debug { "Starting flow persistence component." }
-                dependentComponents.registerAndStartAll(coordinator)
             }
             is RegistrationStatusChangeEvent -> {
                 if (event.status == LifecycleStatus.UP) {
@@ -87,7 +87,6 @@ class FlowPersistenceServiceImpl  @Activate constructor(
             is StopEvent -> {
                 flowPersistenceProcessor?.stop()
                 logger.debug { "Stopping FlowPersistenceProcessor." }
-                dependentComponents.stopAll()
             }
         }
     }

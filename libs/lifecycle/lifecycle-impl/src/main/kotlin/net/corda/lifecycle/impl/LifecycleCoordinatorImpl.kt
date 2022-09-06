@@ -1,6 +1,7 @@
 package net.corda.lifecycle.impl
 
 import net.corda.lifecycle.CustomEvent
+import net.corda.lifecycle.DependentComponents
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.lifecycle.LifecycleCoordinatorScheduler
@@ -9,6 +10,7 @@ import net.corda.lifecycle.LifecycleEventHandler
 import net.corda.lifecycle.LifecycleException
 import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationHandle
+import net.corda.lifecycle.Resource
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
 import net.corda.lifecycle.TimerEvent
@@ -36,6 +38,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * @param name The name of the component for this lifecycle coordinator.
  * @param batchSize max number of events processed in a single [processEvents] call.
+ * @param dependentComponents A set of static singleton component dependencies this coordinator will track.
+ *                            These dependencies will be stopped/started alongside this component.  Note that
+ *                            the component for this coordinator should also be a static singleton component.
  * @param registry The registry this coordinator has been registered with. Used to update status for monitoring purposes
  * @param lifecycleEventHandler The user event handler for lifecycle events.
  */
@@ -43,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class LifecycleCoordinatorImpl(
     override val name: LifecycleCoordinatorName,
     batchSize: Int,
+    dependentComponents: DependentComponents?,
     private val registry: LifecycleRegistryCoordinatorAccess,
     private val scheduler: LifecycleCoordinatorScheduler,
     lifecycleEventHandler: LifecycleEventHandler,
@@ -60,7 +66,7 @@ class LifecycleCoordinatorImpl(
     /**
      * The processor for this coordinator.
      */
-    private val processor = LifecycleProcessor(name, lifecycleState, registry, lifecycleEventHandler)
+    private val processor = LifecycleProcessor(name, lifecycleState, registry, dependentComponents, lifecycleEventHandler)
 
     /**
      * `true` if [processEvents] is executing. This is used to ensure only one attempt at processing the event queue is
@@ -209,11 +215,11 @@ class LifecycleCoordinatorImpl(
         return followStatusChanges(coordinators)
     }
 
-    override fun <T : AutoCloseable> createManagedResource(name: String, generator: () -> T) {
+    override fun <T : Resource> createManagedResource(name: String, generator: () -> T) {
         processor.addManagedResource(name, generator)
     }
 
-    override fun <T: AutoCloseable> getManagedResource(name: String) : T? {
+    override fun <T: Resource> getManagedResource(name: String) : T? {
         return uncheckedCast(processor.getManagedResource(name))
     }
 
@@ -257,10 +263,11 @@ class LifecycleCoordinatorImpl(
     }
 
     override fun close() {
-        logger.trace { "$name: Closing coordinator" }
-        stop()
-        postEvent(CloseCoordinator())
-        registry.removeCoordinator(name)
-        _isClosed.set(true)
+        if (_isClosed.compareAndSet(false, true)) {
+            logger.trace { "$name: Closing coordinator" }
+            postInternalEvent(StopEvent())
+            postInternalEvent(CloseCoordinator())
+            registry.removeCoordinator(name)
+        }
     }
 }

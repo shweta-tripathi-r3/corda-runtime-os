@@ -1,23 +1,23 @@
 package net.corda.flow.application.sessions
 
+import net.corda.flow.fiber.DeserializedWrongAMQPObjectException
 import net.corda.flow.fiber.FlowFiber
+import net.corda.flow.fiber.FlowFiberSerializationService
 import net.corda.flow.fiber.FlowFiberService
 import net.corda.flow.fiber.FlowIORequest
 import net.corda.v5.application.messaging.FlowInfo
 import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.application.messaging.UntrustworthyData
-import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.base.types.MemberX500Name
-import net.corda.v5.base.util.castIfPossible
 import net.corda.v5.base.util.contextLogger
-import java.io.NotSerializableException
 
 class FlowSessionImpl(
     override val counterparty: MemberX500Name,
     private val sourceSessionId: String,
     private val flowFiberService: FlowFiberService,
+    private val flowFiberSerializationService: FlowFiberSerializationService,
     private var initiated: Boolean
 ) : FlowSession {
 
@@ -35,9 +35,7 @@ class FlowSessionImpl(
     @Suspendable
     override fun <R : Any> sendAndReceive(receiveType: Class<R>, payload: Any): UntrustworthyData<R> {
         enforceNotPrimitive(receiveType)
-        log.info("sessionId=${sourceSessionId} is init=${initiated}")
         ensureSessionIsOpen()
-        log.info("sessionId=${sourceSessionId} is init=${initiated}")
         val request = FlowIORequest.SendAndReceive(mapOf(sourceSessionId to serialize(payload)))
         val received = fiber.suspend(request)
         return deserializeReceivedPayload(received, receiveType)
@@ -71,8 +69,21 @@ class FlowSessionImpl(
 
     @Suspendable
     private fun ensureSessionIsOpen() {
+        fun createInitiateFlowRequest(): FlowIORequest.InitiateFlow {
+            // The creation of this message is pushed out to this nested builder method in order to ensure that when the
+            // suspend method which receives it as an argument does a suspend that there is nothing on the stack to
+            // accidentally serialize
+            val flowContext = fiber.getExecutionContext().flowCheckpoint.flowContext
+            return FlowIORequest.InitiateFlow(
+                counterparty,
+                sourceSessionId,
+                contextUserProperties = flowContext.flattenUserProperties(),
+                contextPlatformProperties = flowContext.flattenPlatformProperties()
+            )
+        }
+
         if (!initiated) {
-            flowFiberService.getExecutingFiber().suspend(FlowIORequest.InitiateFlow(counterparty, sourceSessionId))
+            fiber.suspend(createInitiateFlowRequest())
             initiated = true
         }
     }
@@ -85,37 +96,23 @@ class FlowSessionImpl(
     }
 
     private fun serialize(payload: Any): ByteArray {
-        return getSerializationService().serialize(payload).bytes
+        return flowFiberSerializationService.serialize(payload).bytes
     }
 
-    private fun <R : Any> deserializeReceivedPayload(received: Map<String, ByteArray>, receiveType: Class<R>): UntrustworthyData<R> {
+    private fun <R : Any> deserializeReceivedPayload(
+        received: Map<String, ByteArray>,
+        receiveType: Class<R>
+    ): UntrustworthyData<R> {
         return received[sourceSessionId]?.let {
             try {
-                val payload = getSerializationService().deserialize(it, receiveType)
-                checkPayloadIs(payload, receiveType)
-                UntrustworthyData(payload)
-            } catch (e: NotSerializableException) {
-                log.info("Received a payload but failed to deserialize it into a ${receiveType.name}", e)
-                throw e
+                UntrustworthyData(flowFiberSerializationService.deserialize(it, receiveType))
+            } catch (e: DeserializedWrongAMQPObjectException) {
+                throw CordaRuntimeException(
+                    "Expecting to receive a ${e.expectedType} but received a ${e.deserializedType} instead, payload: " +
+                            "(${e.deserializedObject})"
+                )
             }
         } ?: throw CordaRuntimeException("The session [${sourceSessionId}] did not receive a payload when trying to receive one")
-    }
-
-    /**
-     * AMQP deserialization outputs an object whose type is solely based on the serialized content, therefore although the generic type is
-     * specified, it can still be the wrong type. We check this type here, so that we can throw an accurate error instead of failing later
-     * on when the object is used.
-     */
-    private fun <R : Any> checkPayloadIs(payload: Any, receiveType: Class<R>) {
-        receiveType.castIfPossible(payload) ?: throw CordaRuntimeException(
-            "Expecting to receive a ${receiveType.name} but received a ${payload.javaClass.name} instead, payload: ($payload)"
-        )
-    }
-
-    private fun getSerializationService(): SerializationService {
-        return fiber.getExecutionContext().run {
-            sandboxGroupContext.amqpSerializer
-        }
     }
 
     override fun equals(other: Any?): Boolean =
@@ -123,5 +120,6 @@ class FlowSessionImpl(
 
     override fun hashCode(): Int = sourceSessionId.hashCode()
 
-    override fun toString(): String = "FlowSessionImpl(counterparty=$counterparty, sourceSessionId=$sourceSessionId, initiated=$initiated)"
+    override fun toString(): String =
+        "FlowSessionImpl(counterparty=$counterparty, sourceSessionId=$sourceSessionId, initiated=$initiated)"
 }

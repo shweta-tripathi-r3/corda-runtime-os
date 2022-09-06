@@ -13,10 +13,12 @@ import net.corda.v5.base.util.uncheckedCast
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.sql.SQLIntegrityConstraintViolationException
+import java.sql.SQLTransientException
 import java.time.Instant
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.PersistenceException
+import javax.persistence.Tuple
 
 /**
  * Class for DB reads and writes.  Handles the query execution.
@@ -296,6 +298,28 @@ class DBAccess(
         }
     }
 
+    /**
+     * Returns the maximal value of record offset for each [CordaTopicPartition]
+     */
+    fun getLatestRecordOffsets(): Map<CordaTopicPartition, Long> {
+        return executeWithErrorHandling("read latest offsets") { entityManager ->
+            entityManager.createQuery(
+                """
+                 select ${TopicRecordEntry::topic.name}, ${TopicRecordEntry::partition.name}, max(${TopicRecordEntry::recordOffset.name})
+                 from topic_record
+                 group by ${TopicRecordEntry::topic.name}, ${TopicRecordEntry::partition.name}
+                """.trimIndent(),
+                Tuple::class.java)
+            .resultList
+            .associate { r ->
+                val topic = r.get(0) as String
+                val partition = (r.get(1) as Number).toInt()
+                val recordOffset = (r.get(2) as Number).toLong()
+                CordaTopicPartition(topic, partition) to recordOffset
+            }
+        }
+    }
+
     fun getEarliestRecordOffset(topicPartitions: Collection<CordaTopicPartition>): Map<CordaTopicPartition, Long> {
         return executeWithErrorHandling("read earliest offsets") { entityManager ->
             topicPartitions.associateWith {
@@ -323,6 +347,7 @@ class DBAccess(
     private fun <T> executeWithErrorHandling(
         operationName: String,
         allowDuplicate: Boolean = false,
+        alreadyTriedOnce: Boolean = false,
         operation: (emf: EntityManager) -> T,
     ): T {
         var result: T? = null
@@ -336,6 +361,12 @@ class DBAccess(
                 // Someone got here first, not a problem
                 log.info("Attempt at duplicate record is allowed in this instance.")
                 result
+            } else if (!alreadyTriedOnce && e.isTransientDbException()) {
+                // Transient exception may occur when we were stopped on a breakpoint whilst trying to obtain
+                // DB connection from a Hikari pool. If we were paused for long enough Hikari will report a condition
+                // where connection is not available.
+                log.info("Transient DB error, let's try one more time: ${e.message}")
+                executeWithErrorHandling(operationName, allowDuplicate, true, operation)
             } else {
                 log.error("Error while trying to $operationName. Transaction has been rolled back.", e)
                 throw e
@@ -346,7 +377,7 @@ class DBAccess(
     private fun <T : Exception> Exception.isCausedBy(exceptionType: Class<T>): Boolean {
         var currentCause = this.cause
         while (currentCause != null) {
-            if (currentCause::class.java.isAssignableFrom(exceptionType)) {
+            if (exceptionType.isAssignableFrom(currentCause::class.java)) {
                 return true
             }
             currentCause = currentCause.cause
@@ -356,4 +387,7 @@ class DBAccess(
 
     private fun Exception.isDuplicate() =
         isCausedBy(SQLIntegrityConstraintViolationException::class.java) || isCausedBy(PersistenceException::class.java)
+
+    private fun Exception.isTransientDbException() =
+        this is SQLTransientException || isCausedBy(SQLTransientException::class.java)
 }
