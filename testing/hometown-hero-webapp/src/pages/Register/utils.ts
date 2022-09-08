@@ -260,8 +260,9 @@ export const memberRegistration = async (
                 action: 'requestJoin',
                 context: {
                     'corda.session.key.id': sessionKey,
+                    'corda.session.key.signature.spec': 'SHA256withECDSA',
                     'corda.ledger.keys.0.id': ledgerKey,
-                    'corda.ledger.keys.0.signature.spec': 'CORDA.ECDSA.SECP256R1',
+                    'corda.ledger.keys.0.signature.spec': 'SHA256withECDSA',
                     'corda.endpoints.0.connectionURL': `https://${P2P_GATEWAYS[cluster]}:${P2P_GATEWAY_PORT}`,
                     'corda.endpoints.0.protocolVersion': '1',
                 },
