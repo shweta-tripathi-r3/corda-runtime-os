@@ -12,9 +12,9 @@ export const CLUSTERS: { [key: string]: string } = {
 };
 
 export const P2P_GATEWAYS: { [key: string]: string } = {
-    cluster0: 'corda-p2p-gateway-worker.demo-env-cluster-a',
-    cluster1: 'corda-p2p-gateway-worker.demo-env-cluster-b',
-    cluster2: 'corda-p2p-gateway-worker.demo-env-cluster-c',
+    cluster0: 'corda-p2p-gateway-worker.demo-cluster-a',
+    cluster1: 'corda-p2p-gateway-worker.demo-cluster-b',
+    cluster2: 'corda-p2p-gateway-worker.demo-cluster-c',
 };
 
 export const P2P_GATEWAY_PORT = "8080"
