@@ -16,6 +16,12 @@ pluginManagement {
             }
         } else {
             maven {
+                url "${artifactoryContextUrl}/corda-dev"
+                content {
+                    includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
+                }
+            }
+            maven {
                 url "${artifactoryContextUrl}/corda-releases"
                 content {
                     includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
@@ -46,6 +52,8 @@ pluginManagement {
         id 'org.jetbrains.kotlin.plugin.jpa' version kotlinVersion
         id 'net.corda.plugins.cordapp-cpk' version cordaGradlePluginsVersion
         id 'net.corda.plugins.cordapp-cpb' version cordaGradlePluginsVersion
+        id 'net.corda.plugins.cordapp-cpk2' version cordaGradlePluginsVersion2
+        id 'net.corda.plugins.cordapp-cpb2' version cordaGradlePluginsVersion2
         id 'io.gitlab.arturbosch.detekt' version detektPluginVersion
         id 'com.github.ben-manes.versions' version dependencyCheckVersion
         id "org.gradle.test-retry" version gradleTestRetryPluginVersion
@@ -334,6 +342,7 @@ include 'testing:db-message-bus-testkit'
 include 'testing:bundles:testing-cats'
 include 'testing:bundles:testing-dogs'
 include 'testing:cpbs:calculator'
+//include 'testing:cpbs:calculator2'
 include 'testing:cpbs:chat'
 include 'testing:cpbs:crypto-custom-digest-one-cpk'
 include 'testing:cpbs:crypto-custom-digest-one-consumer'

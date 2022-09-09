@@ -8,6 +8,7 @@ import net.corda.v5.application.flows.getRequestBodyAs
 import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
+import net.cordapp.testing.calculator2.C
 
 class CalculatorFlow : RPCStartableFlow {
 
@@ -27,7 +28,7 @@ class CalculatorFlow : RPCStartableFlow {
         var resultMessage = ""
         try {
             val inputs = requestBody.getRequestBodyAs<InputMessage>(jsonMarshallingService)
-            val result = (inputs.a ?: 0) + (inputs.b ?: 0)
+            val result = C().calculate((inputs.a ?: 0), (inputs.b ?: 0))
             log.info("Calculated result ${inputs.a} + ${inputs.b} = ${result}, formatting for response...")
             val outputFormatter = OutputFormattingFlow(result)
             resultMessage = flowEngine.subFlow(outputFormatter)
