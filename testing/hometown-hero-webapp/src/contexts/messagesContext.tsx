@@ -110,7 +110,8 @@ export const MessagesContextProvider: React.FC<{ children?: React.ReactNode }> =
                     );
                 },
                 onStatusSuccess: (flowResult) => {
-                    const messages = JSON.parse(flowResult) as Messages;
+                    const result = JSON.parse(flowResult);
+                    const messages: Messages = {messages: result.map(res => res.messages.map(m => ({sender: res.counterparty, message: m.content}))).flat() as Message[]}
                     if (messages.messages?.length > 0) {
                         setUserChatHistory((prev) => handleAppendMessagesToChatHistories(prev, messages));
                     }
