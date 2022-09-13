@@ -11,12 +11,12 @@
     Your browser does not support the HTML canvas tag.</canvas>
 
   <script>
-    var blockSize = 128;
-    var blockNumber = 8;
-    var blockTop = -1.3;
-    var blockLeft = -2;
-    var xScale = 2.6;
-    var yScale = 2.6;
+    const blockSize = 128;
+    const blockNumber = 8;
+    let blockTop = -1.3;
+    let blockLeft = -2;
+    let xScale = 2.6;
+    let yScale = 2.6;
 
     const flow_status_start_requested = "START_REQUESTED";
     const flow_status_running = "RUNNING";
@@ -36,12 +36,12 @@
     const apiAddress = "http://localhost:3000/flow/"
     const blockIndex = new Map();
 
-    var blockList = [];
-    var nextBlockIndex = 0;
-    var blockProcessingCount = 0;
-    var gfxContext = null;
-    var cellImage = null;
-    var isRunning = false;
+    let blockList = [];
+    let nextBlockIndex = 0;
+    const blockProcessingCount = 0;
+    let gfxContext = null;
+    let cellImage = null;
+    const isRunning = false;
 
     setup();
     run();
@@ -50,8 +50,8 @@
       console.log(e.pageX)
       console.log(e.pageY)
 
-      var x = blockLeft + ((xScale / (blockSize * blockNumber)) * e.pageX); 
-      var y = blockTop + (yScale / (blockSize * blockNumber)) * e.pageY;
+      const x = blockLeft + ((xScale / (blockSize * blockNumber)) * e.pageX);
+      const y = blockTop + (yScale / (blockSize * blockNumber)) * e.pageY;
       xScale = xScale / blockNumber;
       yScale = yScale / blockNumber;
 
@@ -77,7 +77,7 @@
     }
 
     function setGfxContext() {
-      var canvas = document.getElementById("myCanvas");
+      const canvas = document.getElementById("myCanvas");
 
       canvas.width = blockSize * blockNumber;
       canvas.height = blockSize * blockNumber;
@@ -90,7 +90,7 @@
     function onPoll() {
       blockList.forEach(block => {
         if (block.status == block_status_sent || block.status == block_status_processing) {
-          var flowStatus = getFlowStatus(block.id);
+          const flowStatus = getFlowStatus(block.id);
           onBlockResult(flowStatus);
         }
       });
@@ -123,18 +123,18 @@
         return flowStatus;
       }
 
-      var block = blockIndex.get(flowStatus.clientRequestId);
+      const block = blockIndex.get(flowStatus.clientRequestId);
       if (!block) {
         return;
       }
 
-      if (flowStatus.flowStatus == flow_status_start_requested) {
+      if (flowStatus.flowStatus === flow_status_start_requested) {
         block.status = block_status_sent
       }
-      if (flowStatus.flowStatus == flow_status_running) {
+      if (flowStatus.flowStatus === flow_status_running) {
         block.status = block_status_sent
       }
-      if (flowStatus.flowStatus == flow_status_completed) {
+      if (flowStatus.flowStatus === flow_status_completed) {
         block.status = block_status_complete;
         block.result = JSON.parse(flowStatus.flowResult);
         pushNextBlock();
@@ -144,17 +144,17 @@
     }
 
     function renderBlock(block) {
-      if (block.status == block_status_complete) {
+      if (block.status === block_status_complete) {
         renderImageCell(block);
         return;
       }
 
-      var colour = pending_colour;
+      let colour = pending_colour;
 
-      if (block.status == block_status_sent) {
+      if (block.status === block_status_sent) {
         colour = sent_colour;
       }
-      if (block.status == block_status_processing) {
+      if (block.status === block_status_processing) {
         colour = processing_colour;
       }
       renderCell(block, colour);
@@ -165,9 +165,9 @@
         return false;
       }
 
-      var block = blockList[nextBlockIndex++];
+      const block = blockList[nextBlockIndex++];
 
-      var flowStatus = postBlockToApi(block);
+      const flowStatus = postBlockToApi(block);
       block.status = block_status_sent;
       renderCell(block, sent_colour);
       onBlockResult(flowStatus);
@@ -191,11 +191,11 @@
     }
 
     function renderImageCell(block) {
-      var pixels = cellImage.data
-      var resultData = block.result;
-      var c = 0;
-      for (var i = 0; i < resultData.length; i++) {
-        var pi = i * 4;
+      const pixels = cellImage.data;
+      const resultData = block.result;
+      let c = 0;
+      for (let i = 0; i < resultData.length; i++) {
+        const pi = i * 4;
         pixels[pi] = resultData[i][0]; // Red
         pixels[pi + 1] = resultData[i][1]; // Green
         pixels[pi + 2] = resultData[i][2]; //Blue
@@ -210,14 +210,14 @@
     }
 
     function postBlockToApi(block) {
-      var blockRequest = block.request;
-      var startMessage = `{\"pixelWidth\":\"${blockSize}\",\"pixelHeight\":\"${blockSize}\", \"startX\":\"${blockRequest.startX}\", \"startY\":\"${blockRequest.startY}\",\"width\":\"${blockRequest.width}\",\"height\":\"${blockRequest.height}\", \"iterationMax\":\"10240\" }`
+      const blockRequest = block.request;
+      const startMessage = `{\"pixelWidth\":\"${blockSize}\",\"pixelHeight\":\"${blockSize}\", \"startX\":\"${blockRequest.startX}\", \"startY\":\"${blockRequest.startY}\",\"width\":\"${blockRequest.width}\",\"height\":\"${blockRequest.height}\", \"iterationMax\":\"10240\" }`;
       return postStartRequest(block.id, startMessage);
     }
 
     function postStartRequest(requestId, startMessage) {
-      var Http = new XMLHttpRequest();
-      var url = apiAddress + 'start/' + holdingIdentityShortHash + '/' + requestId + '/' + flowClass;
+      const Http = new XMLHttpRequest();
+      const url = apiAddress + 'start/' + holdingIdentityShortHash + '/' + requestId + '/' + flowClass;
 
       Http.open("POST", url, false);
       Http.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -232,9 +232,9 @@
 
       Http.send(JSON.stringify(body));
 
-      if (Http.readyState == 4 && Http.status == 200) {
-        var startResponse = JSON.parse(Http.responseText)
-        if (startResponse.isExistingFlow == false) {
+      if (Http.readyState === 4 && Http.status === 200) {
+        const startResponse = JSON.parse(Http.responseText);
+        if (startResponse.isExistingFlow === false) {
           return startResponse.flowStatus;
         }
       }
@@ -242,15 +242,15 @@
     }
 
     function getFlowStatus(requestId) {
-      var Http = new XMLHttpRequest();
-      var url = apiAddress + holdingIdentityShortHash + '/' + requestId;
+      const Http = new XMLHttpRequest();
+      const url = apiAddress + holdingIdentityShortHash + '/' + requestId;
 
       Http.open("GET", url, false);
       Http.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       Http.send();
 
-      if (Http.readyState == 4 && Http.status == 200) {
-        var statusUpdate = JSON.parse(Http.responseText);
+      if (Http.readyState === 4 && Http.status === 200) {
+        const statusUpdate = JSON.parse(Http.responseText);
         if (statusUpdate != null) {
           return statusUpdate;
         }
@@ -261,14 +261,14 @@
 
     function getBlocksToRender() {
 
-      var blockXSize = xScale / (blockSize * blockNumber);
-      var blockYSize = yScale / (blockSize * blockNumber);
+      const blockXSize = xScale / (blockSize * blockNumber);
+      const blockYSize = yScale / (blockSize * blockNumber);
 
-      var requestId = Date.now();
-      var idx = 0;
-      var blocks = [];
-      for (var y = 0; y < blockNumber; y++) {
-        for (var x = 0; x < blockNumber; x++) {
+      let requestId = Date.now();
+      let idx = 0;
+      const blocks = [];
+      for (let y = 0; y < blockNumber; y++) {
+        for (let x = 0; x < blockNumber; x++) {
           blocks[idx++] = {
             id: (requestId++).toString(),
             status: block_status_pending,
