@@ -1,8 +1,13 @@
 package net.corda.virtualnode.rpcops.impl.v1
 
 import java.time.Duration
+import java.time.Instant
+import java.util.UUID
 import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
+import net.corda.cpiinfo.read.CpiInfoReadService
+import net.corda.data.async.AsyncStatus
+import net.corda.data.virtualnode.VirtualNodeCpiUpgradeRequest
 import net.corda.data.virtualnode.VirtualNodeCreateRequest
 import net.corda.data.virtualnode.VirtualNodeCreateResponse
 import net.corda.data.virtualnode.VirtualNodeManagementRequest
@@ -10,10 +15,13 @@ import net.corda.data.virtualnode.VirtualNodeManagementResponse
 import net.corda.data.virtualnode.VirtualNodeManagementResponseFailure
 import net.corda.httprpc.PluggableRPCOps
 import net.corda.httprpc.exception.InvalidInputDataException
+import net.corda.httprpc.response.AsyncOperationResponse
+import net.corda.httprpc.response.ResponseEntity
 import net.corda.httprpc.security.CURRENT_RPC_CONTEXT
 import net.corda.libs.configuration.helper.getConfig
 import net.corda.libs.cpiupload.endpoints.v1.CpiIdentifier
 import net.corda.libs.virtualnode.endpoints.v1.VirtualNodeRPCOps
+import net.corda.libs.virtualnode.endpoints.v1.types.UpgradeVirtualNodeStatus
 import net.corda.libs.virtualnode.endpoints.v1.types.VirtualNodeInfo
 import net.corda.libs.virtualnode.endpoints.v1.types.VirtualNodeRequest
 import net.corda.libs.virtualnode.endpoints.v1.types.VirtualNodes
@@ -27,6 +35,11 @@ import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.RegistrationStatusChangeEvent
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
+import net.corda.messaging.api.publisher.Publisher
+import net.corda.messaging.api.publisher.config.PublisherConfig
+import net.corda.messaging.api.publisher.factory.PublisherFactory
+import net.corda.messaging.api.records.Record
+import net.corda.schema.Schemas.VirtualNode.Companion.VIRTUAL_NODE_UPGRADE_REQUEST_TOPIC
 import net.corda.schema.configuration.ConfigKeys
 import net.corda.utilities.time.ClockFactory
 import net.corda.v5.base.exceptions.CordaRuntimeException
@@ -38,6 +51,7 @@ import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import net.corda.virtualnode.rpcops.common.VirtualNodeSender
 import net.corda.virtualnode.rpcops.common.VirtualNodeSenderFactory
 import net.corda.virtualnode.rpcops.impl.v1.ExceptionTranslator.Companion.translate
+import net.corda.virtualnode.rpcops.impl.validation.VirtualNodeValidationService
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -55,7 +69,13 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
     @Reference(service = VirtualNodeSenderFactory::class)
     private val virtualNodeSenderFactory: VirtualNodeSenderFactory,
     @Reference(service = ClockFactory::class)
-    private var clockFactory: ClockFactory
+    private var clockFactory: ClockFactory,
+    @Reference(service = CpiInfoReadService::class)
+    private val cpiInfoReadService: CpiInfoReadService,
+    @Reference(service = PublisherFactory::class)
+    private val publisherFactory: PublisherFactory,
+//    @Reference(service = VirtualNodeUpgradeStatusService::class)
+//    private val virtualNodeUpgradeStatusService: VirtualNodeUpgradeStatusService,
 ) : VirtualNodeRPCOps, PluggableRPCOps<VirtualNodeRPCOps>, Lifecycle {
 
     private companion object {
@@ -65,6 +85,7 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
         private const val REGISTRATION = "REGISTRATION"
         private const val SENDER = "SENDER"
         private const val CONFIG_HANDLE = "CONFIG_HANDLE"
+        private const val VIRTUAL_NODE_UPGRADE_CLIENT_ID = "VIRTUAL_NODE_UPGRADE_CLIENT"
     }
 
     private val clock = clockFactory.createUTCClock()
@@ -72,6 +93,8 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
     // Http RPC values
     override val targetInterface: Class<VirtualNodeRPCOps> = VirtualNodeRPCOps::class.java
     override val protocolVersion = 1
+
+    private var vnodeUpgradePublisher: Publisher? = null
 
     // Lifecycle
     private val dependentComponents = DependentComponents.of(::virtualNodeInfoReadService)
@@ -98,6 +121,7 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
                     LifecycleStatus.ERROR -> {
                         coordinator.closeManagedResources(setOf(CONFIG_HANDLE))
                         coordinator.postEvent(StopEvent(errored = true))
+                        // todo - close the vnodeUpgradePublisher?
                     }
                     LifecycleStatus.UP -> {
                         // Receive updates to the RPC and Messaging config
@@ -123,6 +147,11 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
                     coordinator.createManagedResource(SENDER) {
                         virtualNodeSenderFactory.createSender(duration, messagingConfig)
                     }
+                    vnodeUpgradePublisher?.close()
+                    vnodeUpgradePublisher = publisherFactory.createPublisher(
+                        PublisherConfig(VIRTUAL_NODE_UPGRADE_CLIENT_ID),
+                        messagingConfig
+                    )
                     coordinator.updateStatus(LifecycleStatus.UP)
                 }
             }
@@ -164,6 +193,53 @@ internal class VirtualNodeRPCOpsImpl @Activate constructor(
             "${this.javaClass.simpleName} is not running! Its status is: ${lifecycleCoordinator.status}"
         )
         return VirtualNodes(virtualNodeInfoReadService.getAll().map { it.toEndpointType() })
+    }
+
+    private val virtualNodeValidationService = VirtualNodeValidationService(
+        virtualNodeInfoReadService,
+        cpiInfoReadService
+    )
+
+    override fun upgradeVirtualNodeCpi(virtualNodeShortId: String, cpiFileChecksum: String): AsyncOperationResponse {
+        val existingVirtualNode = virtualNodeValidationService.validateVirtualNodeExists(virtualNodeShortId)
+        val upgradeCpi = virtualNodeValidationService.validateAndGetUpgradeCpi(cpiFileChecksum)
+        val currentCpi = checkNotNull(cpiInfoReadService.get(existingVirtualNode.cpiIdentifier)) {
+            "Expected virtual node to be associated with CPI ${upgradeCpi.cpiId}, but it was not found in CPI cache."
+        }
+        virtualNodeValidationService.validateCpiUpgradePrerequisites(currentCpi, upgradeCpi)
+
+        val requestId = sendAsynchronousRequest(Instant.now(), virtualNodeShortId, cpiFileChecksum, CURRENT_RPC_CONTEXT.get().principal)
+
+        return AsyncOperationResponse(requestId)
+    }
+
+    private fun sendAsynchronousRequest(
+        requestTime: Instant,
+        virtualNodeShortId: String,
+        cpiFileChecksum: String,
+        actor: String
+    ): String {
+        val requestId = UUID.randomUUID().toString()
+        val request = VirtualNodeCpiUpgradeRequest(
+            requestId,
+            virtualNodeShortId,
+            cpiFileChecksum,
+            actor,
+            "QUEUED",
+            AsyncStatus.IN_PROGRESS,
+            requestTime,
+            null,
+            null
+        )
+        vnodeUpgradePublisher!!.publish(listOf(Record(VIRTUAL_NODE_UPGRADE_REQUEST_TOPIC, requestId, request)))
+            .first()
+            .get()
+
+        return requestId
+    }
+
+    override fun virtualNodeStatus(requestId: String): ResponseEntity<UpgradeVirtualNodeStatus> {
+        TODO("Not yet implemented")
     }
 
     /**
