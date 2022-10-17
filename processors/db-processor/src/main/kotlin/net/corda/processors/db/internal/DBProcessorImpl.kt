@@ -70,6 +70,8 @@ class DBProcessorImpl @Activate constructor(
     private val permissionStorageWriterService: PermissionStorageWriterService,
     @Reference(service = VirtualNodeWriteService::class)
     private val virtualNodeWriteService: VirtualNodeWriteService,
+    @Reference(service = VirtualNodeUpgradeService::class)
+    private val virtualNodeUpgradeService: VirtualNodeUpgradeService,
     @Reference(service = ChunkReadService::class)
     private val chunkReadService: ChunkReadService,
     @Reference(service = CpkWriteService::class)

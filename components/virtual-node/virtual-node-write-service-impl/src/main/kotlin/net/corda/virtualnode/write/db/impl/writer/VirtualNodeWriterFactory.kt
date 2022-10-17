@@ -19,6 +19,11 @@ import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 import net.corda.schema.Schemas.VirtualNode.Companion.VIRTUAL_NODE_CREATION_REQUEST_TOPIC
 import net.corda.utilities.time.UTCClock
 import javax.persistence.EntityManager
+import net.corda.data.virtualnode.VirtualNodeCpiUpgradeRequest
+import net.corda.messaging.api.subscription.Subscription
+import net.corda.messaging.api.subscription.config.SubscriptionConfig
+import net.corda.schema.Schemas.VirtualNode.Companion.VIRTUAL_NODE_UPGRADE_REQUEST_TOPIC
+import net.corda.virtualnode.write.db.impl.writer.upgrade.VirtualNodeUpgradeProcessor
 
 /** A factory for [VirtualNodeWriter]s. */
 @Suppress("LongParameterList")
@@ -42,7 +47,20 @@ internal class VirtualNodeWriterFactory(
     fun create(messagingConfig: SmartConfig): VirtualNodeWriter {
         val vnodePublisher = createPublisher(messagingConfig)
         val subscription = createRPCSubscription(messagingConfig, vnodePublisher)
-        return VirtualNodeWriter(subscription, vnodePublisher)
+        val virtualNodeUpgradeSubscriber = createVnodeUpgradeSubsciption(messagingConfig, vnodePublisher)
+        return VirtualNodeWriter(subscription, vnodePublisher, virtualNodeUpgradeSubscriber)
+    }
+
+    private fun createVnodeUpgradeSubsciption(
+        messagingConfig: SmartConfig,
+        publisher: Publisher
+    ): Subscription<String, VirtualNodeCpiUpgradeRequest> {
+        subscriptionFactory.createDurableSubscription(
+            SubscriptionConfig(VIRTUAL_NODE_UPGRADE_REQUEST_GROUP_NAME, VIRTUAL_NODE_UPGRADE_REQUEST_TOPIC),
+            VirtualNodeUpgradeProcessor(publisher),
+            messagingConfig,
+            null
+        )
     }
 
     /**

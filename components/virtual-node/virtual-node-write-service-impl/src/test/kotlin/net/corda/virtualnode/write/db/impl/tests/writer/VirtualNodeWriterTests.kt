@@ -16,7 +16,7 @@ class VirtualNodeWriterTests {
     fun `the config writer's subscription and publisher are initially in an unstarted state`() {
         val subscription = mock<RPCSubscription<VirtualNodeManagementRequest, VirtualNodeManagementResponse>>()
         val publisher = mock<Publisher>()
-        VirtualNodeWriter(subscription, publisher)
+        VirtualNodeWriter(subscription, publisher, virtualNodeUpgradeSubscriber)
 
         verify(subscription, times(0)).start()
         verify(publisher, times(0)).start()
@@ -26,7 +26,7 @@ class VirtualNodeWriterTests {
     fun `starting the config writer starts the subscription and publisher`() {
         val subscription = mock<RPCSubscription<VirtualNodeManagementRequest, VirtualNodeManagementResponse>>()
         val publisher = mock<Publisher>()
-        val configWriter = VirtualNodeWriter(subscription, publisher)
+        val configWriter = VirtualNodeWriter(subscription, publisher, virtualNodeUpgradeSubscriber)
         configWriter.start()
 
         verify(subscription).start()
@@ -37,7 +37,7 @@ class VirtualNodeWriterTests {
     fun `stopping the virtual node writer stops the subscription and publisher`() {
         val subscription = mock<RPCSubscription<VirtualNodeManagementRequest, VirtualNodeManagementResponse>>()
         val publisher = mock<Publisher>()
-        val configWriter = VirtualNodeWriter(subscription, publisher)
+        val configWriter = VirtualNodeWriter(subscription, publisher, virtualNodeUpgradeSubscriber)
         configWriter.start()
         configWriter.close()
 
@@ -48,7 +48,7 @@ class VirtualNodeWriterTests {
     fun `closing the virtual node writer closes the subscription and the publisher`() {
         val subscription = mock<RPCSubscription<VirtualNodeManagementRequest, VirtualNodeManagementResponse>>()
         val publisher = mock<Publisher>()
-        val configWriter = VirtualNodeWriter(subscription, publisher)
+        val configWriter = VirtualNodeWriter(subscription, publisher, virtualNodeUpgradeSubscriber)
         configWriter.start()
         configWriter.close()
 
