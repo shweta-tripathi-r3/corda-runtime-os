@@ -151,6 +151,10 @@ class AMQPwithOSGiSerializationTests {
 
             val mainBundleItemClass = sandboxGroup.loadClassFromMainBundles("net.cordapp.bundle.MainBundleItem")
             val mainBundleItemInstance = mainBundleItemClass.getMethod("newInstance").invoke(null)
+            val serializerClass =
+                sandboxGroup.loadClassFromMainBundles("net.cordapp.bundle.PrivateBundleItemSerializer")
+            val serializer = serializerClass.getConstructor().newInstance() as SerializationCustomSerializer<*, *>
+            factory.registerExternal(serializer, factory)
 
             assertThrows<SandboxException>(
                 "Attempted to create evolvable class tag for cpk private bundle com.example.serialization.serialization-cpk-library."
