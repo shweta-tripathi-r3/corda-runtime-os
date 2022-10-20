@@ -2,6 +2,7 @@ package net.corda.simulator.runtime.flows
 
 import net.corda.simulator.SimulatorConfiguration
 import net.corda.simulator.exceptions.NoProtocolAnnotationException
+import net.corda.simulator.runtime.ledger.SimConsensualLedgerService
 import net.corda.simulator.runtime.messaging.ConcurrentFlowMessaging
 import net.corda.simulator.runtime.messaging.FlowContext
 import net.corda.simulator.runtime.messaging.SimFiber
@@ -22,6 +23,7 @@ import net.corda.v5.application.messaging.FlowMessaging
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
+import net.corda.v5.ledger.consensual.ConsensualLedgerService
 
 /**
  * Injector for default services for Simulator.
@@ -64,6 +66,14 @@ class DefaultServicesInjector(private val configuration: SimulatorConfiguration)
         }
         flow.injectIfRequired(DigitalSignatureVerificationService::class.java) { createVerificationService() }
         flow.injectIfRequired(PersistenceService::class.java) { getOrCreatePersistenceService(member, fiber) }
+        flow.injectIfRequired(ConsensualLedgerService::class.java) {
+            createConsensualLedgerService(getOrCreateSigningService(SimpleJsonMarshallingService(), keyStore))
+        }
+    }
+
+    private fun createConsensualLedgerService(signingService: SigningService): ConsensualLedgerService {
+        log.info("Injecting ${ConsensualLedgerService::class.java.simpleName}")
+        return SimConsensualLedgerService(signingService)
     }
 
     private fun createVerificationService(): DigitalSignatureVerificationService {

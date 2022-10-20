@@ -14,9 +14,13 @@ import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowMessaging
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.ledger.consensual.ConsensualLedgerService
 
 @InitiatingFlow("hello")
 class HelloFlow : RPCStartableFlow {
+
+    @CordaInject
+    lateinit var consensualLedgerService: ConsensualLedgerService
 
     @CordaInject
     lateinit var flowEngine: FlowEngine
