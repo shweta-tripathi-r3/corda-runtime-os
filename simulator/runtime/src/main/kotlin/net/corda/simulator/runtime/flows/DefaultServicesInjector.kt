@@ -67,13 +67,19 @@ class DefaultServicesInjector(private val configuration: SimulatorConfiguration)
         flow.injectIfRequired(DigitalSignatureVerificationService::class.java) { createVerificationService() }
         flow.injectIfRequired(PersistenceService::class.java) { getOrCreatePersistenceService(member, fiber) }
         flow.injectIfRequired(ConsensualLedgerService::class.java) {
-            createConsensualLedgerService(getOrCreateSigningService(SimpleJsonMarshallingService(), keyStore))
+            createConsensualLedgerService(
+                getOrCreateSigningService(SimpleJsonMarshallingService(), keyStore),
+                getOrCreateMemberLookup(member, fiber)
+            )
         }
     }
 
-    private fun createConsensualLedgerService(signingService: SigningService): ConsensualLedgerService {
+    private fun createConsensualLedgerService(
+        signingService: SigningService,
+        memberLookup: MemberLookup
+    ): ConsensualLedgerService {
         log.info("Injecting ${ConsensualLedgerService::class.java.simpleName}")
-        return SimConsensualLedgerService(signingService)
+        return SimConsensualLedgerService(signingService, memberLookup)
     }
 
     private fun createVerificationService(): DigitalSignatureVerificationService {

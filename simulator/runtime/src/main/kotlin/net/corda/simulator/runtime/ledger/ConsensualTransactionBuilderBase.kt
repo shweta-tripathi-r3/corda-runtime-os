@@ -1,7 +1,8 @@
 package net.corda.simulator.runtime.ledger
 
+import net.corda.simulator.exceptions.NoKeyGeneratedException
 import net.corda.v5.application.crypto.SigningService
-import net.corda.v5.base.util.contextLogger
+import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.ledger.consensual.ConsensualState
 import net.corda.v5.ledger.consensual.transaction.ConsensualSignedTransaction
 import net.corda.v5.ledger.consensual.transaction.ConsensualTransactionBuilder
@@ -10,15 +11,13 @@ import java.time.Instant
 
 class ConsensualTransactionBuilderBase(
     override val states: List<ConsensualState>,
-    val signingService: SigningService
+    private val signingService: SigningService,
+    private val memberLookup: MemberLookup
 ) : ConsensualTransactionBuilder {
 
-    private companion object {
-        val log = contextLogger()
-    }
-
     override fun sign(): ConsensualSignedTransaction {
-        TODO("Not yet implemented")
+        return sign(memberLookup.myInfo().ledgerKeys.firstOrNull()
+            ?: throw NoKeyGeneratedException(memberLookup.myInfo().name))
     }
 
     override fun sign(vararg signatories: PublicKey): ConsensualSignedTransaction {
@@ -38,6 +37,6 @@ class ConsensualTransactionBuilderBase(
     }
 
     override fun withStates(vararg states: ConsensualState): ConsensualTransactionBuilder {
-        return ConsensualTransactionBuilderBase(this.states.plus(states), signingService)
+        return ConsensualTransactionBuilderBase(this.states.plus(states), signingService, memberLookup )
     }
 }

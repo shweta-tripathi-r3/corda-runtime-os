@@ -51,7 +51,7 @@ class DoorCodeChangeFlow : RPCStartableFlow {
         val txBuilder = consensualLedgerService.getTransactionBuilder()
         val signedTransaction = txBuilder
             .withStates(doorCodeState)
-            .sign(memberLookup.myInfo().ledgerKeys.first())
+            .sign()
 
         val result = consensualLedgerService.finality(signedTransaction, initiateSessions(participants))
 

@@ -13,6 +13,7 @@ import net.corda.simulator.runtime.signing.pemDecode
 import net.corda.simulator.runtime.signing.pemEncode
 import java.security.PublicKey
 
+@Suppress("ForbiddenComment")
 /*
  * TODO: Remove this whole module once SerializationService replaces Json service
  *  in ConsensualStateLedgerService and friends.
