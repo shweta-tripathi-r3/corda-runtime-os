@@ -1,12 +1,10 @@
 package net.corda.simulator.runtime.ledger
 
-import net.corda.simulator.crypto.HsmCategory
-import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.simulator.runtime.testutils.generateKeys
 import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.application.crypto.DigitalSignatureMetadata
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.crypto.DigitalSignature
-import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.common.transaction.TransactionVerificationException
 import net.corda.v5.ledger.consensual.ConsensualState
 import net.corda.v5.ledger.consensual.transaction.ConsensualLedgerTransaction
@@ -26,15 +24,8 @@ import java.time.Instant.now
 
 class ConsensualSignedTransactionBaseTest {
 
-    private val keyStore = BaseSimKeyStore()
-    private val publicKeys = listOf(
-        keyStore.generateKey("key1", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key2", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key3", HsmCategory.LEDGER, "any-scheme")
-    )
-
+    private val publicKeys = generateKeys(3)
     private val digest = MessageDigest.getInstance("SHA-256")
-    private val id = SecureHash(digest.algorithm, digest.digest("random id".toByteArray()))
 
     @Test
     fun `should verify if no signatures are missing`() {

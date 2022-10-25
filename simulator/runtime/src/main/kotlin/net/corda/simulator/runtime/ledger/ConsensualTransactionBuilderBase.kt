@@ -16,8 +16,7 @@ class ConsensualTransactionBuilderBase(
 ) : ConsensualTransactionBuilder {
 
     override fun sign(): ConsensualSignedTransaction {
-        return sign(memberLookup.myInfo().ledgerKeys.firstOrNull()
-            ?: throw NoKeyGeneratedException(memberLookup.myInfo().name))
+        TODO("Not implemented in Corda yet - see CORE-7276")
     }
 
     override fun sign(vararg signatories: PublicKey): ConsensualSignedTransaction {

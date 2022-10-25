@@ -1,7 +1,6 @@
 package net.corda.simulator.runtime.ledger
 
-import net.corda.simulator.crypto.HsmCategory
-import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.simulator.runtime.testutils.generateKeys
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.crypto.DigitalSignature
@@ -20,16 +19,9 @@ import java.security.PublicKey
 
 class SimConsensualLedgerServiceTest {
 
-
-    private val keyStore = BaseSimKeyStore()
-    private val publicKeys = listOf(
-        keyStore.generateKey("key1", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key2", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key3", HsmCategory.LEDGER, "any-scheme")
-    )
-
     @Test
     fun `should be able to build a consensual transaction and sign with a key`() {
+        val publicKeys = generateKeys(3)
 
         // Given a key has been generated on the node, so the SigningService can sign with it
         val signingService = mock<SigningService>()
@@ -55,6 +47,7 @@ class SimConsensualLedgerServiceTest {
 
     @Test
     fun `should use the key from member lookup when no key provided`() {
+        val publicKeys = generateKeys(3)
 
         // Given a key has been generated on the node
         // And we can look it up through the member lookup

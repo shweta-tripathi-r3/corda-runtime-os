@@ -1,5 +1,6 @@
 package net.cordacon.example.doorcode
 
+import net.corda.v5.application.crypto.DigitalSignatureAndMetadata
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatedBy
 import net.corda.v5.application.flows.InitiatingFlow
@@ -51,14 +52,19 @@ class DoorCodeChangeFlow : RPCStartableFlow {
         val txBuilder = consensualLedgerService.getTransactionBuilder()
         val signedTransaction = txBuilder
             .withStates(doorCodeState)
-            .sign()
+            .sign(memberLookup.myInfo().ledgerKeys.first())
 
         val result = consensualLedgerService.finality(signedTransaction, initiateSessions(participants))
-
         result.verifySignatures()
 
-        return "Door code changed to ${newDoorCode.code}"
+        val output = DoorCodeChangeResult(newDoorCode, result.signatures.map { getMemberFromSignature(it) }.toSet())
+
+        return jsonMarshallingService.format(output)
     }
+
+    @Suspendable
+    private fun getMemberFromSignature(signature: DigitalSignatureAndMetadata) =
+        memberLookup.lookup(signature.by)?.name ?: error("Member for consensual signature not found")
 
     @Suspendable
     private fun initiateSessions(participants: List<MemberX500Name>) =
@@ -72,7 +78,7 @@ class DoorCodeChangeFlow : RPCStartableFlow {
 }
 
 @InitiatedBy("door-code")
-class ConsensualResponderFlow : ResponderFlow {
+class DoorCodeChangeResponderFlow : ResponderFlow {
 
     private companion object {
         val log = contextLogger()
@@ -97,6 +103,8 @@ class ConsensualResponderFlow : ResponderFlow {
 
 data class DoorCode(val code: String)
 data class DoorCodeChangeRequest(val newDoorCode: DoorCode, val participants: List<MemberX500Name>)
+
+data class DoorCodeChangeResult(val newDoorCode: DoorCode, val signedBy: Set<MemberX500Name>)
 
 
 class DoorCodeConsensualState(val code: DoorCode, override val participants: List<PublicKey>) : ConsensualState {

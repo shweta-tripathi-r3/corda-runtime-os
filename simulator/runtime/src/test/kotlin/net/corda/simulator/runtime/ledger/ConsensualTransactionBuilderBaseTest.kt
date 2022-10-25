@@ -1,8 +1,7 @@
 package net.corda.simulator.runtime.ledger
 
-import net.corda.simulator.crypto.HsmCategory
 import net.corda.simulator.exceptions.NoKeyGeneratedException
-import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.simulator.runtime.testutils.generateKeys
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.base.types.MemberX500Name
@@ -23,12 +22,7 @@ import java.security.PublicKey
 
 class ConsensualTransactionBuilderBaseTest {
 
-    private val keyStore = BaseSimKeyStore()
-    private val publicKeys = listOf(
-        keyStore.generateKey("key1", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key2", HsmCategory.LEDGER, "any-scheme"),
-        keyStore.generateKey("key3", HsmCategory.LEDGER, "any-scheme")
-    )
+    private val publicKeys = generateKeys(3)
     private val signingService = mock<SigningService>()
 
     @BeforeEach
