@@ -15,6 +15,7 @@ import javax.persistence.Id
 import javax.persistence.IdClass
 import javax.persistence.JoinColumn
 import javax.persistence.ManyToOne
+import javax.persistence.OneToOne
 import javax.persistence.Table
 import javax.persistence.Version
 
@@ -48,6 +49,11 @@ data class VirtualNodeEntity(
 
     @Column(name = "state", nullable = false)
     var virtualNodeState: String,
+
+    @OneToOne
+    @JoinColumn(name = "virtual_node_operation", referencedColumnName = "id")
+    @Column(name = "pending_operation_id")
+    var pendingOperationId: String? = null,
 
     @Column(name = "insert_ts", insertable = false, updatable = true)
     var insertTimestamp: Instant? = null,
@@ -84,6 +90,11 @@ data class VirtualNodeEntity(
     fun update(newState: String) {
         virtualNodeState = newState
     }
+}
+
+enum class PendingOperation {
+    CPI_UPGRADE_RUN_MIGRATIONS,
+    CPI_UPGRADE_MEMBERSHIP_RE_REGISTRATION
 }
 
 /** The composite primary key for a virtual node instance. */

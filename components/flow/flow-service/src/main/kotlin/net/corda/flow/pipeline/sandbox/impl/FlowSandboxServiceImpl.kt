@@ -25,10 +25,12 @@ import net.corda.serialization.InternalCustomSerializer
 import net.corda.serialization.checkpoint.CheckpointInternalCustomSerializer
 import net.corda.serialization.checkpoint.factory.CheckpointSerializerBuilderFactory
 import net.corda.v5.application.marshalling.JsonMarshallingService
+import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.base.util.loggerFor
 import net.corda.v5.serialization.SerializationCustomSerializer
 import net.corda.v5.serialization.SingletonSerializeAsToken
 import net.corda.virtualnode.HoldingIdentity
+import net.corda.virtualnode.VirtualNodeState
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import org.osgi.framework.Constants.SCOPE_PROTOTYPE
 import org.osgi.framework.Constants.SERVICE_SCOPE
@@ -93,6 +95,15 @@ class FlowSandboxServiceImpl @Activate constructor(
         get() = componentContext.fetchServices<CheckpointInternalCustomSerializer<out Any>>(
             CHECKPOINT_INTERNAL_CUSTOM_SERIALIZERS
         )
+
+    override fun validateVNodeNotInMaintenance(holdingIdentity: HoldingIdentity) {
+        val vNodeInfo = virtualNodeInfoReadService.get(holdingIdentity)
+        checkNotNull(vNodeInfo) { "Failed to find the virtual node info for holder '${holdingIdentity}'" }
+
+        if(vNodeInfo.state == VirtualNodeState.IN_MAINTENANCE) {
+            throw CordaRuntimeException("Virtual node is in maintenance.")
+        }
+    }
 
     override fun get(holdingIdentity: HoldingIdentity): FlowSandboxGroupContext {
 

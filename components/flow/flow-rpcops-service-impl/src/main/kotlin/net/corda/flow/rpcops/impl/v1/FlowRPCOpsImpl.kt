@@ -79,6 +79,7 @@ class FlowRPCOpsImpl @Activate constructor(
         }
 
         val vNode = getVirtualNode(holdingIdentityShortHash)
+        validateVirtualNodeStatus(vNode)
         val clientRequestId = startFlow.clientRequestId
         val flowStatus = flowStatusCacheService.getStatus(clientRequestId, vNode.holdingIdentity)
 
@@ -119,6 +120,13 @@ class FlowRPCOpsImpl @Activate constructor(
         }
 
         return ResponseEntity.accepted(messageFactory.createFlowStatusResponse(status))
+    }
+
+    private fun validateVirtualNodeStatus(vNode: VirtualNodeInfo) {
+        if(vNode.virtualNodeState == "IN_MAINTENANCE") {
+            log.info("Virtual node is in maintenance. - for now skipping exception")
+//            throw FlowRPCOpsServiceException("Virtual node is in maintenance.")
+        }
     }
 
     private fun getStartableFlows(holdingIdentityShortHash: String, vNode: VirtualNodeInfo): List<String> {

@@ -3,8 +3,8 @@ plugins {
 }
 
 tasks.named("jar") {
-    baseName 'test-cordapp'
-    version '1.0.0.1-SNAPSHOT'
+    baseName 'test-cordapp-version-upgrade'
+    version '1.0.0.99-SNAPSHOT'
 }
 
 cordapp {

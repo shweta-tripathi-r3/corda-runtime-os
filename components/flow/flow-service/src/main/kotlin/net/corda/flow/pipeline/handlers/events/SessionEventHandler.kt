@@ -75,7 +75,9 @@ class SessionEventHandler @Activate constructor(
         val initiatingIdentity = sessionEvent.initiatingIdentity
         val initiatedIdentity = sessionEvent.initiatedIdentity
         val protocolStore = try {
-            flowSandboxService.get(initiatedIdentity.toCorda()).protocolStore
+            val holdingIdentity = initiatedIdentity.toCorda()
+            flowSandboxService.validateVNodeNotInMaintenance(holdingIdentity)
+            flowSandboxService.get(holdingIdentity).protocolStore
         } catch (e: Exception) {
             // We assume that all sandbox creation failures are transient. This likely isn't true, but to handle
             // it properly will need some changes to the exception handling to get the context elsewhere. Transient here
