@@ -5,6 +5,17 @@ plugins {
 
 description 'Backing store component implementation'
 
+// NOTE:
+//  The required configuration is mainly referenced from `nonOsgiIntegrationTest` task in `components:link-manager`.
+//  Bear in mind that this is work-in-progress and only "partial" configuration is added to run a new task
+//  namely "performanceTest". You currently should be able to run tests in performanceTest via the new gradle
+//  command. e.g.) ./gradlew performanceTest
+
+configurations {
+    performanceTestImplementation.extendsFrom testImplementation
+    performanceTestRuntime.extendsFrom testRuntime
+}
+
 dependencies {
     compileOnly "org.osgi:osgi.annotation"
     compileOnly 'org.osgi:org.osgi.service.component.annotations'
@@ -44,6 +55,10 @@ dependencies {
     integrationTestImplementation project(':libs:uniqueness:jpa-backing-store-datamodel')
     integrationTestImplementation project(':testing:db-testkit')
 
+    // NOTE: performanceTest implementation
+    performanceTestImplementation "org.junit.jupiter:junit-jupiter-api:$junit5Version"
+    performanceTestImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+
     integrationTestRuntimeOnly "org.hsqldb:hsqldb:$hsqldbVersion"
     integrationTestRuntimeOnly "org.postgresql:postgresql:$postgresDriverVersion"
 
@@ -51,3 +66,32 @@ dependencies {
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
 }
+
+sourceSets {
+    performanceTest {
+        java {
+            srcDirs = [ 'src/performanceTest/java' ]
+        }
+        kotlin {
+            srcDirs = [ 'src/performanceTest/kotlin' ]
+        }
+        resources {
+            srcDirs = [ 'src/performanceTest/resources' ]
+        }
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+}
+
+tasks.register('performanceTest', Test) {
+    description = 'Notary JPA backing store performance test'
+    group = 'notary' // NOTE: We might want to use group "verification".
+
+    testClassesDirs = project.sourceSets["performanceTest"].output.classesDirs
+    classpath = project.sourceSets["performanceTest"].runtimeClasspath
+}
+
