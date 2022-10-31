@@ -1,6 +1,8 @@
 package net.corda.simulator.runtime.ledger
 
-import net.corda.simulator.runtime.testutils.generateKeys
+import net.corda.simulator.crypto.HsmCategory
+import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.v5.application.crypto.DigitalSignatureVerificationService
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.crypto.DigitalSignature
@@ -19,13 +21,21 @@ import java.security.PublicKey
 
 class SimConsensualLedgerServiceTest {
 
+
+    private val keyStore = BaseSimKeyStore()
+    private val publicKeys = listOf(
+        keyStore.generateKey("key1", HsmCategory.LEDGER, "any-scheme"),
+        keyStore.generateKey("key2", HsmCategory.LEDGER, "any-scheme"),
+        keyStore.generateKey("key3", HsmCategory.LEDGER, "any-scheme")
+    )
+
     @Test
     fun `should be able to build a consensual transaction and sign with a key`() {
-        val publicKeys = generateKeys(3)
 
         // Given a key has been generated on the node, so the SigningService can sign with it
         val signingService = mock<SigningService>()
-        val ledgerService = SimConsensualLedgerService(signingService, mock())
+        val verificationService = mock<DigitalSignatureVerificationService>()
+        val ledgerService = SimConsensualLedgerService(signingService, mock(), verificationService)
 
         whenever(signingService.sign(any(), eq(publicKeys[0]), eq(SignatureSpec.ECDSA_SHA256)))
             .thenReturn(DigitalSignature.WithKey(publicKeys[0], "My fake signed things".toByteArray(), mapOf()))
@@ -47,18 +57,18 @@ class SimConsensualLedgerServiceTest {
 
     @Test
     fun `should use the key from member lookup when no key provided`() {
-        val publicKeys = generateKeys(3)
 
         // Given a key has been generated on the node
         // And we can look it up through the member lookup
         val signingService = mock<SigningService>()
+        val verificationService = mock<DigitalSignatureVerificationService>()
         val memberLookup = mock<MemberLookup>()
         val memberInfo = mock<MemberInfo>()
 
         whenever(memberLookup.myInfo()).thenReturn(memberInfo)
         whenever(memberInfo.ledgerKeys).thenReturn(listOf(publicKeys[0]))
 
-        val ledgerService = SimConsensualLedgerService(signingService, memberLookup)
+        val ledgerService = SimConsensualLedgerService(signingService, memberLookup, verificationService)
         val state = NameConsensualState("CordaDev", publicKeys)
 
         whenever(signingService.sign(any(), eq(publicKeys[0]), eq(SignatureSpec.ECDSA_SHA256)))

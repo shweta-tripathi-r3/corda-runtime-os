@@ -18,15 +18,18 @@ class DoorCodeTest {
         val alice = HoldingIdentity.create("Alice")
         val bob = HoldingIdentity.create("Bob")
 
-        val aliceNode = simulator.createVirtualNode(alice, DoorCodeChangeFlow::class.java)
-        simulator.createVirtualNode(bob, DoorCodeChangeResponderFlow::class.java)
+        val aliceNode = simulator.createVirtualNode(alice, DoorCodeChangeFlow::class.java,
+            DoorCodeChangeResponderFlow::class.java)
+        val bobNode = simulator.createVirtualNode(bob, DoorCodeChangeFlow::class.java,
+            DoorCodeChangeResponderFlow::class.java)
 
         // When Alice requests a change to the door code and signs it herself
-        aliceNode.generateKey("door-code-change-key", HsmCategory.LEDGER, "any-scheme")
+        aliceNode.generateKey("alice-door-code-change-key", HsmCategory.LEDGER, "any-scheme")
+        bobNode.generateKey("bob-door-code-change-key", HsmCategory.LEDGER, "any-scheme")
         val requestData = RequestData.create(
             "r1",
             DoorCodeChangeFlow::class.java,
-            DoorCodeChangeRequest(DoorCode("1234"), listOf())
+            DoorCodeChangeRequest(DoorCode("1234"), listOf(bobNode.member))
         )
 
         // Then the door code should be changed

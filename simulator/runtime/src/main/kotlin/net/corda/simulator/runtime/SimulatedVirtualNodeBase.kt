@@ -55,6 +55,7 @@ class SimulatedVirtualNodeBase(
         )
         val key = keyStore.generateKey(alias, hsmCategory, scheme)
         fiber.registerKey(member, key)
+        fiber.registerKeyStore(member, keyStore)
         return key
     }
 }

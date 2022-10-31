@@ -8,7 +8,6 @@ import net.corda.simulator.runtime.messaging.FlowContext
 import net.corda.simulator.runtime.messaging.SimFiber
 import net.corda.simulator.runtime.signing.SimKeyStore
 import net.corda.simulator.runtime.signing.SimWithJsonSignatureVerificationService
-import net.corda.simulator.runtime.signing.SimWithJsonSigningService
 import net.corda.simulator.runtime.tools.SimpleJsonMarshallingService
 import net.corda.simulator.runtime.utils.injectIfRequired
 import net.corda.v5.application.crypto.DigitalSignatureVerificationService
@@ -62,24 +61,26 @@ class DefaultServicesInjector(private val configuration: SimulatorConfiguration)
         }
         flow.injectIfRequired(MemberLookup::class.java) { getOrCreateMemberLookup(member, fiber) }
         flow.injectIfRequired(SigningService::class.java) {
-            getOrCreateSigningService(SimpleJsonMarshallingService(), keyStore)
+            getOrCreateSigningService(member, fiber)
         }
         flow.injectIfRequired(DigitalSignatureVerificationService::class.java) { createVerificationService() }
         flow.injectIfRequired(PersistenceService::class.java) { getOrCreatePersistenceService(member, fiber) }
         flow.injectIfRequired(ConsensualLedgerService::class.java) {
             createConsensualLedgerService(
-                getOrCreateSigningService(SimpleJsonMarshallingService(), keyStore),
-                getOrCreateMemberLookup(member, fiber)
+                getOrCreateSigningService(member, fiber),
+                getOrCreateMemberLookup(member, fiber),
+                createVerificationService()
             )
         }
     }
 
     private fun createConsensualLedgerService(
         signingService: SigningService,
-        memberLookup: MemberLookup
+        memberLookup: MemberLookup,
+        verificationService: DigitalSignatureVerificationService
     ): ConsensualLedgerService {
         log.info("Injecting ${ConsensualLedgerService::class.java.simpleName}")
-        return SimConsensualLedgerService(signingService, memberLookup)
+        return SimConsensualLedgerService(signingService, memberLookup, verificationService)
     }
 
     private fun createVerificationService(): DigitalSignatureVerificationService {
@@ -87,12 +88,20 @@ class DefaultServicesInjector(private val configuration: SimulatorConfiguration)
         return SimWithJsonSignatureVerificationService()
     }
 
+//    private fun getOrCreateSigningService(
+//        jsonMarshallingService: JsonMarshallingService,
+//        keyStore: SimKeyStore
+//    ): SigningService {
+//        log.info("Injecting ${SigningService::class.java.simpleName}")
+//        return SimWithJsonSigningService(jsonMarshallingService, keyStore)
+//    }
+
     private fun getOrCreateSigningService(
-        jsonMarshallingService: JsonMarshallingService,
-        keyStore: SimKeyStore
+        member: MemberX500Name,
+        fiber: SimFiber
     ): SigningService {
         log.info("Injecting ${SigningService::class.java.simpleName}")
-        return SimWithJsonSigningService(jsonMarshallingService, keyStore)
+        return fiber.getOrCreateSigningService(member)
     }
 
     private fun getOrCreateMemberLookup(member: MemberX500Name, fiber: SimFiber): MemberLookup {

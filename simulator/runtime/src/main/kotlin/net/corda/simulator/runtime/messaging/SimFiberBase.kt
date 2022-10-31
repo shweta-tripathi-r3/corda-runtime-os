@@ -3,6 +3,11 @@ package net.corda.simulator.runtime.messaging
 import net.corda.simulator.runtime.persistence.CloseablePersistenceService
 import net.corda.simulator.runtime.persistence.DbPersistenceServiceFactory
 import net.corda.simulator.runtime.persistence.PersistenceServiceFactory
+import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.simulator.runtime.signing.SimKeyStore
+import net.corda.simulator.runtime.signing.SimWithJsonSigningService
+import net.corda.simulator.runtime.tools.SimpleJsonMarshallingService
+import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.flows.ResponderFlow
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.persistence.PersistenceService
@@ -27,6 +32,8 @@ class SimFiberBase(
     private val nodeInstances = HashMap<MemberX500Name, HashMap<String, ResponderFlow>>()
     private val persistenceServices = HashMap<MemberX500Name, CloseablePersistenceService>()
     private val memberInfos = HashMap<MemberX500Name, BaseMemberInfo>()
+    private val signingServices = HashMap<MemberX500Name, SigningService>()
+    private val keyStores = HashMap<MemberX500Name, SimKeyStore>()
 
     override val members : Map<MemberX500Name, MemberInfo>
         get() = memberInfos
@@ -98,6 +105,14 @@ class SimFiberBase(
         return persistenceServices[member]!!
     }
 
+    override fun getOrCreateSigningService(member: MemberX500Name): SigningService {
+        if (!signingServices.contains(member)) {
+            val keyStore = if(keyStores.contains(member)) keyStores[member] else BaseSimKeyStore()
+            signingServices[member] = SimWithJsonSigningService(SimpleJsonMarshallingService(), keyStore!!)
+        }
+        return signingServices[member]!!
+    }
+
     override fun createMemberLookup(member: MemberX500Name): MemberLookup {
         return memberLookUpFactory.createMemberLookup(member, this)
     }
@@ -108,6 +123,11 @@ class SimFiberBase(
         ) { "MemberInfo for \"$member\" was not created; this should never happen" }
         memberInfos[member] = memberInfo.copy(ledgerKeys = memberInfo.ledgerKeys.plus(publicKey))
     }
+
+    override fun registerKeyStore(member: MemberX500Name, keyStore: SimKeyStore) {
+        keyStores[member] = keyStore
+    }
+
 
     override fun close() {
         persistenceServices.values.forEach { it.close() }

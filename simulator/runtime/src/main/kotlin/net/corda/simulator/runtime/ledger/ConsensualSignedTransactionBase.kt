@@ -43,7 +43,7 @@ data class ConsensualSignedTransactionBase(
         return copy(signatures = this.signatures.plus(signature))
     }
 
-    override fun getMissingSigningKeys(): Set<PublicKey> {
+    override fun getMissingSignatories(): Set<PublicKey> {
         return ledgerTransaction.requiredSigningKeys.minus(signatures.map {it.by}.toSet())
     }
 
@@ -51,17 +51,17 @@ data class ConsensualSignedTransactionBase(
         object : ConsensualLedgerTransaction {
             override val id: SecureHash = this@ConsensualSignedTransactionBase.id
 
-            override val requiredSigningKeys: Set<PublicKey> = ledgerTransaction.requiredSigningKeys
+            override val requiredSignatories: Set<PublicKey> = ledgerTransaction.requiredSigningKeys
             override val states: List<ConsensualState> = ledgerTransaction.states
             override val timestamp: Instant = ledgerTransaction.timestamp
 
         }
 
     override fun verifySignatures() {
-        if (getMissingSigningKeys().isNotEmpty()) {
+        if (getMissingSignatories().isNotEmpty()) {
             throw TransactionVerificationException(
                 id,
-                "Verification failed; ${getMissingSigningKeys().size} keys missing",
+                "Verification failed; ${getMissingSignatories().size} keys missing",
                 null
             )
         }
