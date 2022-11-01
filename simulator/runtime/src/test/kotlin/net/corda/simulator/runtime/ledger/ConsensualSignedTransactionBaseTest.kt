@@ -35,7 +35,7 @@ class ConsensualSignedTransactionBaseTest {
             ledgerInfo,
             mock()
         )
-        assertTrue(tx.getMissingSigningKeys().isEmpty())
+        assertTrue(tx.getMissingSignatories().isEmpty())
         assertDoesNotThrow { tx.verifySignatures() }
     }
 
@@ -47,7 +47,7 @@ class ConsensualSignedTransactionBaseTest {
             ledgerInfo,
             mock()
         )
-        assertThat(tx.getMissingSigningKeys(), `is`(setOf(publicKeys[2])))
+        assertThat(tx.getMissingSignatories(), `is`(setOf(publicKeys[2])))
         assertThrows<TransactionVerificationException> { tx.verifySignatures() }
     }
 
@@ -65,7 +65,7 @@ class ConsensualSignedTransactionBaseTest {
         )
         val signedByTwoTx = signedByOneTx.addSignature(publicKeys[1]).first
         val signedByAllTx = signedByTwoTx.addSignature(toSignature(publicKeys[2]))
-        assertTrue(signedByAllTx.getMissingSigningKeys().isEmpty())
+        assertTrue(signedByAllTx.getMissingSignatories().isEmpty())
     }
 
     @Test
@@ -80,7 +80,7 @@ class ConsensualSignedTransactionBaseTest {
         assertThat(ledgerTransaction.id, `is`(tx.id))
         assertThat(ledgerTransaction.states, `is`(ledgerInfo.states))
         assertThat(ledgerTransaction.timestamp, `is`(ledgerInfo.timestamp))
-        assertThat(ledgerTransaction.requiredSigningKeys, `is`(publicKeys.toSet()))
+        assertThat(ledgerTransaction.requiredSignatories, `is`(publicKeys.toSet()))
     }
 
     @Test
