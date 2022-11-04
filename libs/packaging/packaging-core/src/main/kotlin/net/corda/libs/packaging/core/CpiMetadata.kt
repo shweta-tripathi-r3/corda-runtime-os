@@ -23,8 +23,8 @@ data class CpiMetadata(
         )
     }
 
-    fun contractCpksMetadata(): Collection<CpkMetadata> =
-        cpksMetadata.filter(CpkMetadata::isContractCpk)
+    fun contractCpksMetadata(): Sequence<CpkMetadata> =
+        cpksMetadata.asSequence().filter(CpkMetadata::isContractCpk)
 
     fun toAvro(): CpiMetadataAvro {
         return CpiMetadataAvro(
