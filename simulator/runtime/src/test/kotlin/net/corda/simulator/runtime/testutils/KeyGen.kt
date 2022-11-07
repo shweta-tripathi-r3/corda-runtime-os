@@ -7,7 +7,9 @@ import java.util.UUID
 
 fun generateKey() = generateKeys(1)[0]
 
-fun generateKeys(numberOfKeys: Int) = generateKeys(*(0.. numberOfKeys).map { UUID.randomUUID().toString() }.toTypedArray())
+fun generateKeys(numberOfKeys: Int) = generateKeys(
+    aliases = (1.. numberOfKeys).map { UUID.randomUUID().toString() }.toTypedArray()
+)
 
 fun generateKeys(vararg aliases: String): List<PublicKey> {
     val keyStore = BaseSimKeyStore()

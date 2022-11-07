@@ -12,6 +12,7 @@ import net.corda.v5.ledger.consensual.transaction.ConsensualLedgerTransaction
 import net.corda.v5.membership.MemberInfo
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -56,6 +57,7 @@ class SimConsensualLedgerServiceTest {
     }
 
     @Test
+    @Disabled("Waiting for this to be implemented in Corda")
     fun `should use the key from member lookup when no key provided`() {
 
         // Given a key has been generated on the node

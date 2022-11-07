@@ -1,6 +1,5 @@
 package net.corda.simulator.runtime.ledger
 
-import net.corda.simulator.exceptions.NoKeyGeneratedException
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.ledger.consensual.ConsensualState

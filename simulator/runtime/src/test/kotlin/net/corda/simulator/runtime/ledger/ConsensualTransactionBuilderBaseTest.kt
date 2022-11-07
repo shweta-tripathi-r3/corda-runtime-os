@@ -12,6 +12,7 @@ import net.corda.v5.membership.MemberInfo
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -42,6 +43,7 @@ class ConsensualTransactionBuilderBaseTest {
     }
 
     @Test
+    @Disabled("Waiting for implementation in Corda")
     fun `should look up first ledger key for a member and use that for signing if no key provided`() {
         val memberLookup = mock<MemberLookup>()
         val memberInfo = mock<MemberInfo>()
@@ -59,6 +61,7 @@ class ConsensualTransactionBuilderBaseTest {
     }
 
     @Test
+    @Disabled("Waiting for implementation in Corda")
     fun `should throw an exception on sign without key if no key has been generated for the given member`() {
         // Given a member with no keys
         val memberLookup = mock<MemberLookup>()

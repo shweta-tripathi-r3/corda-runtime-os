@@ -3,7 +3,6 @@ package net.corda.simulator.runtime.messaging
 import net.corda.simulator.runtime.signing.SimKeyStore
 import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.flows.ResponderFlow
-import net.corda.v5.application.marshalling.JsonMarshallingService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.base.types.MemberX500Name

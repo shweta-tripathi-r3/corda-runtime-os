@@ -8,8 +8,10 @@ import net.corda.v5.application.crypto.SigningService
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.application.messaging.receive
+import net.corda.v5.crypto.SecureHash
 import net.corda.v5.crypto.SignatureSpec
 import net.corda.v5.ledger.consensual.ConsensualLedgerService
+import net.corda.v5.ledger.consensual.transaction.ConsensualLedgerTransaction
 import net.corda.v5.ledger.consensual.transaction.ConsensualSignedTransaction
 import net.corda.v5.ledger.consensual.transaction.ConsensualSignedTransactionVerifier
 import net.corda.v5.ledger.consensual.transaction.ConsensualTransactionBuilder
@@ -41,6 +43,14 @@ class SimConsensualLedgerService(
             finalSignedTransaction = signedTransaction.addSignature(signature);
         }
         return finalSignedTransaction
+    }
+
+    override fun findLedgerTransaction(id: SecureHash): ConsensualLedgerTransaction? {
+        TODO("Not yet implemented")
+    }
+
+    override fun findSignedTransaction(id: SecureHash): ConsensualSignedTransaction? {
+        TODO("Not yet implemented")
     }
 
     override fun getTransactionBuilder(): ConsensualTransactionBuilder {

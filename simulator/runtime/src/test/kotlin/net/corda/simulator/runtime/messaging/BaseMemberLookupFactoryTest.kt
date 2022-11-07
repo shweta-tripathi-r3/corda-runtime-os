@@ -78,6 +78,6 @@ class BaseMemberLookupFactoryTest {
         val member = ml.lookup(bobsKey)
 
         // Then it should have found the member
-        assertThat(member, `is`(bob))
+        assertThat(member?.name, `is`(bob))
     }
 }
