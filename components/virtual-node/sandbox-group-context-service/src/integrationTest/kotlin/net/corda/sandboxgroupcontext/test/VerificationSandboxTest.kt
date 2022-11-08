@@ -67,7 +67,7 @@ class VerificationSandboxTest {
 
     @Test
     fun `retrieving environment allowed by default`() {
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.VERIFICATION)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         assertThat(
             virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext)
         ).isNotNull
@@ -75,30 +75,13 @@ class VerificationSandboxTest {
 
     @Test
     fun `retrieving environment fails when permission denied`() {
-        securityManagerService.denyPermissions("VERIFICATION/*", listOf(
+        securityManagerService.denyPermissions("FLOW/*", listOf(
             RuntimePermission("getenv.*", null)
         ))
 
-        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.VERIFICATION)
+        val sandboxGroupContext = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
         assertThrows<AccessControlException> {
             virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext)
-        }
-    }
-
-    @Test
-    fun `retrieving environment allowed for one sandbox type but not for another`() {
-        securityManagerService.denyPermissions("VERIFICATION/*", listOf(
-            RuntimePermission("getenv.*", null)
-        ))
-
-        val sandboxGroupContext1 = virtualNode.loadSandbox(CPB1, SandboxGroupType.FLOW)
-        assertDoesNotThrow {
-            virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext1)
-        }
-
-        val sandboxGroupContext2 = virtualNode.loadSandbox(CPB1, SandboxGroupType.VERIFICATION)
-        assertThrows<AccessControlException> {
-            virtualNode.runFlow<Map<String, String>>(CPK1_ENVIRONMENT_FLOW, sandboxGroupContext2)
         }
     }
 }
