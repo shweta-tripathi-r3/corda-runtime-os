@@ -8,6 +8,7 @@ import net.corda.simulator.runtime.signing.SimKeyStore
 import net.corda.simulator.runtime.signing.SimWithJsonSigningService
 import net.corda.simulator.runtime.tools.SimpleJsonMarshallingService
 import net.corda.v5.application.crypto.SigningService
+import net.corda.v5.application.flows.RPCStartableFlow
 import net.corda.v5.application.flows.ResponderFlow
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.persistence.PersistenceService
@@ -30,6 +31,7 @@ class SimFiberBase(
 
     private val nodeClasses = HashMap<MemberX500Name, HashMap<String, Class<out ResponderFlow>>>()
     private val nodeInstances = HashMap<MemberX500Name, HashMap<String, ResponderFlow>>()
+    private val nodeInitiatorInstances = HashMap<MemberX500Name, HashMap<RPCStartableFlow, String>>()
     private val persistenceServices = HashMap<MemberX500Name, CloseablePersistenceService>()
     private val memberInfos = HashMap<MemberX500Name, BaseMemberInfo>()
     private val keyStores = HashMap<MemberX500Name, SimKeyStore>()
@@ -39,6 +41,18 @@ class SimFiberBase(
 
     override fun registerInitiator(initiator: MemberX500Name) {
         registerMember(initiator)
+    }
+
+    override fun registerInitiatorInstance(initiator: MemberX500Name, protocol: String, initatingFlow: RPCStartableFlow) {
+        if(!nodeInitiatorInstances.contains(initiator)) {
+            nodeInitiatorInstances[initiator] = hashMapOf(initatingFlow to protocol)
+            registerMember(initiator)
+        }else if(nodeInitiatorInstances[initiator]!![initatingFlow] == null){
+            nodeInitiatorInstances[initiator]!![initatingFlow] = protocol
+        }else{
+            throw IllegalStateException("Member \"$initiator\" has already registered " +
+                    "flow instance for protocol \"$protocol\"")
+        }
     }
 
     private fun registerMember(member: MemberX500Name) {
@@ -95,6 +109,10 @@ class SimFiberBase(
 
     override fun lookUpResponderInstance(member: MemberX500Name, protocol: String): ResponderFlow? {
         return nodeInstances[member]?.get(protocol)
+    }
+
+    override fun lookUpInitiatorInstance(member: MemberX500Name): Map<RPCStartableFlow, String>? {
+        return nodeInitiatorInstances[member]
     }
 
     override fun getOrCreatePersistenceService(member: MemberX500Name): PersistenceService {

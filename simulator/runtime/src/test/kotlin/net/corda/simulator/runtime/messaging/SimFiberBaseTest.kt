@@ -3,6 +3,7 @@ package net.corda.simulator.runtime.messaging
 import net.corda.simulator.runtime.persistence.CloseablePersistenceService
 import net.corda.simulator.runtime.persistence.PersistenceServiceFactory
 import net.corda.simulator.runtime.testflows.PingAckResponderFlow
+import net.corda.v5.application.flows.RPCStartableFlow
 import net.corda.v5.application.flows.ResponderFlow
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.messaging.FlowSession
@@ -37,6 +38,21 @@ class SimFiberBaseTest {
 
         // Then it should successfully return it
         assertThat(result, `is`(flow))
+    }
+
+    @Test
+    fun `should look up instance initiating flows for a given member`() {
+        // Given a fiber with a concrete implementation registered for a protocol
+        val fiber = SimFiberBase()
+        val flow = mock<RPCStartableFlow>()
+        val protocol = "protocol-1"
+        fiber.registerInitiatorInstance(memberA, protocol, flow)
+
+        // When we look up an instance of a flow
+        val result = fiber.lookUpInitiatorInstance(memberA)
+
+        // Then it should successfully return it
+        assertThat(result, `is`(hashMapOf(flow to protocol)))
     }
 
     @Test

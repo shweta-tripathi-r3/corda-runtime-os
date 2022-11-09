@@ -2,6 +2,7 @@ package net.corda.simulator.runtime.messaging
 
 import net.corda.simulator.runtime.signing.SimKeyStore
 import net.corda.v5.application.crypto.SigningService
+import net.corda.v5.application.flows.RPCStartableFlow
 import net.corda.v5.application.flows.ResponderFlow
 import net.corda.v5.application.membership.MemberLookup
 import net.corda.v5.application.persistence.PersistenceService
@@ -20,6 +21,12 @@ interface SimFiber : Closeable, HasMemberInfos {
      * Registers an initiating member for [MemberLookup].
      */
     fun registerInitiator(initiator: MemberX500Name)
+
+    /**
+     * Registers an instance initiating flows for a given member and protocol
+     */
+    fun registerInitiatorInstance(initiator: MemberX500Name, protocol: String, initatingFlow: RPCStartableFlow)
+
 
     /**
      * Registers a responder class against the given member name and protocol.
@@ -47,6 +54,14 @@ interface SimFiber : Closeable, HasMemberInfos {
      * no class has been registered.
      */
     fun lookUpResponderClass(member: MemberX500Name, protocol: String): Class<out ResponderFlow>?
+
+    /**
+     * @param member The member for whom to look up the initiator instance.
+     * @param protocol The protocol for the initiator flow.
+     *
+     * @return A [Map] of previously registered instance initiating flows with protocols
+     */
+    fun lookUpInitiatorInstance(member: MemberX500Name): Map<RPCStartableFlow, String>?
 
     /**
      * @param member The member for whom to look up the responder instance.

@@ -9,6 +9,7 @@ import net.corda.simulator.runtime.flows.FlowServicesInjector
 import net.corda.simulator.runtime.messaging.SimFiber
 import net.corda.simulator.runtime.signing.BaseSimKeyStore
 import net.corda.simulator.runtime.signing.SimKeyStore
+import net.corda.v5.application.flows.RPCStartableFlow
 import net.corda.v5.application.persistence.PersistenceService
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.contextLogger
@@ -40,6 +41,16 @@ class SimulatedVirtualNodeBase(
         val flowClassName = input.flowClassName
         log.info("Calling flow $flowClassName for member \"$member\" with request: ${input.requestBody}")
         val flow = flowFactory.createInitiatingFlow(member, flowClassName)
+        injector.injectServices(flow, member, fiber, flowFactory, keyStore)
+        val result = flow.call(input.toRPCRequestData())
+        log.info("Finished flow $flowClassName for member \"$member\"")
+        return result
+    }
+
+    override fun callInstanceFlow(input: RequestData, flow: RPCStartableFlow): String {
+        val flowClassName = input.flowClassName
+        log.info("Calling flow $flowClassName for member \"$member\" with request: ${input.requestBody}")
+        //flowFactory.createInitiatingFlow(member, flowClassName)
         injector.injectServices(flow, member, fiber, flowFactory, keyStore)
         val result = flow.call(input.toRPCRequestData())
         log.info("Finished flow $flowClassName for member \"$member\"")
