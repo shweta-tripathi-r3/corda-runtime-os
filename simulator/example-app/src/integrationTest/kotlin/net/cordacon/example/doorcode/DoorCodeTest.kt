@@ -36,6 +36,6 @@ class DoorCodeTest {
         val jsonService = JsonMarshallingServiceFactory.create()
         val result = jsonService.parse(aliceNode.callFlow(requestData), DoorCodeChangeResult::class.java)
         assertThat(result.newDoorCode, `is`(DoorCode("1234")))
-//        assertThat(result.signedBy, `is`(setOf(alice.member, bob.member)))
+        assertThat(result.signedBy, `is`(setOf(alice.member, bob.member)))
     }
 }

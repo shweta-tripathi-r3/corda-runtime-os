@@ -61,10 +61,11 @@ class SimConsensualLedgerService(
         session: FlowSession,
         verifier: ConsensualSignedTransactionVerifier
     ): ConsensualSignedTransaction {
-        val signedTransaction = session.receive<ConsensualSignedTransaction>()
+        var signedTransaction = session.receive<ConsensualSignedTransaction>()
         verifier.verify(signedTransaction)
         val signature = sign(signedTransaction, memberLookup.myInfo().ledgerKeys[0])
         session.send(signature)
+        signedTransaction = signedTransaction.addSignature(signature)
         return signedTransaction
     }
 

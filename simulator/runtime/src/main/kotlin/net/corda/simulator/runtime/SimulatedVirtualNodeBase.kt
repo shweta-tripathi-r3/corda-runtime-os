@@ -28,7 +28,7 @@ class SimulatedVirtualNodeBase(
     private val fiber: SimFiber,
     private val injector: FlowServicesInjector,
     private val flowFactory: FlowFactory,
-    private val keyStore: SimKeyStore = BaseSimKeyStore()
+    private val keyStore: SimKeyStore
 ) : SimulatedVirtualNode {
 
     companion object {
@@ -55,7 +55,6 @@ class SimulatedVirtualNodeBase(
         )
         val key = keyStore.generateKey(alias, hsmCategory, scheme)
         fiber.registerKey(member, key)
-        fiber.registerKeyStore(member, keyStore)
         return key
     }
 }

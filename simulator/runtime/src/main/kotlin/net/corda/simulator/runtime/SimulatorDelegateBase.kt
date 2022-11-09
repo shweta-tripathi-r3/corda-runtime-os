@@ -11,6 +11,7 @@ import net.corda.simulator.runtime.flows.FlowServicesInjector
 import net.corda.simulator.runtime.messaging.SimFiber
 import net.corda.simulator.runtime.messaging.SimFiberBase
 import net.corda.simulator.runtime.signing.BaseSimKeyStore
+import net.corda.simulator.runtime.signing.SimKeyStore
 import net.corda.simulator.runtime.tools.CordaFlowChecker
 import net.corda.simulator.tools.FlowChecker
 import net.corda.v5.application.flows.Flow
@@ -53,7 +54,8 @@ class SimulatorDelegateBase  (
             flowChecker.check(it)
             registerWithFiber(holdingIdentity.member, it)
         }
-        return SimulatedVirtualNodeBase(holdingIdentity, fiber, injector, flowFactory)
+        val keyStore = registerKeyStoreWithFiber(holdingIdentity.member)
+        return SimulatedVirtualNodeBase(holdingIdentity, fiber, injector, flowFactory, keyStore)
     }
 
     private fun registerWithFiber(
@@ -67,6 +69,12 @@ class SimulatorDelegateBase  (
             val responderFlowClass = castInitiatedFlowToResponder(flowClass)
             fiber.registerResponderClass(member, protocolIfResponder, responderFlowClass)
         }
+    }
+
+    private fun registerKeyStoreWithFiber(member: MemberX500Name): SimKeyStore{
+        val keyStore = BaseSimKeyStore()
+        fiber.registerKeyStore(member, keyStore)
+        return keyStore
     }
 
     private fun castInitiatedFlowToResponder(flowClass: Class<out Flow>) : Class<ResponderFlow> {
@@ -86,7 +94,8 @@ class SimulatorDelegateBase  (
     ): SimulatedVirtualNode {
         log.info("Creating virtual node for \"${responder.member}\", flow instance provided for protocol $protocol")
         fiber.registerResponderInstance(responder.member, protocol, responderFlow)
-        return SimulatedVirtualNodeBase(responder, fiber, injector, flowFactory, BaseSimKeyStore())
+        val keyStore = registerKeyStoreWithFiber(responder.member)
+        return SimulatedVirtualNodeBase(responder, fiber, injector, flowFactory, keyStore)
     }
 
     override fun close() {

@@ -32,7 +32,6 @@ class SimFiberBase(
     private val nodeInstances = HashMap<MemberX500Name, HashMap<String, ResponderFlow>>()
     private val persistenceServices = HashMap<MemberX500Name, CloseablePersistenceService>()
     private val memberInfos = HashMap<MemberX500Name, BaseMemberInfo>()
-    private val signingServices = HashMap<MemberX500Name, SigningService>()
     private val keyStores = HashMap<MemberX500Name, SimKeyStore>()
 
     override val members : Map<MemberX500Name, MemberInfo>
@@ -106,11 +105,8 @@ class SimFiberBase(
     }
 
     override fun getOrCreateSigningService(member: MemberX500Name): SigningService {
-        if (!signingServices.contains(member)) {
-            val keyStore = if(keyStores.contains(member)) keyStores[member] else BaseSimKeyStore()
-            signingServices[member] = SimWithJsonSigningService(SimpleJsonMarshallingService(), keyStore!!)
-        }
-        return signingServices[member]!!
+        val keyStore = if(keyStores.contains(member)) keyStores[member] else BaseSimKeyStore()
+        return SimWithJsonSigningService(SimpleJsonMarshallingService(), keyStore!!)
     }
 
     override fun createMemberLookup(member: MemberX500Name): MemberLookup {
