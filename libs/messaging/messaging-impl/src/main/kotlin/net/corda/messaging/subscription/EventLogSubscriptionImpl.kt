@@ -186,7 +186,7 @@ internal class EventLogSubscriptionImpl<K : Any, V : Any>(
             log.warn(
                 "Failed to read and process records from topic ${config.topic}, group ${config.group}, " +
                         "producerClientId ${config.clientId}. " +
-                        "Retrying poll and process. Attempts: $attempts."
+                        "Retrying poll and process. Attempts: $attempts.", ex
             )
             consumer.resetToLastCommittedPositions(CordaOffsetResetStrategy.EARLIEST)
         } else {
@@ -228,6 +228,7 @@ internal class EventLogSubscriptionImpl<K : Any, V : Any>(
             }
             producer.sendAllOffsetsToTransaction(consumer)
             producer.commitTransaction()
+            println("I made it!")
         } catch (ex: Exception) {
             when (ex) {
                 is CordaMessageAPIFatalException,

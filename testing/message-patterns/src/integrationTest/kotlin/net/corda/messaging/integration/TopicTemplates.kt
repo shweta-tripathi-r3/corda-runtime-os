@@ -84,7 +84,7 @@ class TopicTemplates {
         val EVENT_LOG_TOPIC2_TEMPLATE = """topics = [ 
                     { 
                         topicName = "$TEST_TOPIC_PREFIX$EVENT_LOG_TOPIC2" 
-                        numPartitions = 2 
+                        numPartitions = 20 
                         replicationFactor = 3 
                     } 
                 ]"""
