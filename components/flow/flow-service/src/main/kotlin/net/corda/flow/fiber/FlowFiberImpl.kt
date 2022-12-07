@@ -3,6 +3,11 @@ package net.corda.flow.fiber
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberScheduler
 import co.paralleluniverse.fibers.FiberWriter
+import java.io.Serializable
+import java.nio.ByteBuffer
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
 import net.corda.data.flow.state.checkpoint.FlowStackItem
 import net.corda.flow.fiber.FlowFiberImpl.SerializableFiberWriter
 import net.corda.utilities.clearMDC
@@ -13,11 +18,6 @@ import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.debug
 import net.corda.v5.base.util.trace
 import org.slf4j.Logger
-import java.io.Serializable
-import java.nio.ByteBuffer
-import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Future
 
 @Suppress("TooManyFunctions")
 class FlowFiberImpl(
@@ -48,7 +48,7 @@ class FlowFiberImpl(
     @Suspendable
     override fun startFlow(flowFiberExecutionContext: FlowFiberExecutionContext): Future<FlowIORequest<*>> {
         this.flowFiberExecutionContext = flowFiberExecutionContext
-
+        log.warn("startFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
         start()
         return flowCompletion
     }
@@ -88,6 +88,8 @@ class FlowFiberImpl(
     @Suspendable
     private fun runFlow() {
         initialiseThreadContext()
+        log.warn("runFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+
         resetLoggingContext()
         suspend(FlowIORequest.InitialCheckpoint)
 
@@ -118,6 +120,8 @@ class FlowFiberImpl(
         suspensionOutcome: FlowContinuation,
         scheduler: FiberScheduler
     ): Future<FlowIORequest<*>> {
+        log.warn("startFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
+
         this.flowFiberExecutionContext = flowFiberExecutionContext
         this.suspensionOutcome = suspensionOutcome
         this.flowCompletion = CompletableFuture<FlowIORequest<*>>()
@@ -130,12 +134,16 @@ class FlowFiberImpl(
         removeCurrentSandboxGroupContext()
         parkAndSerialize(SerializableFiberWriter { _, _ ->
             resetLoggingContext()
+            log.warn("Parking... flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+
             log.trace { "Parking..." }
             val fiberState = getExecutionContext().sandboxGroupContext.checkpointSerializer.serialize(this)
             flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
         })
 
+        log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         resetLoggingContext()
+        log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         setCurrentSandboxGroupContext()
 
         @Suppress("unchecked_cast")
