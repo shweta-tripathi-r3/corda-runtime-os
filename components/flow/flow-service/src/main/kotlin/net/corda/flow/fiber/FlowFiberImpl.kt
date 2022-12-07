@@ -242,10 +242,14 @@ class FlowFiberImpl(
 
     private fun resetLoggingContext() {
         //fully clear the fiber before setting the MDC
+        log.warn("mdc before reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         clearMDC()
+        log.warn("mdc mid reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         flowFiberExecutionContext?.mdcLoggingData?.let {
             setMDC(it)
         }
+        log.warn("mdc after reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+
     }
 
     override fun attemptInterrupt() {
