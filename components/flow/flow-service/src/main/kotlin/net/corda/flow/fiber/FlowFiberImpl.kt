@@ -90,7 +90,7 @@ class FlowFiberImpl(
         initialiseThreadContext()
         log.warn("runFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
 
-        resetLoggingContext()
+        resetLoggingContext("runFlow")
         suspend(FlowIORequest.InitialCheckpoint)
 
         val outcomeOfFlow = try {
@@ -120,7 +120,7 @@ class FlowFiberImpl(
         suspensionOutcome: FlowContinuation,
         scheduler: FiberScheduler
     ): Future<FlowIORequest<*>> {
-        log.warn("startFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
+        log.warn("resume lowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
 
         this.flowFiberExecutionContext = flowFiberExecutionContext
         this.suspensionOutcome = suspensionOutcome
@@ -133,7 +133,7 @@ class FlowFiberImpl(
     override fun <SUSPENDRETURN> suspend(request: FlowIORequest<SUSPENDRETURN>): SUSPENDRETURN {
         removeCurrentSandboxGroupContext()
         parkAndSerialize(SerializableFiberWriter { _, _ ->
-            resetLoggingContext()
+            resetLoggingContext("suspend")
             log.warn("Parking... flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
 
             log.trace { "Parking..." }
@@ -142,7 +142,7 @@ class FlowFiberImpl(
         })
 
         log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
-        resetLoggingContext()
+        resetLoggingContext("afterSuspend")
         log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         setCurrentSandboxGroupContext()
 
@@ -240,15 +240,15 @@ class FlowFiberImpl(
         Thread.currentThread().contextClassLoader = flowLogic.javaClass.classLoader
     }
 
-    private fun resetLoggingContext() {
+    private fun resetLoggingContext(str: String) {
         //fully clear the fiber before setting the MDC
-        log.warn("mdc before reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+        log.warn("mdc before reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         clearMDC()
-        log.warn("mdc mid reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+        log.warn("mdc mid reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         flowFiberExecutionContext?.mdcLoggingData?.let {
             setMDC(it)
         }
-        log.warn("mdc after reset flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+        log.warn("mdc after reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
 
     }
 
