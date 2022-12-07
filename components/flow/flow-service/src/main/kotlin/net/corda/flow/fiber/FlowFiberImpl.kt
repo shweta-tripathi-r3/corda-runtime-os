@@ -125,8 +125,9 @@ class FlowFiberImpl(
         this.flowFiberExecutionContext = flowFiberExecutionContext
         this.suspensionOutcome = suspensionOutcome
         this.flowCompletion = CompletableFuture<FlowIORequest<*>>()
-        resetLoggingContext("resumeunpark")
+        resetLoggingContext("resumeunpark1")
         unparkDeserialized(this, scheduler)
+        resetLoggingContext("resumeunpark2")
         return flowCompletion
     }
 
