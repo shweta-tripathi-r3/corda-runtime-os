@@ -3,21 +3,25 @@ package net.corda.flow.fiber.factory
 import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor
 import co.paralleluniverse.fibers.FiberExecutorScheduler
 import co.paralleluniverse.fibers.FiberScheduler
+import java.util.UUID
+import java.util.concurrent.ExecutorService
 import net.corda.flow.fiber.FiberFuture
 import net.corda.flow.fiber.FlowContinuation
 import net.corda.flow.fiber.FlowFiberExecutionContext
 import net.corda.flow.fiber.FlowFiberImpl
 import net.corda.flow.fiber.FlowLogicAndArgs
 import net.corda.flow.pipeline.exceptions.FlowFatalException
+import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Deactivate
-import java.util.UUID
-import java.util.concurrent.ExecutorService
 
 @Component
 @Suppress("Unused")
 class FlowFiberFactoryImpl : FlowFiberFactory {
 
+    private companion object {
+        val logger = contextLogger()
+    }
     private val currentScheduler: FiberScheduler = FiberExecutorScheduler(
         "Same thread scheduler",
         ScheduledSingleThreadExecutor()
@@ -35,6 +39,7 @@ class FlowFiberFactoryImpl : FlowFiberFactory {
         }
         try {
             val flowFiber = FlowFiberImpl(id, logic, currentScheduler)
+            logger.warn("LORCAN - ")
             return FiberFuture(flowFiber, flowFiber.startFlow(flowFiberExecutionContext))
         } catch (e: Throwable) {
             throw FlowFatalException("Unable to execute flow fiber: ${e.message}", e)
