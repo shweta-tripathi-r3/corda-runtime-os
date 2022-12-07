@@ -70,9 +70,7 @@ class FlowMDCServiceImpl : FlowMDCService {
      * Extract out the MDC logging info from the [checkpoint].
      */
     private fun getMDCFromCheckpoint(state: Checkpoint, event: FlowEvent?, flowId: String): Map<String, String> {
-        if (state.flowState == null) { logger.error("LORCAN - flow state is null: $state")}
-
-        val flowState = state.flowState ?: return emptyMap()
+        val flowState = state.flowState ?: return getMDCFromEvent(event, flowId)
         val startContext = flowState.flowStartContext
         val vNodeShortHash = startContext.identity.toCorda().shortHash.toString()
         val mdcLogging = mutableMapOf(
