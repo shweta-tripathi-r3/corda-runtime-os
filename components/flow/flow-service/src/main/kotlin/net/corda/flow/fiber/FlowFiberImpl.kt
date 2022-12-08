@@ -10,7 +10,6 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 import net.corda.data.flow.state.checkpoint.FlowStackItem
 import net.corda.flow.fiber.FlowFiberImpl.SerializableFiberWriter
-import net.corda.utilities.clearMDC
 import net.corda.utilities.setMDC
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.exceptions.CordaRuntimeException
@@ -127,7 +126,6 @@ class FlowFiberImpl(
         this.flowCompletion = CompletableFuture<FlowIORequest<*>>()
         resetLoggingContext("resumeunpark1")
         unparkDeserialized(this, scheduler)
-        resetLoggingContext("resumeunpark2")
         return flowCompletion
     }
 
@@ -245,7 +243,7 @@ class FlowFiberImpl(
     private fun resetLoggingContext(str: String) {
         //fully clear the fiber before setting the MDC
         log.warn("mdc before reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
-        clearMDC()
+        //clearMDC()
         log.warn("mdc mid reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         flowFiberExecutionContext?.mdcLoggingData?.let {
             setMDC(it)
