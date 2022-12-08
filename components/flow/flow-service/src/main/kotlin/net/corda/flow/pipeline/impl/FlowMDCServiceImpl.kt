@@ -43,7 +43,7 @@ class FlowMDCServiceImpl : FlowMDCService {
                 val holdingIdentityShortHash = startKey.identity.toCorda().shortHash.toString()
                 mapOf(
                     MDC_VNODE_ID to holdingIdentityShortHash,
-                    MDC_CLIENT_ID to startContext.requestId,
+                    MDC_CLIENT_ID+"1" to startContext.requestId,
                     MDC_FLOW_ID to startKey.id
                 )
             }
@@ -51,7 +51,7 @@ class FlowMDCServiceImpl : FlowMDCService {
                 //no checkpoint so this is either a SessionInit or a duplicate SessionEvent for an expired session
                 val holdingIdentityShortHash = payload.initiatedIdentity.toCorda().shortHash.toString()
                 mapOf(MDC_VNODE_ID to holdingIdentityShortHash,
-                    MDC_CLIENT_ID to payload.sessionId,
+                    MDC_CLIENT_ID+"2" to payload.sessionId,
                     MDC_SESSION_EVENT_ID to payload.sessionId,
                     MDC_FLOW_ID to flowId
                 )
@@ -75,7 +75,7 @@ class FlowMDCServiceImpl : FlowMDCService {
         val vNodeShortHash = startContext.identity.toCorda().shortHash.toString()
         val mdcLogging = mutableMapOf(
             MDC_VNODE_ID to vNodeShortHash,
-            MDC_CLIENT_ID to startContext.requestId,
+            MDC_CLIENT_ID+"3" to startContext.requestId,
             MDC_FLOW_ID to flowId
         )
         setExternalEventIdIfNotComplete(flowState, mdcLogging)
