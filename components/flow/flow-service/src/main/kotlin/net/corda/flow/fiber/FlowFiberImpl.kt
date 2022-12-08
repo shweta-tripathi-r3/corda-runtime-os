@@ -22,7 +22,7 @@ import org.slf4j.Logger
 class FlowFiberImpl(
     override val flowId: UUID,
     override val flowLogic: FlowLogicAndArgs,
-    scheduler: FiberScheduler
+    scheduler: FiberScheduler,
 ) : Fiber<Unit>(flowId.toString(), scheduler), FlowFiber, Interruptable {
 
     private fun interface SerializableFiberWriter : FiberWriter, Serializable
@@ -55,6 +55,7 @@ class FlowFiberImpl(
     @Suspendable
     override fun run() {
         try {
+            resetLoggingContext("runFlow")
             setCurrentSandboxGroupContext()
             // Ensure run() does not exit via any means without completing the future, in order not to indefinitely block
             // the flow event pipeline. Note that this is executed in a Quasar concurrent executor thread and Throwables are
@@ -88,8 +89,6 @@ class FlowFiberImpl(
     private fun runFlow() {
         initialiseThreadContext()
         log.warn("runFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
-
-        resetLoggingContext("runFlow")
         suspend(FlowIORequest.InitialCheckpoint)
 
         val outcomeOfFlow = try {
@@ -117,7 +116,7 @@ class FlowFiberImpl(
     override fun resume(
         flowFiberExecutionContext: FlowFiberExecutionContext,
         suspensionOutcome: FlowContinuation,
-        scheduler: FiberScheduler
+        scheduler: FiberScheduler,
     ): Future<FlowIORequest<*>> {
         log.warn("resume lowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
 
