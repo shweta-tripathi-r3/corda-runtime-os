@@ -140,11 +140,11 @@ class FlowFiberImpl(
             log.trace { "Parking..." }
             val fiberState = getExecutionContext().sandboxGroupContext.checkpointSerializer.serialize(this)
             flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
+            resetLoggingContext("afterPark")
         })
-
-        log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+        //log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         resetLoggingContext("afterSuspend")
-        log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+     //   log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         setCurrentSandboxGroupContext()
 
         @Suppress("unchecked_cast")
@@ -245,7 +245,7 @@ class FlowFiberImpl(
         //fully clear the fiber before setting the MDC
         log.warn("mdc before reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         //clearMDC()
-        log.warn("mdc mid reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
+       // log.warn("mdc mid reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         flowFiberExecutionContext?.mdcLoggingData?.let {
             setMDC(it)
         }
