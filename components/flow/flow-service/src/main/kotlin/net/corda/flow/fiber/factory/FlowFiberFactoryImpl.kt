@@ -39,7 +39,7 @@ class FlowFiberFactoryImpl : FlowFiberFactory {
         }
         try {
             val flowFiber = FlowFiberImpl(id, logic, currentScheduler)
-            logger.warn("LORCAN - ")
+            logger.warn("LORCAN - createAndStartFlowFiber")
             return FiberFuture(flowFiber, flowFiber.startFlow(flowFiberExecutionContext))
         } catch (e: Throwable) {
             throw FlowFatalException("Unable to execute flow fiber: ${e.message}", e)
