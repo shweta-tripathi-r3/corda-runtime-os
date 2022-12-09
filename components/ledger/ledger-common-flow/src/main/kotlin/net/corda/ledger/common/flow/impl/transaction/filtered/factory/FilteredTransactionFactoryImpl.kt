@@ -92,7 +92,7 @@ class FilteredTransactionFactoryImpl @Activate constructor(
                         skipFiltering || (parameters.predicate as Predicate<Any>).test(
                             serializationService.deserialize(
                                 component,
-                                parameters.deserializedClass
+                                Any::class.java
                             )
                         )
                     }
