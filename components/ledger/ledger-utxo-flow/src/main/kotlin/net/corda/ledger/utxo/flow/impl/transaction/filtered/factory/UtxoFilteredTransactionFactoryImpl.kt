@@ -54,7 +54,7 @@ class UtxoFilteredTransactionFactoryImpl @Activate constructor(
                     filteredTransactionBuilder.commands?.let { _ ->
                         ComponentGroupFilterParameters.AuditProof(
                             UtxoComponentGroup.COMMANDS_INFO.ordinal,
-                            List::class.java
+                            String::class.java
                         ) { true } // TODO Do not include all infos?
                     },
                     filteredTransactionBuilder.commands
