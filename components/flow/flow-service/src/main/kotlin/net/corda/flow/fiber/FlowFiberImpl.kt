@@ -94,6 +94,7 @@ class FlowFiberImpl(
 
         val outcomeOfFlow = try {
             log.trace { "Flow starting." }
+            resetLoggingContext("hack")
             FlowIORequest.FlowFinished(flowLogic.invoke())
         } catch (e: FlowContinuationErrorException) {
             // This was an exception thrown during the processing of the flow pipeline due to something the user code
@@ -142,6 +143,7 @@ class FlowFiberImpl(
             flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
             resetLoggingContext("afterPark")
         })
+
         //log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         resetLoggingContext("afterSuspend")
      //   log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
