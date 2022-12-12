@@ -94,7 +94,10 @@ class FlowFiberImpl(
 
         val outcomeOfFlow = try {
             log.trace { "Flow starting." }
-            resetLoggingContext("hack")
+            resetLoggingContext("lorcan - hack")
+            log.info("lorcan - sleeping...")
+            Thread.sleep(1000)
+            log.info("lorcan - sleep over")
             FlowIORequest.FlowFinished(flowLogic.invoke())
         } catch (e: FlowContinuationErrorException) {
             // This was an exception thrown during the processing of the flow pipeline due to something the user code
@@ -107,6 +110,7 @@ class FlowFiberImpl(
             log.warn("Flow failed", t)
             FlowIORequest.FlowFailed(t)
         }
+        log.info("lorcan - flow invoke complete")
 
         when (outcomeOfFlow) {
             is FlowIORequest.FlowFinished -> finishTopLevelSubFlow(outcomeOfFlow)
