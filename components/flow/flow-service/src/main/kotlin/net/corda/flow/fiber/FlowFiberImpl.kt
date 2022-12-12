@@ -4,6 +4,7 @@ import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberScheduler
 import co.paralleluniverse.fibers.FiberWriter
 import java.io.Serializable
+import java.lang.System.currentTimeMillis
 import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -95,8 +96,9 @@ class FlowFiberImpl(
         val outcomeOfFlow = try {
             log.trace { "Flow starting." }
             resetLoggingContext("lorcan - hack")
-            log.info("lorcan - sleeping (5 millis)...")
-            Thread.sleep(1)
+            log.info("lorcan - sleeping (1 millis)...")
+            val currentTime = currentTimeMillis()
+            while (currentTimeMillis() <= currentTime+1) {             log.info("lorcan - sleeping...") }
             log.info("lorcan - sleep over")
             FlowIORequest.FlowFinished(flowLogic.invoke())
         } catch (e: FlowContinuationErrorException) {
