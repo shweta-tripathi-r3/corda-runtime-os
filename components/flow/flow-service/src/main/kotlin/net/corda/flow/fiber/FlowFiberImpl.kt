@@ -91,20 +91,15 @@ class FlowFiberImpl(
     @Suppress("Unused")
     private fun runFlow() {
         initialiseThreadContext()
-        log.warn("runFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         suspend(FlowIORequest.InitialCheckpoint)
 
         val outcomeOfFlow = try {
             log.trace { "Flow starting." }
-            resetLoggingContext("lorcan - hack")
-            log.info("lorcan - sleeping (1 millis)...")
             val currentTime = currentTimeMillis()
             var loggedSleeping = false
             while (currentTimeMillis() <= currentTime+1) {            if (!loggedSleeping) {
-                log.info("lorcan - sleeping...")
                 loggedSleeping = true
             }}
-            log.info("lorcan - sleep over")
             FlowIORequest.FlowFinished(flowLogic.invoke())
         } catch (e: FlowContinuationErrorException) {
             // This was an exception thrown during the processing of the flow pipeline due to something the user code
@@ -131,20 +126,15 @@ class FlowFiberImpl(
         suspensionOutcome: FlowContinuation,
         scheduler: FiberScheduler,
     ): Future<FlowIORequest<*>> {
-        log.warn("resume lowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
-
         this.flowFiberExecutionContext = flowFiberExecutionContext
         this.suspensionOutcome = suspensionOutcome
         this.flowCompletion = CompletableFuture<FlowIORequest<*>>()
         resetLoggingContext("resumeunpark1")
-        log.info("lorcan resumeunpark1 - sleeping (1 millis)...")
         val currentTime = currentTimeMillis()
         var loggedSleeping = false
         while (currentTimeMillis() <= currentTime+1) {            if (!loggedSleeping) {
-            log.info("lorcan  resumeunpark1- sleeping...")
             loggedSleeping = true
         }}
-        log.info("lorcan resumeunpark1 - sleep over")
         unparkDeserialized(this, scheduler)
         return flowCompletion
     }
@@ -153,18 +143,13 @@ class FlowFiberImpl(
     override fun <SUSPENDRETURN> suspend(request: FlowIORequest<SUSPENDRETURN>): SUSPENDRETURN {
         removeCurrentSandboxGroupContext()
         parkAndSerialize(SerializableFiberWriter { _, _ ->
-            resetLoggingContext("suspend")
-            log.warn("Parking... flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
-
+            resetLoggingContext("Parking...")
             log.trace { "Parking..." }
             val fiberState = getExecutionContext().sandboxGroupContext.checkpointSerializer.serialize(this)
             flowCompletion.complete(FlowIORequest.FlowSuspended(ByteBuffer.wrap(fiberState), request))
-            resetLoggingContext("afterPark")
         })
 
-        //log.warn("suspend 1 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         resetLoggingContext("afterSuspend")
-     //   log.warn("suspend 2 - resetLoggingContext - flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         setCurrentSandboxGroupContext()
 
         @Suppress("unchecked_cast")
@@ -263,14 +248,11 @@ class FlowFiberImpl(
 
     private fun resetLoggingContext(str: String) {
         //fully clear the fiber before setting the MDC
-        log.warn("mdc before reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         clearMDC()
-        log.warn("mdc mid reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
         flowFiberExecutionContext?.mdcLoggingData?.let {
             setMDC(it)
         }
-        log.warn("mdc after reset ($str) flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
-
+        log.info("$str - reset logging")
     }
 
     override fun attemptInterrupt() {

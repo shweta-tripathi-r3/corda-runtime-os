@@ -12,6 +12,7 @@ import net.corda.v5.base.util.contextLogger
 import net.corda.virtualnode.toCorda
 import org.osgi.service.component.annotations.Component
 
+@Suppress("Unused")
 @Component(service = [FlowMDCService::class])
 class FlowMDCServiceImpl : FlowMDCService {
     
@@ -42,16 +43,14 @@ class FlowMDCServiceImpl : FlowMDCService {
                 val startKey = startContext.statusKey
                 val holdingIdentityShortHash = startKey.identity.toCorda().shortHash.toString()
                 mapOf(
-                    MDC_VNODE_ID to holdingIdentityShortHash,
-                    MDC_CLIENT_ID to startContext.requestId,
+
                     MDC_FLOW_ID to flowId
                 )
             }
             is SessionEvent -> {
                 //no checkpoint so this is either a SessionInit or a duplicate SessionEvent for an expired session
                 val holdingIdentityShortHash = payload.initiatedIdentity.toCorda().shortHash.toString()
-                mapOf(MDC_VNODE_ID to holdingIdentityShortHash,
-                    MDC_SESSION_EVENT_ID to payload.sessionId,
+                mapOf(
                     MDC_FLOW_ID to flowId
                 )
             }
@@ -73,12 +72,10 @@ class FlowMDCServiceImpl : FlowMDCService {
         val startContext = flowState.flowStartContext
         val vNodeShortHash = startContext.identity.toCorda().shortHash.toString()
         val mdcLogging = mutableMapOf(
-            MDC_VNODE_ID to vNodeShortHash,
-            MDC_CLIENT_ID to startContext.requestId,
             MDC_FLOW_ID to flowId
         )
-        setExternalEventIdIfNotComplete(flowState, mdcLogging)
-        setSessionMDCFromEvent(event, mdcLogging)
+       // setExternalEventIdIfNotComplete(flowState, mdcLogging)
+      //  setSessionMDCFromEvent(event, mdcLogging)
         return mdcLogging
     }
 
