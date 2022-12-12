@@ -88,6 +88,7 @@ class FlowFiberImpl(
     }
 
     @Suspendable
+    @Suppress("Unused")
     private fun runFlow() {
         initialiseThreadContext()
         log.warn("runFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext?.mdcLoggingData}")
@@ -98,7 +99,11 @@ class FlowFiberImpl(
             resetLoggingContext("lorcan - hack")
             log.info("lorcan - sleeping (1 millis)...")
             val currentTime = currentTimeMillis()
-            while (currentTimeMillis() <= currentTime+1) {             log.info("lorcan - sleeping...") }
+            var loggedSleeping = false
+            while (currentTimeMillis() <= currentTime+1) {            if (!loggedSleeping) {
+                log.info("lorcan - sleeping...")
+                loggedSleeping = true
+            }}
             log.info("lorcan - sleep over")
             FlowIORequest.FlowFinished(flowLogic.invoke())
         } catch (e: FlowContinuationErrorException) {
@@ -132,8 +137,15 @@ class FlowFiberImpl(
         this.suspensionOutcome = suspensionOutcome
         this.flowCompletion = CompletableFuture<FlowIORequest<*>>()
         resetLoggingContext("resumeunpark1")
+        log.info("lorcan resumeunpark1 - sleeping (1 millis)...")
+        val currentTime = currentTimeMillis()
+        var loggedSleeping = false
+        while (currentTimeMillis() <= currentTime+1) {            if (!loggedSleeping) {
+            log.info("lorcan  resumeunpark1- sleeping...")
+            loggedSleeping = true
+        }}
+        log.info("lorcan resumeunpark1 - sleep over")
         unparkDeserialized(this, scheduler)
-        resetLoggingContext("resumeunpark2")
         return flowCompletion
     }
 
