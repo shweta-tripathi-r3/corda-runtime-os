@@ -48,7 +48,7 @@ class FlowFiberImpl(
     @Suspendable
     override fun startFlow(flowFiberExecutionContext: FlowFiberExecutionContext): Future<FlowIORequest<*>> {
         this.flowFiberExecutionContext = flowFiberExecutionContext
-        log.warn("startFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}", CordaRuntimeException("tmp").fillInStackTrace())
+        log.warn("startFlow flowFiberExecutionContext mdc : ${flowFiberExecutionContext.mdcLoggingData}")
         start()
         return flowCompletion
     }
