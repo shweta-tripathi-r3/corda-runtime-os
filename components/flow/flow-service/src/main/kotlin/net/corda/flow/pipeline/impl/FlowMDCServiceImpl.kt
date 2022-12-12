@@ -9,7 +9,6 @@ import net.corda.data.flow.state.checkpoint.FlowState
 import net.corda.data.flow.state.external.ExternalEventStateType
 import net.corda.flow.pipeline.FlowMDCService
 import net.corda.v5.base.util.contextLogger
-import net.corda.virtualnode.toCorda
 import org.osgi.service.component.annotations.Component
 
 @Suppress("Unused")
@@ -41,7 +40,6 @@ class FlowMDCServiceImpl : FlowMDCService {
             is StartFlow -> {
                 val startContext = payload.startContext
                 val startKey = startContext.statusKey
-                val holdingIdentityShortHash = startKey.identity.toCorda().shortHash.toString()
                 mapOf(
 
                     MDC_FLOW_ID to flowId
@@ -49,7 +47,6 @@ class FlowMDCServiceImpl : FlowMDCService {
             }
             is SessionEvent -> {
                 //no checkpoint so this is either a SessionInit or a duplicate SessionEvent for an expired session
-                val holdingIdentityShortHash = payload.initiatedIdentity.toCorda().shortHash.toString()
                 mapOf(
                     MDC_FLOW_ID to flowId
                 )
@@ -68,9 +65,7 @@ class FlowMDCServiceImpl : FlowMDCService {
      * Extract out the MDC logging info from the [checkpoint].
      */
     private fun getMDCFromCheckpoint(state: Checkpoint, event: FlowEvent?, flowId: String): Map<String, String> {
-        val flowState = state.flowState ?: return getMDCFromEvent(event, flowId)
-        val startContext = flowState.flowStartContext
-        val vNodeShortHash = startContext.identity.toCorda().shortHash.toString()
+        state.flowState ?: return getMDCFromEvent(event, flowId)
         val mdcLogging = mutableMapOf(
             MDC_FLOW_ID to flowId
         )
