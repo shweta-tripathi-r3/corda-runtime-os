@@ -38,10 +38,7 @@ class FlowMDCServiceImpl : FlowMDCService {
     private fun getMDCFromEvent(flowEvent: FlowEvent?, flowId: String): Map<String, String> {
         return when (val payload = flowEvent?.payload) {
             is StartFlow -> {
-                val startContext = payload.startContext
-                val startKey = startContext.statusKey
                 mapOf(
-
                     MDC_FLOW_ID to flowId
                 )
             }
