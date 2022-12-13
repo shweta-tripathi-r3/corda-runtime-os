@@ -1,7 +1,6 @@
 package net.corda.flow.pipeline.impl
 
 import net.corda.data.flow.event.FlowEvent
-import net.corda.data.flow.event.SessionEvent
 import net.corda.data.flow.state.checkpoint.Checkpoint
 import net.corda.flow.pipeline.FlowEventExceptionProcessor
 import net.corda.flow.pipeline.FlowMDCService
@@ -48,18 +47,6 @@ class FlowEventProcessorImpl(
     ): StateAndEventProcessor.Response<Checkpoint> {
         val flowEvent = event.value
         val mdcProperties = flowMDCService.getMDCLogging(state, flowEvent, event.key)
-        if (mdcProperties.isEmpty()) {
-            if (flowEvent != null) {
-                val payload = flowEvent.payload
-                if (payload is SessionEvent) {
-                    log.warn("LORCAN - mdc is empty. state: $state, SessionEvent: ${payload.payload::class.java}, payload: $payload")
-                } else {
-                    log.warn("LORCAN - mdc is empty. state: $state, FlowEvent: ${payload::class.java}, payload: $payload")
-                }
-            } else {
-                log.warn("LORCAN - mdc is empty. state: $state, null flow event")
-            }
-        }
         return withMDC(mdcProperties) {
             getFlowPipelineResponse(flowEvent, event, state, mdcProperties)
         }

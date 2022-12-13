@@ -9,6 +9,7 @@ import net.corda.data.flow.state.checkpoint.FlowState
 import net.corda.data.flow.state.external.ExternalEventStateType
 import net.corda.flow.pipeline.FlowMDCService
 import net.corda.v5.base.util.contextLogger
+import net.corda.virtualnode.toCorda
 import org.osgi.service.component.annotations.Component
 
 @Suppress("Unused")
