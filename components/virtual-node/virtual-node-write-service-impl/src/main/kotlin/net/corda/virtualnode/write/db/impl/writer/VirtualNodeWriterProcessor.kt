@@ -62,6 +62,7 @@ import java.util.concurrent.TimeUnit
 import javax.persistence.EntityManager
 import javax.sql.DataSource
 import kotlin.system.measureTimeMillis
+import net.corda.libs.cpi.datamodel.CpkDbChangeLog
 
 /**
  * An RPC responder processor that handles virtual node creation requests.
@@ -193,7 +194,7 @@ internal class VirtualNodeWriterProcessor(
                 return
             } else {
                 measureTimeMillis {
-                    runCpiMigrations(cpiMetadata, vaultDb)
+                    runCpiMigrations(cpiMetadata, vaultDb, holdingId.shortHash.value)
                 }.also {
                     logger.debug {"[Create ${create.x500Name}] CPI DB migrations took $it ms, elapsed " +
                             "${currentTimeMillis() - startMillis} ms"}
@@ -277,7 +278,13 @@ internal class VirtualNodeWriterProcessor(
                             systemTerminatorTag
                         )
                         // Look up all audit entries that correspond to the UUID set that we just got
-                        val migrationSet = findDbChangeLogAuditForCpi(tx, virtualNodeInfo.cpiIdentifier, appliedVersions)
+                        val migrationSet = findDbChangeLogAuditForCpi(
+                            tx,
+                            virtualNodeInfo.cpiIdentifier.name,
+                            virtualNodeInfo.cpiIdentifier.version,
+                            virtualNodeInfo.cpiIdentifier.signerSummaryHash?.toString() ?: "",
+                            appliedVersions
+                        )
                         // Attempt to rollback the acquired changes
                         rollbackVirtualNodeDb(
                             dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
@@ -287,13 +294,10 @@ internal class VirtualNodeWriterProcessor(
                     }
                     logger.info("Finished rolling back previous migrations, attempting to apply new ones")
                     // Attempt to apply the changes from the current CPI
-                    val changelogs = getChangelogs(em, cpiMetadata.id)
-                    dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!).use { dataSource ->
-                        runCpiResyncMigrations(
-                            dataSource,
-                            changelogs
-                        )
-                    }
+                    runCpiResyncMigrations(
+                        dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
+                        getChangelogs(em, cpiMetadata.id)
+                    )
                 }
                 shortHash.value
             }
@@ -312,7 +316,8 @@ internal class VirtualNodeWriterProcessor(
         changelogs: List<CpkDbChangeLogAuditEntity>,
         tagToRollbackTo: String
     ) {
-        val dbChange = VirtualNodeDbChangeLog(changelogs)
+        val changelogDtos = changelogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
+        val dbChange = VirtualNodeDbChangeLog(changelogDtos)
         val connection = dataSource.connection
         LiquibaseSchemaMigratorImpl().rollBackDb(connection, dbChange, tagToRollbackTo)
     }
@@ -509,40 +514,41 @@ internal class VirtualNodeWriterProcessor(
         }
     }
 
-    private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vaultDb: VirtualNodeDb) =
-        // we could potentially do one transaction per CPK; it seems more useful to blow up the
-        // who migration if any CPK fails though, so that they can be iterative developed and repeated
-        dbConnectionManager.getClusterEntityManagerFactory().createEntityManager().transaction {
-            val changelogs = getChangelogs(it, cpiMetadata.id)
-            changelogs.map { cl -> cl.id.cpkName }.distinct().sorted().forEach { cpkName ->
-                val cpkChangelogs = changelogs.filter { cl2 -> cl2.id.cpkName == cpkName }
-                logger.info("Doing ${cpkChangelogs.size} migrations for $cpkName")
-                val dbChange = VirtualNodeDbChangeLog(cpkChangelogs)
-                val changesetId = cpkChangelogs.first().changesetId
+    private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vaultDb: VirtualNodeDb, virtualNodeShortHash: String) {
+        dbConnectionManager.getClusterEntityManagerFactory().createEntityManager().transaction { em ->
+            // every changelog here is from a CPK associated with the given CPI.
+            val changelogsPerCpk: Map<String, List<CpkDbChangeLogEntity>> = getChangelogs(em, cpiMetadata.id)
+                .groupBy { it.id.cpkFileChecksum }
+
+            changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
+                val changesetId = changeLogs.first().changesetId.toString() // why do we get this?
+                logger.info("Preparing to run ${changeLogs.size} migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
+                val changeLogDtos = changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
+                val allChangeLogsForCpk = VirtualNodeDbChangeLog(changeLogDtos)
                 try {
-                    vaultDb.runCpiMigrations(dbChange, changesetId.toString())
+                    vaultDb.runCpiMigrations(allChangeLogsForCpk, changesetId)
                 } catch (e: Exception) {
-                    logger.error("Virtual node liquibase DB migration failure on CPK $cpkName with error $e")
-                    throw VirtualNodeWriteServiceException(
-                        "Error running virtual node DB migration for CPI liquibase migrations",
-                        e
-                    )
+                    val msg =
+                        "CPI migrations failed for virtual node '$virtualNodeShortHash`. Failure occurred running CPI migrations on " +
+                                "CPK with file checksum $cpkFileChecksum."
+                    logger.warn(msg, e)
+                    throw VirtualNodeWriteServiceException(msg, e)
                 }
-                logger.info("Completed ${cpkChangelogs.size} migrations for $cpkName")
+                logger.info("Successfully completed ${changeLogs.size} migrations for CPK with file checksum $cpkFileChecksum.")
             }
         }
+    }
 
     private fun runCpiResyncMigrations(dataSource: CloseableDataSource, changelogs: List<CpkDbChangeLogEntity>) {
-        changelogs.map { cl -> cl.id.cpkName }.distinct().sorted().forEach { cpkName ->
-            val cpkChangelogs = changelogs.filter { cl2 -> cl2.id.cpkName == cpkName }
-            val newChangeSetId = cpkChangelogs.first().changesetId
-            logger.info("Applying change logs from $cpkName at $newChangeSetId")
-            val connection = dataSource.connection
-            LiquibaseSchemaMigratorImpl().updateDb(
-                connection,
-                VirtualNodeDbChangeLog(cpkChangelogs),
-                tag = newChangeSetId.toString()
-            )
+        val changelogsPerCpk = changelogs.groupBy { it.id.cpkFileChecksum }
+
+        changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
+            val changesetId = changeLogs.first().changesetId.toString()
+            logger.info("Preparing to run ${changeLogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
+            val changeLogDtos = changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
+
+            LiquibaseSchemaMigratorImpl()
+                .updateDb(dataSource.connection, VirtualNodeDbChangeLog(changeLogDtos), changesetId)
         }
     }
 

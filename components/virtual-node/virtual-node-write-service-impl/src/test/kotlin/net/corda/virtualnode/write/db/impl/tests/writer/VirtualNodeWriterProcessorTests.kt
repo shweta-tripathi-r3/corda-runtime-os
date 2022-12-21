@@ -264,7 +264,7 @@ class VirtualNodeWriterProcessorTests {
     fun `runs empty CPI DB Migrations`() {
         val fakeId = UUID.randomUUID()
         val changeLog = mock<CpkDbChangeLogEntity> {
-            on { id } doReturn CpkDbChangeLogKey("alpha", "1", "0", "stuff.xml")
+            on { id } doReturn CpkDbChangeLogKey("alpha", "stuff.xml")
             on { changesetId } doReturn fakeId
         }
         Mockito.mockConstruction(VirtualNodeDbChangeLog::class.java).use { vndcl ->

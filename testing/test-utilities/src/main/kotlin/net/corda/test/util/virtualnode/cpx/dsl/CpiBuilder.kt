@@ -70,8 +70,7 @@ class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
         val cpk = CpiCpkBuilder(
             ::supplyCpiName,
             ::supplyCpiVersion,
-            ::supplyCpiSsh,
-            randomId
+            ::supplyCpiSsh
         )
         init(cpk)
         cpks.add(cpk)

@@ -109,8 +109,7 @@ class LiquibaseExtractorHelpers {
      * Create db entity containing the Liquibase script for the given [Cpk]
      */
     private fun createEntity(cpk: Cpk, path: String, xmlContent: String, changesetID: UUID): CpkDbChangeLogEntity {
-        val cpkId = cpk.metadata.cpkId
-        val id = CpkDbChangeLogKey(cpkId.name, cpkId.version, cpkId.signerSummaryHash.toString(), path)
-        return CpkDbChangeLogEntity(id, cpk.metadata.fileChecksum.toString(), xmlContent, changesetID)
+        val id = CpkDbChangeLogKey(cpk.metadata.fileChecksum.toString(), path)
+        return CpkDbChangeLogEntity(id, xmlContent, changesetID)
     }
 }

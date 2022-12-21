@@ -50,12 +50,12 @@ fun findDbChangeLogAuditForCpi(
     cpi: CpiIdentifier
 ): List<CpkDbChangeLogAuditEntity> = entityManager.createQuery(
     "SELECT changelog " +
-        "FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN " +
-        "${CpiCpkEntity::class.simpleName} AS cpi " +
-        "ON changelog.id.fileChecksum = cpi.metadata.id.cpkFileChecksum " +
-        "WHERE cpi.id.cpiName = :name AND " +
-        "      cpi.id.cpiVersion = :version AND " +
-        "      cpi.id.cpiSignerSummaryHash = :signerSummaryHash",
+            "FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN " +
+            "${CpiCpkEntity::class.simpleName} AS cpiCpk " +
+            "ON changelog.id.fileChecksum = cpiCpk.id.cpkFileChecksum " +
+            "WHERE cpiCpk.id.cpiName = :name AND " +
+            "      cpiCpk.id.cpiVersion = :version AND " +
+            "      cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash",
     CpkDbChangeLogAuditEntity::class.java
 )
     .setParameter("name", cpi.name)
@@ -70,23 +70,25 @@ fun findDbChangeLogAuditForCpi(
  */
 fun findDbChangeLogAuditForCpi(
     entityManager: EntityManager,
-    cpi: CpiIdentifier,
+    cpiName: String,
+    cpiVersion: String,
+    cpiSsh: String,
     changesetIds: Set<UUID>
 ): List<CpkDbChangeLogAuditEntity> = changesetIds.chunked(100) { changesetIdSlice ->
     entityManager.createQuery(
-        "SELECT changelog " +
-            "FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN " +
-            "${CpiCpkEntity::class.simpleName} AS cpi " +
-                "ON changelog.id.fileChecksum = cpi.metadata.id.cpkFileChecksum " +
-            "WHERE cpi.id.cpiName = :name AND " +
-            "      cpi.id.cpiVersion = :version AND " +
-            "      cpi.id.cpiSignerSummaryHash = :signerSummaryHash AND " +
-            "      changelog.id.changesetId IN :changesetIds",
+        "SELECT changelog" +
+                " FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN" +
+                " ${CpiCpkEntity::class.simpleName} AS cpiCpk" +
+                " ON changelog.id.fileChecksum = cpiCpk.id.cpkFileChecksum" +
+                " WHERE cpiCpk.id.cpiName = :name AND" +
+                " cpiCpk.id.cpiVersion = :version AND" +
+                " cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash AND" +
+                " changelog.id.changesetId IN :changesetIds",
         CpkDbChangeLogAuditEntity::class.java
     )
-        .setParameter("name", cpi.name)
-        .setParameter("version", cpi.version)
-        .setParameter("signerSummaryHash", cpi.signerSummaryHash?.toString() ?: "")
+        .setParameter("name", cpiName)
+        .setParameter("version", cpiVersion)
+        .setParameter("signerSummaryHash", cpiSsh)
         .setParameter("changesetIds", changesetIdSlice)
         .resultList
 }.flatten()

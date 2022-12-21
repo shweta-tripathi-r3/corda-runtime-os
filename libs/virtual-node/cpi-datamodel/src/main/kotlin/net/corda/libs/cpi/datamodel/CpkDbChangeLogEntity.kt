@@ -63,11 +63,11 @@ fun findDbChangeLogForCpi(
 ): List<CpkDbChangeLogEntity> = entityManager.createQuery(
     "SELECT changelog " +
             "FROM ${CpkDbChangeLogEntity::class.simpleName} AS changelog INNER JOIN " +
-            "${CpiCpkEntity::class.simpleName} AS cpi " +
-            "ON changelog.id.cpkFileChecksum = cpi.metadata.id.cpkFileChecksum " +
-            "WHERE cpi.id.cpiName = :name AND "+
-            "      cpi.id.cpiVersion = :version AND "+
-            "      cpi.id.cpiSignerSummaryHash = :signerSummaryHash AND "+
+            "${CpiCpkEntity::class.simpleName} AS cpiCpk " +
+            "ON changelog.id.cpkFileChecksum = cpiCpk.id.cpkFileChecksum " +
+            "WHERE cpiCpk.id.cpiName = :name AND "+
+            "      cpiCpk.id.cpiVersion = :version AND "+
+            "      cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash AND "+
             "      changelog.isDeleted = FALSE",
     // TODO - what order should we return?
     CpkDbChangeLogEntity::class.java

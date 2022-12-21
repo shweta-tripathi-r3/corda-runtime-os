@@ -1,4 +1,4 @@
-/*package net.corda.libs.cpi.datamodel.tests
+package net.corda.libs.cpi.datamodel.tests
 
 import net.corda.db.admin.impl.ClassloaderChangeLog
 import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
@@ -23,10 +23,10 @@ import org.junit.jupiter.api.TestInstance
 import java.util.UUID
 import javax.persistence.EntityManager
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
+import net.corda.test.util.virtualnode.cpx.dsl.cpi
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CpkDbChangeLogEntityTest {
-
 
     private val fakeId = UUID.randomUUID()
     private val dbConfig: EntityManagerConfiguration =
@@ -64,15 +64,16 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs`() {
-        val (cpi, cpks) = TestObject.createCpiWithCpks()
-        val cpk = cpks.first()
+        val (cpi, cpks) = TestObject.createCpiWithCpks(2)
+        val cpk1 = cpks[0]
+        val cpk2 = cpks[1]
         val changeLog1 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey("master-checksum", "master"),
+            CpkDbChangeLogKey(cpk1.id.cpkFileChecksum, "master"),
             "master-content",
             fakeId
         )
         val changeLog2 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey("other-checksum", "other"),
+            CpkDbChangeLogKey(cpk2.id.cpkFileChecksum, "other"),
             "other-content",
             fakeId
         )
@@ -85,9 +86,9 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-           val loadedDbLogEntity = find(
+            val loadedDbLogEntity = find(
                 CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey("master-checksum", "master")
+                CpkDbChangeLogKey(cpk1.id.cpkFileChecksum, "master")
             )
 
             assertThat(changeLog1.content).isEqualTo(loadedDbLogEntity.content)
@@ -149,14 +150,12 @@ class CpkDbChangeLogEntityTest {
         val (cpi, cpks) = TestObject.createCpiWithCpks()
         val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                cpk.metadata.id.cpkSignerSummaryHash, "master"),
-            "master-checksum",
+            CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master"),
             "master-content",
             fakeId
         )
 
-        val changeLog1Audit = CpkDbChangeLogAuditEntity(changeLog1)
+        val changeLog1Audit = cpkDbChangeLogAuditEntity(changeLog1)
 
         transaction {
             persist(cpi)
@@ -169,26 +168,23 @@ class CpkDbChangeLogEntityTest {
         transaction {
             val loadedDbLogEntity = find(
                 CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                    cpk.metadata.id.cpkSignerSummaryHash, "master")
+                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
             loadedDbLogEntity.isDeleted = true
             merge(loadedDbLogEntity)
             flush()
             val updatedDbLogEntity = find(
                 CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                    cpk.metadata.id.cpkSignerSummaryHash, "master")
+                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
-            persist(CpkDbChangeLogAuditEntity(updatedDbLogEntity))
+            persist(cpkDbChangeLogAuditEntity(updatedDbLogEntity))
             flush()
         }
 
         transaction {
             val loadedDbLogEntity = find(
                 CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                    cpk.metadata.id.cpkSignerSummaryHash, "master")
+                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
             val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
                 this,
@@ -199,63 +195,154 @@ class CpkDbChangeLogEntityTest {
                 )
             ).sortedBy { it.insertTimestamp }
 
-            assertThat(CpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
+            assertThat(cpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
                 .isNotEqualTo(loadedDbLogAuditEntities.first().id)
-            assertThat(CpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
+            assertThat(cpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
                 .isEqualTo(loadedDbLogAuditEntities.last().id)
         }
     }
 
     @Test
     fun `can get changelogs based on changesetId`() {
-        val anotherFakeId = UUID.randomUUID()
-        val (cpi, cpks) = TestObject.createCpiWithCpks()
-        val cpk = cpks.first()
-        val changeset1 = (1..3).map {
+        val changesetId1 = UUID.randomUUID()
+        val (cpi, cpks) = TestObject.createCpiWithCpks(3)
+        val changeset1 = (0..2).map {
             CpkDbChangeLogEntity(
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                    cpk.metadata.id.cpkSignerSummaryHash, "master-$it"),
-                "master-checksum",
+                CpkDbChangeLogKey(cpks[it].id.cpkFileChecksum, "master-$it"),
                 "master-content",
-                anotherFakeId
+                changesetId1
             )
         }
 
         transaction {
             persist(cpi)
             changeset1.forEach { persist(it) }
-            changeset1.forEach { persist(CpkDbChangeLogAuditEntity(it)) }
+            changeset1.forEach { persist(cpkDbChangeLogAuditEntity(it)) }
             flush()
         }
 
-        val changeset2 = (4..6).map {
+        val changesetId2 = UUID.randomUUID()
+        val (cpi2, cpks2) = TestObject.createCpiWithCpks(3)
+        val changeset2 = (0..2).map {
             CpkDbChangeLogEntity(
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion,
-                    cpk.metadata.id.cpkSignerSummaryHash, "master-$it"),
-                "master-checksum",
+                CpkDbChangeLogKey(cpks2[it].id.cpkFileChecksum, "master-$it"),
                 "master-content",
-                fakeId
+                changesetId2
             )
         }
 
         transaction {
+            persist(cpi2)
             changeset2.forEach { persist(it) }
-            changeset2.forEach { persist(CpkDbChangeLogAuditEntity(it)) }
+            changeset2.forEach { persist(cpkDbChangeLogAuditEntity(it)) }
             flush()
         }
 
         transaction {
             val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
                 this,
-                CpiIdentifier(
-                    cpi.name,
-                    cpi.version,
-                    SecureHash.parse(cpi.signerSummaryHash)
-                ),
-                setOf(anotherFakeId)
+                cpi.name,
+                cpi.version,
+                cpi.signerSummaryHash,
+                setOf(changesetId1)
             ).sortedBy { it.insertTimestamp }
 
             assertThat(loadedDbLogAuditEntities.size).isEqualTo(3)
+        }
+
+        transaction {
+            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+                this,
+                cpi2.name,
+                cpi2.version,
+                cpi2.signerSummaryHash,
+                setOf(changesetId2)
+            ).sortedBy { it.insertTimestamp }
+
+            assertThat(loadedDbLogAuditEntities.size).isEqualTo(3)
+        }
+    }
+
+    @Test
+    fun `when CPI is merged with new CPKs, old orphaned CPK changesets are no longer associated with the CPI`() {
+        val changesetId1 = UUID.randomUUID()
+        val cpiName = UUID.randomUUID().toString()
+        val cpiVersion = UUID.randomUUID().toString()
+        val cpiSsh = UUID.randomUUID().toString()
+        val originalCpi = cpi {
+            name(cpiName)
+            version(cpiVersion)
+            signerSummaryHash(cpiSsh)
+            cpk { }
+            cpk { }
+            cpk { }
+        }
+        val originalChangelogs = originalCpi.cpks.mapIndexed { i, cpk ->
+            CpkDbChangeLogEntity(
+                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master-$i"),
+                "master-content",
+                changesetId1
+            )
+        }
+
+        transaction {
+            persist(originalCpi)
+            originalChangelogs.forEach {
+                persist(it)
+                persist(cpkDbChangeLogAuditEntity(it))
+            }
+        }
+
+        transaction {
+            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+                this,
+                cpiName,
+                cpiVersion,
+                cpiSsh,
+                setOf(changesetId1)
+            )
+
+            assertThat(loadedDbLogAuditEntities.size).isEqualTo(3)
+        }
+
+        val changesetId2 = UUID.randomUUID()
+
+        // This CPI has same PK as original, but different set of CPKs. When we merge this on top of original, we will see the old CpiCpk
+        // relationships get purged (as a result of orphanRemoval). In the assertion we should see the correct set of dbChangeLogs returned
+        val updatedCpi = cpi {
+            name(originalCpi.name)
+            version(originalCpi.version)
+            signerSummaryHash(originalCpi.signerSummaryHash)
+            cpk { }
+            cpk { }
+        }
+
+        val newChangelogs = updatedCpi.cpks.mapIndexed { i, cpiCpk ->
+            CpkDbChangeLogEntity(
+                CpkDbChangeLogKey(cpiCpk.id.cpkFileChecksum, "master-$i"),
+                "master-content",
+                changesetId2
+            )
+        }
+
+        transaction {
+            merge(updatedCpi)
+            newChangelogs.forEach {
+                persist(it)
+                persist(cpkDbChangeLogAuditEntity(it))
+            }
+        }
+
+        transaction {
+            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+                this,
+                cpiName,
+                cpiVersion,
+                cpiSsh,
+                setOf(changesetId2)
+            )
+
+            assertThat(loadedDbLogAuditEntities.size).isEqualTo(2)
         }
     }
 
@@ -264,8 +351,7 @@ class CpkDbChangeLogEntityTest {
         val (cpi, cpks) = TestObject.createCpiWithCpks()
         val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion, cpk.metadata.id.cpkSignerSummaryHash, "master"),
-            "master-checksum",
+            CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master"),
             "master-content",
             fakeId
         )
@@ -283,7 +369,7 @@ class CpkDbChangeLogEntityTest {
         transaction {
             val loadedDbLogEntity = find(
                 CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.metadata.id.cpkName, cpk.metadata.id.cpkVersion, cpk.metadata.id.cpkSignerSummaryHash, "master")
+                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
 
             assertThat(changeLog1.content).isEqualTo(loadedDbLogEntity.content)
@@ -299,8 +385,7 @@ class CpkDbChangeLogEntityTest {
         val cpk2 = cpks2.first()
 
         val changeLog1 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk1.metadata.id.cpkName, cpk1.metadata.id.cpkVersion, cpk1.metadata.id.cpkSignerSummaryHash, "master"),
-            "master-checksum",
+            CpkDbChangeLogKey(cpk1.id.cpkFileChecksum, "master"),
             """<databaseChangeLog xmlns="https://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="https://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
@@ -316,8 +401,7 @@ class CpkDbChangeLogEntityTest {
             fakeId
         )
         val changeLog1b = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk1b.metadata.id.cpkName, cpk1b.metadata.id.cpkVersion, cpk1b.metadata.id.cpkSignerSummaryHash, "master"),
-            "master-checksum",
+            CpkDbChangeLogKey(cpk1b.id.cpkFileChecksum, "master"),
             """<databaseChangeLog xmlns="https://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="https://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
@@ -333,14 +417,12 @@ class CpkDbChangeLogEntityTest {
             fakeId
         )
         val changeLog2 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk1.metadata.id.cpkName, cpk1.metadata.id.cpkVersion, cpk1.metadata.id.cpkSignerSummaryHash, "other"),
-            "other-checksum",
+            CpkDbChangeLogKey(cpk1.id.cpkFileChecksum, "other"),
             "other-content",
             fakeId
         )
         val changeLog3 = CpkDbChangeLogEntity(
-            CpkDbChangeLogKey(cpk2.metadata.id.cpkName, cpk2.metadata.id.cpkVersion, cpk2.metadata.id.cpkSignerSummaryHash, "master"),
-            "master-checksum",
+            CpkDbChangeLogKey(cpk2.id.cpkFileChecksum, "master"),
             "master-content",
             fakeId
         )
@@ -378,4 +460,4 @@ class CpkDbChangeLogEntityTest {
             assertThat(changeLogs).isEmpty()
         }
     }
-}*/
+}
