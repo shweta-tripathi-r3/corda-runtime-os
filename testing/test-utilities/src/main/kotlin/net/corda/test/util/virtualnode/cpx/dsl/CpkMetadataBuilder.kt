@@ -3,10 +3,10 @@ package net.corda.test.util.virtualnode.cpx.dsl
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpkMetadataEntity
 
-fun cpk(init: CpkMetadataBuilder.() -> Unit): CpkMetadataBuilder {
+fun cpk(init: CpkMetadataBuilder.() -> Unit): CpkMetadataEntity {
     val cpkBuilder = CpkMetadataBuilder()
     init(cpkBuilder)
-    return cpkBuilder
+    return cpkBuilder.build()
 }
 
 class CpkMetadataBuilder(internal var fileChecksumSupplier: () -> String? = { null }, private val randomId: UUID = UUID.randomUUID()) {

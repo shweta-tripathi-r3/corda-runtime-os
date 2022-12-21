@@ -9,7 +9,6 @@ import javax.persistence.Embeddable
 import javax.persistence.EmbeddedId
 import javax.persistence.Entity
 import javax.persistence.JoinColumn
-import javax.persistence.JoinColumns
 import javax.persistence.OneToOne
 import javax.persistence.PreUpdate
 import javax.persistence.Table

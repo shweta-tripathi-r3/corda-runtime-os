@@ -10,16 +10,16 @@ fun cpi(init: CpiBuilder.() -> Unit): CpiMetadataEntity {
 }
 
 class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
-    internal var name: String? = null
-    internal var version: String? = null
-    internal var signerSummaryHash: String? = null
-    internal var fileName: String? = null
-    internal var groupPolicy: String? = null
-    internal var groupId: String? = null
-    internal var fileUploadRequestId: String? = null
-    internal var fileChecksum: String? = null
-    internal var cpks: MutableSet<CpiCpkBuilder> = mutableSetOf()
-    internal var entityVersion: Int? = null
+    private var name: String? = null
+    private var version: String? = null
+    private var signerSummaryHash: String? = null
+    private var fileName: String? = null
+    private var groupPolicy: String? = null
+    private var groupId: String? = null
+    private var fileUploadRequestId: String? = null
+    private var fileChecksum: String? = null
+    private var cpks: MutableSet<CpiCpkBuilder> = mutableSetOf()
+    private var entityVersion: Int? = null
 
     fun name(value: String): CpiBuilder {
         name = value
@@ -89,17 +89,17 @@ class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
         return this
     }
 
-    fun supplyFileChecksum() = fileChecksum
-    fun supplyCpiName() = name
-    fun supplyCpiVersion() = version
-    fun supplyCpiSsh() = signerSummaryHash
+    private fun supplyCpiName() = name
+    private fun supplyCpiVersion() = version
+    private fun supplyCpiSsh() = signerSummaryHash
 
+    @Suppress("ComplexMethod")
     fun build(): CpiMetadataEntity {
         val randomCpkId = "${randomId}_${UUID.randomUUID()}"
         if (name == null) name = "name_$randomCpkId"
         if (version == null) version = "version_$randomCpkId"
         if (signerSummaryHash == null) signerSummaryHash = "signerSummaryHash_$randomCpkId"
-        if(fileChecksum == null) fileChecksum = "file_checksum_$randomCpkId"
+        if (fileChecksum == null) fileChecksum = "file_checksum_$randomCpkId"
         return CpiMetadataEntity(
             name!!,
             version!!,

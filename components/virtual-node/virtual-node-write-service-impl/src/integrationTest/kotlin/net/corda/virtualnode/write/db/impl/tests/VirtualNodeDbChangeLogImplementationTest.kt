@@ -2,8 +2,6 @@ package net.corda.virtualnode.write.db.impl.tests
 
 import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.testkit.DbUtils
-import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
-import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
 import net.corda.v5.base.util.contextLogger
 import net.corda.virtualnode.write.db.impl.writer.VirtualNodeDbChangeLog
 import org.assertj.core.api.Assertions.assertThat

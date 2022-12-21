@@ -1,6 +1,5 @@
 package net.corda.test.util.virtualnode.cpx.dsl
 
-import java.lang.Exception
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpiCpkEntity
 import net.corda.libs.cpi.datamodel.CpiCpkKey
@@ -32,23 +31,23 @@ class CpiCpkBuilder(
     }
 
     // cpi
-    internal var cpiName: String? = null
-    internal var cpiVersion: String? = null
-    internal var cpiSsh: String? = null
+    private var cpiName: String? = null
+    private var cpiVersion: String? = null
+    private var cpiSsh: String? = null
 
     // cpk
-    internal var name: String? = null
-    internal var version: String? = null
-    internal var signerSummaryHash: String? = null
+    private var name: String? = null
+    private var version: String? = null
+    private var signerSummaryHash: String? = null
 
     // cpicpk
-    internal var fileName: String? = null
-    internal var metadata: CpkMetadataBuilder? = null
-    internal var cpkFileChecksum: String? = null
+    private var fileName: String? = null
+    private var metadata: CpkMetadataBuilder? = null
+    private var cpkFileChecksum: String? = null
 
     //metadata
-    internal var formatVersion: String? = null
-    internal var serializedMetadata: String? = null
+    private var formatVersion: String? = null
+    private var serializedMetadata: String? = null
 
     fun name(value: String): CpiCpkBuilder {
         name = value
@@ -82,7 +81,7 @@ class CpiCpkBuilder(
         return this
     }
 
-    fun cpkFileChecksum(value: String): CpiCpkBuilder {
+    fun fileChecksum(value: String): CpiCpkBuilder {
         cpkFileChecksum = value
         return this
     }
@@ -94,6 +93,7 @@ class CpiCpkBuilder(
 
     fun supplyCpkFileChecksum() = cpkFileChecksum
 
+    @Suppress("ThrowsCount")
     fun build(): CpiCpkEntity {
         if (cpkFileChecksum == null) cpkFileChecksum = "cpk_file_checksum_$randomId"
         val cpk: CpkMetadataEntity = metadata?.build() ?: CpkMetadataBuilder(::supplyCpkFileChecksum, randomId)
@@ -106,9 +106,9 @@ class CpiCpkBuilder(
 
         return CpiCpkEntity(
             CpiCpkKey(
-                cpiNameSupplier.invoke() ?: throw Exception("CpiCpkBuilder.cpiNameSupplier is mandatory"),
-                cpiVersionSupplier.invoke() ?: throw Exception("CpiCpkBuilder.cpiVersionSupplier is mandatory"),
-                cpiSshSupplier.invoke() ?: throw Exception("CpiCpkBuilder.cpiSshSupplier is mandatory"),
+                cpiNameSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiNameSupplier is mandatory"),
+                cpiVersionSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiVersionSupplier is mandatory"),
+                cpiSshSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiSshSupplier is mandatory"),
                 supplyCpkFileChecksum()!!
             ),
             fileName ?: "cpk_filename_$randomId",

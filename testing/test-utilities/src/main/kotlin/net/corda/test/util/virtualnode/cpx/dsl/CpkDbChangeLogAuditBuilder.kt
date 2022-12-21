@@ -3,7 +3,6 @@ package net.corda.test.util.virtualnode.cpx.dsl
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
-import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
 
 fun cpkDbChangeLogAudit(init: CpkDbChangeLogAuditBuilder.() -> Unit): CpkDbChangeLogAuditEntity {
     val builder = CpkDbChangeLogAuditBuilder()
@@ -11,7 +10,10 @@ fun cpkDbChangeLogAudit(init: CpkDbChangeLogAuditBuilder.() -> Unit): CpkDbChang
     return builder.build()
 }
 
-class CpkDbChangeLogAuditBuilder(private var fileChecksumSupplier: () -> String? = { null }, private val randomUUID: UUID = UUID.randomUUID()) {
+class CpkDbChangeLogAuditBuilder(
+    private var fileChecksumSupplier: () -> String? = { null },
+    private val randomUUID: UUID = UUID.randomUUID()
+) {
 
     private var filePath: String? = null
     private var changesetId: UUID? = null
@@ -47,8 +49,8 @@ class CpkDbChangeLogAuditBuilder(private var fileChecksumSupplier: () -> String?
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
                 fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
-            changesetId ?: UUID.randomUUID(),
-            entityVersion ?: 0,
+                changesetId ?: UUID.randomUUID(),
+                entityVersion ?: 0,
                 filePath ?: "file_path_$randomUUID"
             ),
             "data_$randomUUID",
