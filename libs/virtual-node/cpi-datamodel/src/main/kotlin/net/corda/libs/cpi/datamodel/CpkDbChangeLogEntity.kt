@@ -21,13 +21,11 @@ import javax.persistence.Version
 class CpkDbChangeLogEntity(
     @EmbeddedId
     var id: CpkDbChangeLogKey,
-    @Column(name = "cpk_file_checksum", nullable = false, unique = true)
-    val fileChecksum: String,
     @Column(name = "content", nullable = false)
-    override val content: String,
+    val content: String,
     @Column(name = "changeset_id", nullable = false)
     val changesetId: UUID
-) : CpkDbChangelog {
+) {
     // This structure does not distinguish the root changelogs from changelog include files
     // (or CSVs, which we do not need to support). So, to find the root, you need to look for a filename
     // convention. See the comment in the companion object of VirtualNodeDbChangeLog.
@@ -42,8 +40,6 @@ class CpkDbChangeLogEntity(
     // this TS is managed on the DB itself
     @Column(name = "insert_ts", insertable = false, updatable = false)
     val insertTimestamp: Instant? = null
-
-    override val filePath get() = id.filePath
 }
 
 /**
@@ -51,12 +47,8 @@ class CpkDbChangeLogEntity(
  */
 @Embeddable
 data class CpkDbChangeLogKey(
-    @Column(name = "cpk_name", nullable = false)
-    var cpkName: String,
-    @Column(name = "cpk_version", nullable = false)
-    var cpkVersion: String,
-    @Column(name = "cpk_signer_summary_hash", nullable = false)
-    var cpkSignerSummaryHash: String,
+    @Column(name = "cpk_file_checksum", nullable = false)
+    var cpkFileChecksum: String,
     @Column(name = "file_path", nullable = false)
     val filePath: String,
 ) : Serializable
@@ -72,9 +64,7 @@ fun findDbChangeLogForCpi(
     "SELECT changelog " +
             "FROM ${CpkDbChangeLogEntity::class.simpleName} AS changelog INNER JOIN " +
             "${CpiCpkEntity::class.simpleName} AS cpi " +
-            "ON changelog.id.cpkName = cpi.metadata.id.cpkName AND " +
-            "   changelog.id.cpkVersion = cpi.id.cpkVersion AND " +
-            "   changelog.id.cpkSignerSummaryHash = cpi.id.cpkSignerSummaryHash "+
+            "ON changelog.id.cpkFileChecksum = cpi.metadata.id.cpkFileChecksum " +
             "WHERE cpi.id.cpiName = :name AND "+
             "      cpi.id.cpiVersion = :version AND "+
             "      cpi.id.cpiSignerSummaryHash = :signerSummaryHash AND "+

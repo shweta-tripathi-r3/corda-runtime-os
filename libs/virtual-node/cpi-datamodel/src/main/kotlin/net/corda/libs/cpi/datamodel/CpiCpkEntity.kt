@@ -23,22 +23,12 @@ import javax.persistence.Version
 @Table(name = "cpi_cpk", schema = DbSchema.CONFIG)
 data class CpiCpkEntity(
     @EmbeddedId
-    private val id: CpiCpkKey,
+    val id: CpiCpkKey,
     @Column(name = "cpk_file_name", nullable = false)
     var cpkFileName: String,
-    @Column(name = "cpk_file_checksum", nullable = false)
-    var cpkFileChecksum: String,
+    // note - orphanRemoval = false because a CPK could be associated with a different CPI.
     @OneToOne(cascade = [CascadeType.MERGE, CascadeType.PERSIST])
-    @JoinColumns(
-        JoinColumn(name = "cpk_name", referencedColumnName = "cpk_name", insertable = false, updatable = false),
-        JoinColumn(name = "cpk_version", referencedColumnName = "cpk_version", insertable = false, updatable = false),
-        JoinColumn(
-            name = "cpk_signer_summary_hash",
-            referencedColumnName = "cpk_signer_summary_hash",
-            insertable = false,
-            updatable = false
-        ),
-    )
+    @JoinColumn(name = "cpk_file_checksum", referencedColumnName = "file_checksum", insertable = false, updatable = false)
     var metadata: CpkMetadataEntity,
     @Version
     @Column(name = "entity_version", nullable = false)
@@ -59,15 +49,11 @@ data class CpiCpkEntity(
 @Embeddable
 data class CpiCpkKey(
     @Column(name = "cpi_name")
-    private val cpiName: String,
+    val cpiName: String,
     @Column(name = "cpi_version")
-    private val cpiVersion: String,
+    val cpiVersion: String,
     @Column(name = "cpi_signer_summary_hash")
-    private val cpiSignerSummaryHash: String,
-    @Column(name = "cpk_name")
-    private val cpkName: String,
-    @Column(name = "cpk_version")
-    private val cpkVersion: String,
-    @Column(name = "cpk_signer_summary_hash")
-    private val cpkSignerSummaryHash: String,
+    val cpiSignerSummaryHash: String,
+    @Column(name = "cpk_file_checksum")
+    val cpkFileChecksum: String,
 ): Serializable

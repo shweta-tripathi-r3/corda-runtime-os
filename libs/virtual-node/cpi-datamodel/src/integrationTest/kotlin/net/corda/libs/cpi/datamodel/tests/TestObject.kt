@@ -1,13 +1,11 @@
 package net.corda.libs.cpi.datamodel.tests
 
 import net.corda.libs.cpi.datamodel.CpiMetadataEntity
-import net.corda.libs.cpi.datamodel.CpkKey
 import net.corda.libs.cpi.datamodel.CpkMetadataEntity
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpiCpkEntity
 import net.corda.libs.cpi.datamodel.CpiCpkKey
 import net.corda.v5.crypto.SecureHash
-import java.nio.ByteBuffer
 
 object TestObject {
     fun randomChecksumString(): String {
@@ -45,21 +43,15 @@ object TestObject {
         name: String,
         version: String,
         signerSummaryHash: String,
-    ) = CpkMetadataEntity(
-        CpkKey(name, version, signerSummaryHash),
-        cpkFileChecksum,
-        "1.0",
-        "{}"
-    )
+    ) = CpkMetadataEntity(cpkFileChecksum, name, version, signerSummaryHash, "1.0", "{}")
 
     fun createCpiCpkEntity(
         cpiName: String = "test-cpi-${UUID.randomUUID()}.cpk", cpiVersion: String, cpiSSH: String,
         cpkName: String, cpkVersion: String, cpkSSH: String,
         cpkFileName: String, cpkFileChecksum: String
     ) = CpiCpkEntity(
-        CpiCpkKey(cpiName, cpiVersion, cpiSSH, cpkName, cpkVersion, cpkSSH),
+        CpiCpkKey(cpiName, cpiVersion, cpiSSH, cpkFileChecksum),
         cpkFileName,
-        cpkFileChecksum,
         createCpk(cpkFileChecksum, cpkName, cpkVersion, cpkSSH)
     )
 
