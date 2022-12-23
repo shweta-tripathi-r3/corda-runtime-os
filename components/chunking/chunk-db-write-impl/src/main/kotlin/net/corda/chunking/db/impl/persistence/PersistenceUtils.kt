@@ -1,7 +1,6 @@
 package net.corda.chunking.db.impl.persistence
 
 import net.corda.libs.packaging.core.CpiIdentifier
-import net.corda.libs.packaging.core.CpkIdentifier
 
 object PersistenceUtils {
 
