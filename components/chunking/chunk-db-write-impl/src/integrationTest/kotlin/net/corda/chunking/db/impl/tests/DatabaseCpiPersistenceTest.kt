@@ -131,7 +131,7 @@ internal class DatabaseCpiPersistenceTest {
         fileChecksum: SecureHash = newRandomSecureHash(),
         name: String = UUID.randomUUID().toString(),
         version: String = "cpk-version",
-        ssh: SecureHash? = newRandomSecureHash()
+        ssh: SecureHash = newRandomSecureHash()
     ) = mock<Cpk>().also { cpk ->
         val cpkId = CpkIdentifier(
             name = name,
@@ -686,9 +686,9 @@ internal class DatabaseCpiPersistenceTest {
                 .resultList
         }!!
     }
-    
-    private val random = Random(0)
+
     private fun newRandomSecureHash(): SecureHash {
+        val random = Random()
         return SecureHash(DigestAlgorithmName.DEFAULT_ALGORITHM_NAME.name, ByteArray(32).also(random::nextBytes))
     }
 

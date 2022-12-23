@@ -113,7 +113,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
                     cpkFileChecksum,
                     thisCpk.metadata.cpkId.name,
                     thisCpk.metadata.cpkId.version,
-                    thisCpk.metadata.cpkId.signerSummaryHashForDbQuery,
+                    thisCpk.metadata.cpkId.signerSummaryHash.toString(),
                     thisCpk.metadata.manifest.cpkFormatVersion.toString(),
                     thisCpk.metadata.toJsonAvro()
                 )

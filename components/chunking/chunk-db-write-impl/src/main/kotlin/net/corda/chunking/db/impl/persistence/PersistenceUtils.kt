@@ -9,9 +9,4 @@ object PersistenceUtils {
         get() {
             return signerSummaryHash?.toString() ?: ""
         }
-
-    val CpkIdentifier.signerSummaryHashForDbQuery: String
-        get() {
-            return signerSummaryHash?.toString() ?: ""
-        }
 }
