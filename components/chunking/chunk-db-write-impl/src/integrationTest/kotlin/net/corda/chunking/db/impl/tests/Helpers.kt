@@ -13,9 +13,9 @@ import java.util.UUID
 
 val Cpk.fileChecksum: String get() = metadata.fileChecksum.toString()
 
-val random = Random(0)
 
 fun newRandomSecureHash(): SecureHash {
+    val random = Random()
     return SecureHash(DigestAlgorithmName.DEFAULT_ALGORITHM_NAME.name, ByteArray(32).also(random::nextBytes))
 }
 
@@ -35,17 +35,17 @@ fun CpiPersistence.storeWithTestDefaults(
 fun CpiPersistence.updateMetadataAndCpksWithDefaults(
     cpi: Cpi,
     cpiFileName: String = "test.cpi",
-    checksum: SecureHash = newRandomSecureHash(),
+    cpiFileChecksum: SecureHash = newRandomSecureHash(),
     requestId: RequestId = UUID.randomUUID().toString(),
     groupId: String = "group-a",
     cpkDbChangeLogEntities: List<CpkDbChangeLogEntity> = emptyList(),
-): CpiMetadataEntity = updateMetadataAndCpks(cpi, cpiFileName, checksum, requestId, groupId, cpkDbChangeLogEntities)
+): CpiMetadataEntity = updateMetadataAndCpks(cpi, cpiFileName, cpiFileChecksum, requestId, groupId, cpkDbChangeLogEntities)
 
 fun CpiPersistence.persistMetadataAndCpksWithDefaults(
     cpi: Cpi,
     cpiFileName: String = "test.cpi",
-    checksum: SecureHash = newRandomSecureHash(),
+    cpiFileChecksum: SecureHash = newRandomSecureHash(),
     requestId: RequestId = UUID.randomUUID().toString(),
     groupId: String = "group-a",
     cpkDbChangeLogEntities: List<CpkDbChangeLogEntity> = emptyList(),
-): CpiMetadataEntity = persistMetadataAndCpks(cpi, cpiFileName, checksum, requestId, groupId, cpkDbChangeLogEntities)
+): CpiMetadataEntity = persistMetadataAndCpks(cpi, cpiFileName, cpiFileChecksum, requestId, groupId, cpkDbChangeLogEntities)

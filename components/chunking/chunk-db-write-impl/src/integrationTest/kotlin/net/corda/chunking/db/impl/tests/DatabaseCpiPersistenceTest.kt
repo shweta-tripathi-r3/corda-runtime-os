@@ -49,7 +49,6 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.Random
 import java.util.UUID
-import javax.persistence.EntityManager
 import javax.persistence.PersistenceException
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
 import net.corda.libs.cpi.datamodel.getCpiChangelogsForGivenChangesetIds
@@ -169,7 +168,8 @@ internal class DatabaseCpiPersistenceTest {
         vararg cpks: Cpk,
         signerSummaryHash: SecureHash = SecureHash("SHA-256", ByteArray(12)),
         name: String = UUID.randomUUID().toString(),
-        version: String = "1.0"
+        version: String = "1.0",
+        fileChecksum: SecureHash? = newRandomSecureHash()
     ): Cpi {
         // We need a random name here as the database primary key is (name, version, signerSummaryHash)
         // and we'd end up trying to insert the same mock cpi.
@@ -179,15 +179,18 @@ internal class DatabaseCpiPersistenceTest {
             whenever(it.signerSummaryHash).thenReturn(signerSummaryHash)
         }
 
-        return mockCpiWithId(cpks.toList(), id)
+        return mockCpiWithId(cpks.toList(), id, fileChecksum)
     }
 
-    private fun mockCpiWithId(cpks: List<Cpk>, cpiId: CpiIdentifier): Cpi {
-        val checksum = newRandomSecureHash()
+    private fun mockCpiWithId(
+        cpks: List<Cpk>,
+        cpiId: CpiIdentifier,
+        fileChecksum: SecureHash? = newRandomSecureHash()
+    ): Cpi {
         val metadata = mock<CpiMetadata>().also {
             whenever(it.cpiId).thenReturn(cpiId)
             whenever(it.groupPolicy).thenReturn("{}")
-            whenever(it.fileChecksum).thenReturn(checksum)
+            whenever(it.fileChecksum).thenReturn(fileChecksum)
         }
 
         val cpi = mock<Cpi>().also {
@@ -331,7 +334,7 @@ internal class DatabaseCpiPersistenceTest {
 
         cpiPersistence.updateMetadataAndCpksWithDefaults(
             cpi,
-            checksum = cpiChecksum
+            cpiFileChecksum = cpiChecksum
         )  // force update same CPI
 
         val updatedCpi = loadCpiDirectFromDatabase(cpi)
@@ -455,7 +458,7 @@ internal class DatabaseCpiPersistenceTest {
     @Test
     fun `force upload can remove all changelogs`() {
         val cpk1 = mockCpk()
-        val cpiWithChangelogs = mockCpi(cpk1, name = "removal_test_${UUID.randomUUID()}")
+        val cpiWithChangelogs = mockCpi(cpk1)
 
         val cpiEntity = cpiPersistence.persistMetadataAndCpksWithDefaults(
             cpiWithChangelogs,

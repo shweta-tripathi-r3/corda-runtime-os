@@ -203,7 +203,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
     override fun updateMetadataAndCpks(
         cpi: Cpi,
         cpiFileName: String,
-        checksum: SecureHash,
+        cpiFileChecksum: SecureHash,
         requestId: RequestId,
         groupId: String,
         changelogsExtractedFromCpi: List<CpkDbChangeLogEntity>
@@ -228,13 +228,13 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
             val updatedMetadata = existingMetadataEntity.update(
                 fileUploadRequestId = requestId,
                 fileName = cpiFileName,
-                fileChecksum = checksum.toString(),
+                fileChecksum = cpiFileChecksum.toString(),
                 cpks = createCpiCpkRelationships(em, cpi)
             )
 
             val cpiMetadataEntity = em.merge(updatedMetadata)
 
-            persistNewCpkFileEntities(cpi.metadata.fileChecksum.toString(), em, cpi.cpks)
+            persistNewCpkFileEntities(cpiMetadataEntity.fileChecksum, em, cpi.cpks)
 
             persistNewChangelogs(changelogsExtractedFromCpi, em, cpi)
 
