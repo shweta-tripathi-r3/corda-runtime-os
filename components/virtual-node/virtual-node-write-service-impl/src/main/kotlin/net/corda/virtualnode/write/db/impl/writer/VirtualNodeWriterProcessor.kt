@@ -522,8 +522,8 @@ internal class VirtualNodeWriterProcessor(
 
             changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
                 // there is an assumption here that the changesetId of all changelogs in a CPK will be the same. Given that a new CPK record
-                // will be persisted if a changeset is changed in a force uploaded CPI, and given the changesetId is generated when extracting
-                // changelogs from a CPI, we can safely make this assumption.
+                // will be persisted if a changeset is changed in a force uploaded CPI, and given the changesetId is generated when
+                // extracting changelogs from a CPI, we can safely make this assumption.
                 val changesetId = changeLogs.first().changesetId.toString()
 
                 logger.info("Preparing to run ${changeLogs.size} migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")

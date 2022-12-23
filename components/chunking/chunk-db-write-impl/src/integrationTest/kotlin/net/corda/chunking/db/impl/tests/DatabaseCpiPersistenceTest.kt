@@ -167,17 +167,16 @@ internal class DatabaseCpiPersistenceTest {
 
     private fun mockCpi(
         vararg cpks: Cpk,
-        signerSummaryHash: SecureHash? = null,
-        name: String? = null,
-        version: String? = null
+        signerSummaryHash: SecureHash = SecureHash("SHA-256", ByteArray(12)),
+        name: String = UUID.randomUUID().toString(),
+        version: String = "1.0"
     ): Cpi {
-        val nameDefined = name ?: "test " + UUID.randomUUID().toString()
         // We need a random name here as the database primary key is (name, version, signerSummaryHash)
         // and we'd end up trying to insert the same mock cpi.
         val id = mock<CpiIdentifier> {
-            whenever(it.name).thenReturn(nameDefined)
-            whenever(it.version).thenReturn(version ?: "1.0")
-            whenever(it.signerSummaryHash).thenReturn(signerSummaryHash ?: SecureHash("SHA-256", ByteArray(12)))
+            whenever(it.name).thenReturn(name)
+            whenever(it.version).thenReturn(version)
+            whenever(it.signerSummaryHash).thenReturn(signerSummaryHash)
         }
 
         return mockCpiWithId(cpks.toList(), id)
@@ -456,7 +455,7 @@ internal class DatabaseCpiPersistenceTest {
     @Test
     fun `force upload can remove all changelogs`() {
         val cpk1 = mockCpk()
-        val cpiWithChangelogs = mockCpi(cpk1)
+        val cpiWithChangelogs = mockCpi(cpk1, name = "removal_test_${UUID.randomUUID()}")
 
         val cpiEntity = cpiPersistence.persistMetadataAndCpksWithDefaults(
             cpiWithChangelogs,

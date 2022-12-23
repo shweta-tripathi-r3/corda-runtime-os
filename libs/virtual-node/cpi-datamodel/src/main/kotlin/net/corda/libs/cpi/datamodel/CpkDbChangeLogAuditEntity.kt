@@ -1,7 +1,6 @@
 package net.corda.libs.cpi.datamodel
 
 import net.corda.db.schema.DbSchema
-import net.corda.libs.packaging.core.CpiIdentifier
 import java.io.Serializable
 import java.time.Instant
 import java.util.UUID
