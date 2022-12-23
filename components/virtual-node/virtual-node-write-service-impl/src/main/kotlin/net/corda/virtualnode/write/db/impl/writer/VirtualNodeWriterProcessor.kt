@@ -551,7 +551,11 @@ internal class VirtualNodeWriterProcessor(
             val changeLogDtos = changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
 
             LiquibaseSchemaMigratorImpl()
-                .updateDb(dataSource.connection, VirtualNodeDbChangeLog(changeLogDtos), changesetId)
+                .updateDb(
+                    dataSource.connection,
+                    VirtualNodeDbChangeLog(changeLogDtos),
+                    tag = changesetId
+                )
         }
     }
 
