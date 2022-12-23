@@ -200,19 +200,11 @@ class CpkDbChangeLogEntityTest {
             loadedDbLogEntity.isDeleted = true
             merge(loadedDbLogEntity)
             flush()
-            val updatedDbLogEntity = find(
-                CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
-            )
             persist(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1))
             flush()
         }
 
         transaction {
-            val loadedDbLogEntity = find(
-                CpkDbChangeLogEntity::class.java,
-                CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
-            )
             val loadedDbLogAuditEntities = getEntireHistoryOfChangelogsForCpi(
                 this,
                 CpiIdentifier(
