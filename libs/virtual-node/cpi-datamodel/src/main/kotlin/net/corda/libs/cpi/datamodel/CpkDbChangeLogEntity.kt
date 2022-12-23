@@ -57,7 +57,7 @@ data class CpkDbChangeLogKey(
 /*
  * Find all the db changelogs for a CPI
  */
-fun findDbChangeLogForCpi(
+fun findCurrentCpkChangeLogsForCpi(
     entityManager: EntityManager,
     cpi: CpiIdentifier
 ): List<CpkDbChangeLogEntity> = entityManager.createQuery(

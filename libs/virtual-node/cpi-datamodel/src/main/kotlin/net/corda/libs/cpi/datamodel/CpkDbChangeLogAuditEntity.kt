@@ -32,8 +32,14 @@ class CpkDbChangeLogAuditEntity(
 
 @Embeddable
 data class CpkDbChangeLogAuditKey(
+    @Column(name = "cpi_name", nullable = false)
+    var cpiName: String,
+    @Column(name = "cpi_version", nullable = false)
+    var cpiVersion: String,
+    @Column(name = "cpi_signer_summary_hash", nullable = false)
+    var cpiSignerSummaryHash: String,
     @Column(name = "cpk_file_checksum", nullable = false)
-    val fileChecksum: String,
+    val cpkFileChecksum: String,
     @Column(name = "changeset_id", nullable = false)
     val changesetId: UUID,
     @Column(name = "entity_version", nullable = false)
@@ -42,33 +48,8 @@ data class CpkDbChangeLogAuditKey(
     val filePath: String,
 ) : Serializable
 
-/*
- * Find all the audit db changelogs for a CPI
- */
-fun findDbChangeLogAuditForCpi(
-    entityManager: EntityManager,
-    cpi: CpiIdentifier
-): List<CpkDbChangeLogAuditEntity> = entityManager.createQuery(
-    "SELECT changelog " +
-            "FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN " +
-            "${CpiCpkEntity::class.simpleName} AS cpiCpk " +
-            "ON changelog.id.fileChecksum = cpiCpk.id.cpkFileChecksum " +
-            "WHERE cpiCpk.id.cpiName = :name AND " +
-            "      cpiCpk.id.cpiVersion = :version AND " +
-            "      cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash",
-    CpkDbChangeLogAuditEntity::class.java
-)
-    .setParameter("name", cpi.name)
-    .setParameter("version", cpi.version)
-    .setParameter("signerSummaryHash", cpi.signerSummaryHash?.toString() ?: "")
-    .resultList
 
-/*
- * Find all the audit db changelogs for a CPI
- *
- *  lookup is chunked to prevent large list being passed as part of the IN clause
- */
-fun findDbChangeLogAuditForCpi(
+fun getCpiChangelogsForGivenChangesetIds(
     entityManager: EntityManager,
     cpiName: String,
     cpiVersion: String,
@@ -76,14 +57,11 @@ fun findDbChangeLogAuditForCpi(
     changesetIds: Set<UUID>
 ): List<CpkDbChangeLogAuditEntity> = changesetIds.chunked(100) { changesetIdSlice ->
     entityManager.createQuery(
-        "SELECT changelog" +
-                " FROM ${CpkDbChangeLogAuditEntity::class.simpleName} AS changelog INNER JOIN" +
-                " ${CpiCpkEntity::class.simpleName} AS cpiCpk" +
-                " ON changelog.id.fileChecksum = cpiCpk.id.cpkFileChecksum" +
-                " WHERE cpiCpk.id.cpiName = :name AND" +
-                " cpiCpk.id.cpiVersion = :version AND" +
-                " cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash AND" +
-                " changelog.id.changesetId IN :changesetIds",
+        "FROM ${CpkDbChangeLogAuditEntity::class.simpleName}" +
+                " WHERE id.cpiName = :name AND" +
+                " id.cpiVersion = :version AND" +
+                " id.cpiSignerSummaryHash = :signerSummaryHash AND" +
+                " id.changesetId IN :changesetIds",
         CpkDbChangeLogAuditEntity::class.java
     )
         .setParameter("name", cpiName)

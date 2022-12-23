@@ -1,4 +1,4 @@
-package net.corda.test.util.virtualnode.cpx.dsl
+package net.corda.test.util.dsl.entities.cpx
 
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
@@ -11,6 +11,9 @@ fun cpkDbChangeLogAudit(init: CpkDbChangeLogAuditBuilder.() -> Unit): CpkDbChang
 }
 
 class CpkDbChangeLogAuditBuilder(
+    private var cpiNameSupplier: () -> String? = { null },
+    private var cpiVersionSupplier: () -> String? = { null },
+    private var cpiSshSupplier: () -> String? = { null },
     private var fileChecksumSupplier: () -> String? = { null },
     private val randomUUID: UUID = UUID.randomUUID()
 ) {
@@ -19,6 +22,21 @@ class CpkDbChangeLogAuditBuilder(
     private var changesetId: UUID? = null
     private var entityVersion: Int? = null
     private var isDeleted: Boolean? = null
+
+    fun cpiName(value: String): CpkDbChangeLogAuditBuilder {
+        cpiNameSupplier = { value }
+        return this
+    }
+
+    fun cpiVersion(value: String): CpkDbChangeLogAuditBuilder {
+        cpiVersionSupplier = { value }
+        return this
+    }
+
+    fun cpiSsh(value: String): CpkDbChangeLogAuditBuilder {
+        cpiSshSupplier = { value }
+        return this
+    }
 
     fun fileChecksum(value: String): CpkDbChangeLogAuditBuilder {
         fileChecksumSupplier = { value }
@@ -48,6 +66,9 @@ class CpkDbChangeLogAuditBuilder(
     fun build(): CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
+                cpiNameSupplier.invoke() ?: "cpiName_$randomUUID",
+                cpiVersionSupplier.invoke() ?: "cpiVersion_$randomUUID",
+                cpiSshSupplier.invoke() ?: "cpiSsh_$randomUUID",
                 fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
                 changesetId ?: UUID.randomUUID(),
                 entityVersion ?: 0,

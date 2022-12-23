@@ -69,7 +69,7 @@ import java.util.concurrent.CompletableFuture
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.EntityTransaction
-import net.corda.test.util.virtualnode.cpx.dsl.cpkDbChangeLog
+import net.corda.test.util.dsl.entities.cpx.cpkDbChangeLog
 import org.assertj.core.api.Assertions.assertThat
 
 /** Tests of [VirtualNodeWriterProcessor]. */

@@ -24,8 +24,8 @@ import net.corda.db.core.DbPrivilege.DML
 import net.corda.layeredpropertymap.toAvro
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
-import net.corda.libs.cpi.datamodel.findDbChangeLogAuditForCpi
-import net.corda.libs.cpi.datamodel.findDbChangeLogForCpi
+import net.corda.libs.cpi.datamodel.getCpiChangelogsForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.libs.virtualnode.common.exception.CpiNotFoundException
 import net.corda.libs.virtualnode.common.exception.VirtualNodeAlreadyExistsException
@@ -76,7 +76,7 @@ import net.corda.libs.cpi.datamodel.CpkDbChangeLog
  * @property groupPolicyParser Parses group policy JSON strings and returns MemberInfo structures
  * @property clock A clock instance used to add timestamps to what the records we publish. This is configurable rather
  *           than always simply the system wall clock time so that we can control everything in tests.
- * @property getChangelogs an overridable function to obtain the changelogs for a CPI. The default looks up in the database.
+ * @property getCurrentChangelogsForCpi an overridable function to obtain the changelogs for a CPI. The default looks up in the database.
  *           Takes an EntityManager (since that lets us continue a transaction) and a CpiIdentifier as a parameter and
  *           returns a list of CpkDbChangeLogEntity.
  */
@@ -88,7 +88,7 @@ internal class VirtualNodeWriterProcessor(
     private val vnodeDbFactory: VirtualNodeDbFactory,
     private val groupPolicyParser: GroupPolicyParser,
     private val clock: Clock,
-    private val getChangelogs: (EntityManager, CpiIdentifier) -> List<CpkDbChangeLogEntity> = ::findDbChangeLogForCpi,
+    private val getCurrentChangelogsForCpi: (EntityManager, CpiIdentifier) -> List<CpkDbChangeLogEntity> = ::findCurrentCpkChangeLogsForCpi,
     private val holdingIdentityRepository: HoldingIdentityRepository = HoldingIdentityRepositoryImpl(),
     private val virtualNodeRepository: VirtualNodeRepository = VirtualNodeRepositoryImpl()
 ) : RPCResponderProcessor<VirtualNodeManagementRequest, VirtualNodeManagementResponse> {
@@ -278,7 +278,7 @@ internal class VirtualNodeWriterProcessor(
                             systemTerminatorTag
                         )
                         // Look up all audit entries that correspond to the UUID set that we just got
-                        val migrationSet = findDbChangeLogAuditForCpi(
+                        val migrationSet = getCpiChangelogsForGivenChangesetIds(
                             tx,
                             virtualNodeInfo.cpiIdentifier.name,
                             virtualNodeInfo.cpiIdentifier.version,
@@ -296,7 +296,7 @@ internal class VirtualNodeWriterProcessor(
                     // Attempt to apply the changes from the current CPI
                     runCpiResyncMigrations(
                         dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
-                        getChangelogs(em, cpiMetadata.id)
+                        getCurrentChangelogsForCpi(em, cpiMetadata.id)
                     )
                 }
                 shortHash.value
@@ -516,15 +516,18 @@ internal class VirtualNodeWriterProcessor(
 
     private fun runCpiMigrations(cpiMetadata: CpiMetadataLite, vaultDb: VirtualNodeDb, virtualNodeShortHash: String) {
         dbConnectionManager.getClusterEntityManagerFactory().createEntityManager().transaction { em ->
-            // every changelog here is from a CPK associated with the given CPI.
-            val changelogsPerCpk: Map<String, List<CpkDbChangeLogEntity>> = getChangelogs(em, cpiMetadata.id)
+            // every changelog here is from a CPK currently associated with the given CPI.
+            val changelogsPerCpk: Map<String, List<CpkDbChangeLogEntity>> = getCurrentChangelogsForCpi(em, cpiMetadata.id)
                 .groupBy { it.id.cpkFileChecksum }
 
             changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
-                val changesetId = changeLogs.first().changesetId.toString() // why do we get this?
+                // there is an assumption here that the changesetId of all changelogs in a CPK will be the same. Given that a new CPK record
+                // will be persisted if a changeset is changed in a force uploaded CPI, and given the changesetId is generated when extracting
+                // changelogs from a CPI, we can safely make this assumption.
+                val changesetId = changeLogs.first().changesetId.toString()
+
                 logger.info("Preparing to run ${changeLogs.size} migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
-                val changeLogDtos = changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
-                val allChangeLogsForCpk = VirtualNodeDbChangeLog(changeLogDtos)
+                val allChangeLogsForCpk = VirtualNodeDbChangeLog(changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) })
                 try {
                     vaultDb.runCpiMigrations(allChangeLogsForCpk, changesetId)
                 } catch (e: Exception) {

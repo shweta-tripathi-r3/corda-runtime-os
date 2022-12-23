@@ -8,8 +8,8 @@ import net.corda.libs.cpi.datamodel.CpiEntities
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
-import net.corda.libs.cpi.datamodel.findDbChangeLogAuditForCpi
-import net.corda.libs.cpi.datamodel.findDbChangeLogForCpi
+import net.corda.libs.cpi.datamodel.getCpiChangelogsForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.orm.EntityManagerConfiguration
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.TestInstance
 import java.util.UUID
 import javax.persistence.EntityManager
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
-import net.corda.test.util.virtualnode.cpx.dsl.cpi
+import net.corda.test.util.dsl.entities.cpx.cpi
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CpkDbChangeLogEntityTest {
@@ -106,7 +106,7 @@ class CpkDbChangeLogEntityTest {
             fakeId
         )
 
-        val changeLog1Audit: CpkDbChangeLogAuditEntity = cpkDbChangeLogAuditEntity(changeLog1)
+        val changeLog1Audit: CpkDbChangeLogAuditEntity = cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1)
 
         transaction {
             persist(cpi)
@@ -121,7 +121,7 @@ class CpkDbChangeLogEntityTest {
                 CpkDbChangeLogEntity::class.java,
                 CpkDbChangeLogKey(cpkFileChecksum, "master")
             )
-            val loadedDbLogAuditEntity = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntity = getEntireHistoryOfChangelogsForCpi(
                 this,
                 CpiIdentifier(
                     cpi.name,
@@ -133,15 +133,42 @@ class CpkDbChangeLogEntityTest {
             assertThat(loadedDbLogAuditEntity)
                 .isNotEqualTo(null)
             assertThat(loadedDbLogEntity.id.cpkFileChecksum)
-                .isEqualTo(loadedDbLogAuditEntity!!.id.fileChecksum)
+                .isEqualTo(loadedDbLogAuditEntity!!.id.cpkFileChecksum)
         }
     }
 
-    private fun cpkDbChangeLogAuditEntity(changelog: CpkDbChangeLogEntity): CpkDbChangeLogAuditEntity {
+    /*
+     * Find all the audit db changelogs for a CPI
+     */
+    fun getEntireHistoryOfChangelogsForCpi(
+        entityManager: EntityManager,
+        cpi: CpiIdentifier
+    ): List<CpkDbChangeLogAuditEntity> = entityManager.createQuery(
+        "FROM ${CpkDbChangeLogAuditEntity::class.simpleName}" +
+                " WHERE cpiName = :name AND" +
+                " cpiVersion = :version AND" +
+                " cpiSignerSummaryHash = :signerSummaryHash",
+        CpkDbChangeLogAuditEntity::class.java
+    )
+        .setParameter("name", cpi.name)
+        .setParameter("version", cpi.version)
+        .setParameter("signerSummaryHash", cpi.signerSummaryHash?.toString() ?: "")
+        .resultList
+
+    private fun cpkDbChangeLogAuditEntity(cpiName: String, cpiVersion: String, cpiSsh: String, changeLog: CpkDbChangeLogEntity):
+            CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
-            CpkDbChangeLogAuditKey(changelog.id.cpkFileChecksum, changelog.changesetId, changelog.entityVersion, changelog.id.filePath),
-            changelog.content,
-            changelog.isDeleted
+            CpkDbChangeLogAuditKey(
+                cpiName,
+                cpiVersion,
+                cpiSsh,
+                changeLog.id.cpkFileChecksum,
+                changeLog.changesetId,
+                changeLog.entityVersion,
+                changeLog.id.filePath
+            ),
+            changeLog.content,
+            changeLog.isDeleted
         )
     }
 
@@ -155,7 +182,7 @@ class CpkDbChangeLogEntityTest {
             fakeId
         )
 
-        val changeLog1Audit = cpkDbChangeLogAuditEntity(changeLog1)
+        val changeLog1Audit = cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1)
 
         transaction {
             persist(cpi)
@@ -177,7 +204,7 @@ class CpkDbChangeLogEntityTest {
                 CpkDbChangeLogEntity::class.java,
                 CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
-            persist(cpkDbChangeLogAuditEntity(updatedDbLogEntity))
+            persist(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1))
             flush()
         }
 
@@ -186,7 +213,7 @@ class CpkDbChangeLogEntityTest {
                 CpkDbChangeLogEntity::class.java,
                 CpkDbChangeLogKey(cpk.id.cpkFileChecksum, "master")
             )
-            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntities = getEntireHistoryOfChangelogsForCpi(
                 this,
                 CpiIdentifier(
                     cpi.name,
@@ -195,9 +222,9 @@ class CpkDbChangeLogEntityTest {
                 )
             ).sortedBy { it.insertTimestamp }
 
-            assertThat(cpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
+            assertThat(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1).id)
                 .isNotEqualTo(loadedDbLogAuditEntities.first().id)
-            assertThat(cpkDbChangeLogAuditEntity(loadedDbLogEntity).id)
+            assertThat(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, changeLog1).id)
                 .isEqualTo(loadedDbLogAuditEntities.last().id)
         }
     }
@@ -217,7 +244,7 @@ class CpkDbChangeLogEntityTest {
         transaction {
             persist(cpi)
             changeset1.forEach { persist(it) }
-            changeset1.forEach { persist(cpkDbChangeLogAuditEntity(it)) }
+            changeset1.forEach { persist(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, it)) }
             flush()
         }
 
@@ -234,12 +261,12 @@ class CpkDbChangeLogEntityTest {
         transaction {
             persist(cpi2)
             changeset2.forEach { persist(it) }
-            changeset2.forEach { persist(cpkDbChangeLogAuditEntity(it)) }
+            changeset2.forEach { persist(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, it)) }
             flush()
         }
 
         transaction {
-            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntities = getCpiChangelogsForGivenChangesetIds(
                 this,
                 cpi.name,
                 cpi.version,
@@ -251,7 +278,7 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntities = getCpiChangelogsForGivenChangesetIds(
                 this,
                 cpi2.name,
                 cpi2.version,
@@ -289,12 +316,12 @@ class CpkDbChangeLogEntityTest {
             persist(originalCpi)
             originalChangelogs.forEach {
                 persist(it)
-                persist(cpkDbChangeLogAuditEntity(it))
+                persist(cpkDbChangeLogAuditEntity(originalCpi.name, originalCpi.version, originalCpi.signerSummaryHash, it))
             }
         }
 
         transaction {
-            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntities = getCpiChangelogsForGivenChangesetIds(
                 this,
                 cpiName,
                 cpiVersion,
@@ -329,12 +356,12 @@ class CpkDbChangeLogEntityTest {
             merge(updatedCpi)
             newChangelogs.forEach {
                 persist(it)
-                persist(cpkDbChangeLogAuditEntity(it))
+                persist(cpkDbChangeLogAuditEntity(updatedCpi.name, updatedCpi.version, updatedCpi.signerSummaryHash, it))
             }
         }
 
         transaction {
-            val loadedDbLogAuditEntities = findDbChangeLogAuditForCpi(
+            val loadedDbLogAuditEntities = getCpiChangelogsForGivenChangesetIds(
                 this,
                 cpiName,
                 cpiVersion,
@@ -435,7 +462,7 @@ class CpkDbChangeLogEntityTest {
             persist(changeLog2)
             persist(changeLog3)
             flush()
-            val changeLogs = findDbChangeLogForCpi(
+            val changeLogs = findCurrentCpkChangeLogsForCpi(
                 this,
                 CpiIdentifier(cpi1.name, cpi1.version, SecureHash.parse(cpi1.signerSummaryHash))
             )
@@ -453,7 +480,7 @@ class CpkDbChangeLogEntityTest {
             persist(cpi1)
             persist(cpi2)
             flush()
-            val changeLogs = findDbChangeLogForCpi(
+            val changeLogs = findCurrentCpkChangeLogsForCpi(
                 this,
                 CpiIdentifier(cpi1.name, cpi1.version, SecureHash("SHA1", cpi1.signerSummaryHash.toByteArray()))
             )

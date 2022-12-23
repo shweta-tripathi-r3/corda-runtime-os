@@ -1,4 +1,4 @@
-package net.corda.test.util.virtualnode.cpx.dsl
+package net.corda.test.util.dsl.entities.cpx
 
 import java.util.UUID
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
