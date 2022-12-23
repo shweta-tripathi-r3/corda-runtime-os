@@ -250,7 +250,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -276,7 +276,7 @@ class VirtualNodeWriterProcessorTests {
                 vNodeFactory,
                 groupPolicyParser,
                 clock,
-                getChangelogs = { _, _ -> listOf(changelog) },
+                getCurrentChangelogsForCpi = { _, _ -> listOf(changelog) },
                 holdingIdentityRepository = holdingIdentityRepositoryMock(),
                 virtualNodeRepository = virtualNodeRepositoryMock()
             )
@@ -307,7 +307,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -356,7 +356,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -408,7 +408,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -456,7 +456,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -480,7 +480,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -508,7 +508,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -687,7 +687,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = virtualNodeRepositoryMock()
         )
@@ -723,7 +723,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepositoryMock(),
             virtualNodeRepository = vnodeRepo
         )
@@ -757,7 +757,7 @@ class VirtualNodeWriterProcessorTests {
             vNodeFactory,
             groupPolicyParser,
             clock,
-            getChangelogs = { _, _ -> listOf() },
+            getCurrentChangelogsForCpi = { _, _ -> listOf() },
             holdingIdentityRepository = holdingIdentityRepository,
             virtualNodeRepository = vnodeRepo
         )
