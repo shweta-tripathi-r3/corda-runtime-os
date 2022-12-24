@@ -51,7 +51,7 @@ import java.util.Random
 import java.util.UUID
 import javax.persistence.PersistenceException
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
-import net.corda.libs.cpi.datamodel.getCpiChangelogsForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.getCpiChangelogAuditEntitiesForGivenChangesetIds
 import net.corda.test.util.dsl.entities.cpx.cpkDbChangeLog
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -560,7 +560,7 @@ internal class DatabaseCpiPersistenceTest {
     }
 
     private fun findChangelogAudits(cpiEntity: CpiMetadataEntity, changesetIds: Set<UUID>) = entityManagerFactory.createEntityManager().transaction {
-        getCpiChangelogsForGivenChangesetIds(
+        getCpiChangelogAuditEntitiesForGivenChangesetIds(
             it,
             cpiEntity.name,
             cpiEntity.version,

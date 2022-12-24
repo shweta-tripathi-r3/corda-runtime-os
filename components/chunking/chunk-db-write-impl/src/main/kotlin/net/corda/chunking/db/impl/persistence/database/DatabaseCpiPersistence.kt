@@ -195,8 +195,25 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
             log.info(
                 "After uploading CPI ${cpi.metadata.cpiId.name}, v${cpi.metadata.cpiId.version}, discovered the following existing " +
                         "CPK changelogs: [${existingChangelogs.joinToString { "(${it.id.cpkFileChecksum}, ${it.id.filePath})" }}]. " +
-                        "No changelogs or audit entries will be persisted for these unchanged CPKs."
+                        "Persisting audit log entries for these changelogs."
             )
+            existingChangelogs.forEach { changelogEntity ->
+                em.persist(
+                    CpkDbChangeLogAuditEntity(
+                        CpkDbChangeLogAuditKey(
+                            cpi.metadata.cpiId.name,
+                            cpi.metadata.cpiId.version,
+                            cpi.metadata.cpiId.signerSummaryHashForDbQuery,
+                            changelogEntity.id.cpkFileChecksum,
+                            changelogEntity.changesetId,
+                            changelogEntity.entityVersion,
+                            changelogEntity.id.filePath
+                        ),
+                        changelogEntity.content,
+                        changelogEntity.isDeleted
+                    )
+                )
+            }
         }
     }
 

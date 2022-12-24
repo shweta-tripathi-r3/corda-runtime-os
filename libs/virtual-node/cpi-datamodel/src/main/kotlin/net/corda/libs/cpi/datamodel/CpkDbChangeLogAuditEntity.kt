@@ -48,7 +48,7 @@ data class CpkDbChangeLogAuditKey(
 ) : Serializable
 
 
-fun getCpiChangelogsForGivenChangesetIds(
+fun getCpiChangelogAuditEntitiesForGivenChangesetIds(
     entityManager: EntityManager,
     cpiName: String,
     cpiVersion: String,

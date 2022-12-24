@@ -24,7 +24,7 @@ import net.corda.db.core.DbPrivilege.DML
 import net.corda.layeredpropertymap.toAvro
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
-import net.corda.libs.cpi.datamodel.getCpiChangelogsForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.getCpiChangelogAuditEntitiesForGivenChangesetIds
 import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.libs.virtualnode.common.exception.CpiNotFoundException
@@ -278,7 +278,7 @@ internal class VirtualNodeWriterProcessor(
                             systemTerminatorTag
                         )
                         // Look up all audit entries that correspond to the UUID set that we just got
-                        val migrationSet = getCpiChangelogsForGivenChangesetIds(
+                        val migrationSet = getCpiChangelogAuditEntitiesForGivenChangesetIds(
                             tx,
                             virtualNodeInfo.cpiIdentifier.name,
                             virtualNodeInfo.cpiIdentifier.version,
@@ -543,19 +543,22 @@ internal class VirtualNodeWriterProcessor(
     }
 
     private fun runCpiResyncMigrations(dataSource: CloseableDataSource, changelogs: List<CpkDbChangeLogEntity>) {
-        val changelogsPerCpk = changelogs.groupBy { it.id.cpkFileChecksum }
+        // run all changesets per CPK, get the changesets in a cpkFileChecksum
+        val changeLogsByChecksum: Map<String, List<CpkDbChangeLogEntity>> = changelogs.groupBy { it.id.cpkFileChecksum }
 
-        changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
-            val changesetId = changeLogs.first().changesetId.toString()
-            logger.info("Preparing to run ${changeLogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
-            val changeLogDtos = changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) }
+        changeLogsByChecksum.forEach { (cpkFileChecksum, changelogs) ->
+            check(changelogs.map { it.changesetId }.toSet().size == 1) {
+                "all changelogs in this CPK should have the same changesetId"
+            }
+            val changesetId = changelogs.first().changesetId
 
-            LiquibaseSchemaMigratorImpl()
-                .updateDb(
-                    dataSource.connection,
-                    VirtualNodeDbChangeLog(changeLogDtos),
-                    tag = changesetId
-                )
+            logger.info("Preparing to run ${changelogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
+
+            LiquibaseSchemaMigratorImpl().updateDb(
+                dataSource.connection,
+                VirtualNodeDbChangeLog(changelogs.map { CpkDbChangeLog(it.id.filePath, it.content) }),
+                tag = changesetId.toString()
+            )
         }
     }
 
