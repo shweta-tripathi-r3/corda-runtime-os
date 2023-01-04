@@ -53,26 +53,33 @@ data class CpkDbChangeLogKey(
     val changesetId: UUID
 ) : Serializable
 
-
 /*
  * Find all the db changelogs for a CPI
  */
 fun findCurrentCpkChangeLogsForCpi(
     entityManager: EntityManager,
     cpi: CpiIdentifier
-): List<CpkDbChangeLogEntity> = entityManager.createQuery(
-    "SELECT changelog " +
-            "FROM ${CpkDbChangeLogEntity::class.simpleName} AS changelog INNER JOIN " +
-            "${CpiCpkEntity::class.simpleName} AS cpiCpk " +
-            "ON changelog.id.cpkFileChecksum = cpiCpk.id.cpkFileChecksum " +
-            "WHERE cpiCpk.id.cpiName = :name AND "+
-            "      cpiCpk.id.cpiVersion = :version AND "+
-            "      cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash AND "+
-            "      changelog.isDeleted = FALSE",
-    // TODO - what order should we return?
-    CpkDbChangeLogEntity::class.java
-)
-    .setParameter("name", cpi.name)
-    .setParameter("version", cpi.version)
-    .setParameter("signerSummaryHash", cpi.signerSummaryHash?.toString()?:"")
-    .resultList
+): List<CpkDbChangeLogEntity> {
+    val allChangelogsForCPI = entityManager.createQuery(
+        "SELECT changelog " +
+                "FROM ${CpkDbChangeLogEntity::class.simpleName} AS changelog INNER JOIN " +
+                "${CpiCpkEntity::class.simpleName} AS cpiCpk " +
+                "ON changelog.id.cpkFileChecksum = cpiCpk.id.cpkFileChecksum " +
+                "WHERE cpiCpk.id.cpiName = :name AND "+
+                "      cpiCpk.id.cpiVersion = :version AND "+
+                "      cpiCpk.id.cpiSignerSummaryHash = :signerSummaryHash AND "+
+                "      changelog.isDeleted = FALSE " +
+                "ORDER BY changelog.insertTimestamp DESC",
+        CpkDbChangeLogEntity::class.java
+    )
+        .setParameter("name", cpi.name)
+        .setParameter("version", cpi.version)
+        .setParameter("signerSummaryHash", cpi.signerSummaryHash?.toString()?:"")
+        .resultList
+
+    if (allChangelogsForCPI.isEmpty()) return emptyList()
+
+    // select out the most recent changelogs
+    val mostRecentChangesetId = allChangelogsForCPI.first().id.changesetId
+    return allChangelogsForCPI.filter { it.id.changesetId == mostRecentChangesetId }
+}

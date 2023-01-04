@@ -19,7 +19,6 @@ fun newRandomSecureHash(): SecureHash {
     return SecureHash(DigestAlgorithmName.DEFAULT_ALGORITHM_NAME.name, ByteArray(32).also(random::nextBytes))
 }
 
-//@Deprecated("Use `CpiPersistence.updateMetadataAndCpksWithDefaults` or `CpiPersistence.persistMetadataAndCpksWithDefaults` instead")
 fun CpiPersistence.storeWithTestDefaults(
     cpi: Cpi,
     cpiFileName: String = "test.cpi",
