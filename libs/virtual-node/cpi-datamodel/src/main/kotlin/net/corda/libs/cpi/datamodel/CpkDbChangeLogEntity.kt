@@ -23,8 +23,6 @@ class CpkDbChangeLogEntity(
     var id: CpkDbChangeLogKey,
     @Column(name = "content", nullable = false)
     val content: String,
-    @Column(name = "changeset_id", nullable = false)
-    val changesetId: UUID
 ) {
     // This structure does not distinguish the root changelogs from changelog include files
     // (or CSVs, which we do not need to support). So, to find the root, you need to look for a filename
@@ -51,6 +49,8 @@ data class CpkDbChangeLogKey(
     var cpkFileChecksum: String,
     @Column(name = "file_path", nullable = false)
     val filePath: String,
+    @Column(name = "changeset_id", nullable = false)
+    val changesetId: UUID
 ) : Serializable
 
 

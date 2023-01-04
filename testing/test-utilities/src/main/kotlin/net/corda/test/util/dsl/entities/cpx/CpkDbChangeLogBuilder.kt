@@ -34,10 +34,10 @@ class CpkDbChangeLogBuilder(private var fileChecksumSupplier: () -> String? = { 
         return CpkDbChangeLogEntity(
             CpkDbChangeLogKey(
                 fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
-                filePath ?: "file_path_$randomUUID"
+                filePath ?: "file_path_$randomUUID",
+                changesetId ?: UUID.randomUUID()
             ),
-            "data_$randomUUID",
-            changesetId ?: UUID.randomUUID()
+            "data_$randomUUID"
         )
     }
 }

@@ -8,7 +8,7 @@ import net.corda.libs.cpi.datamodel.CpkMetadataEntity
 class CpiCpkBuilder(
     private var cpiNameSupplier: () -> String?,
     private var cpiVersionSupplier: () -> String?,
-    private var cpiSshSupplier: () -> String?,
+    private var cpiSignerSummaryHashSupplier: () -> String?,
     private val randomId: UUID = UUID.randomUUID()
 ) {
 
@@ -16,8 +16,8 @@ class CpiCpkBuilder(
         cpk: CpkMetadataBuilder,
         cpiNameSupplier: () -> String?,
         cpiVersionSupplier: () -> String?,
-        cpiSshSupplier: () -> String?,
-    ) : this(cpiNameSupplier, cpiVersionSupplier, cpiSshSupplier) {
+        cpiSignerSummaryHashSupplier: () -> String?,
+    ) : this(cpiNameSupplier, cpiVersionSupplier, cpiSignerSummaryHashSupplier) {
         name = cpk.cpkName
         version = cpk.cpkVersion
         signerSummaryHash = cpk.cpkSignerSummaryHash
@@ -26,14 +26,14 @@ class CpiCpkBuilder(
         metadata = cpk
         cpiName = cpiNameSupplier.invoke()
         cpiVersion = cpiVersionSupplier.invoke()
-        cpiSsh = cpiSshSupplier.invoke()
+        cpiSignerSummaryHash = cpiSignerSummaryHashSupplier.invoke()
         cpkFileChecksum = cpk.fileChecksumSupplier.invoke()
     }
 
     // cpi
     private var cpiName: String? = null
     private var cpiVersion: String? = null
-    private var cpiSsh: String? = null
+    private var cpiSignerSummaryHash: String? = null
 
     // cpk
     private var name: String? = null
@@ -108,7 +108,8 @@ class CpiCpkBuilder(
             CpiCpkKey(
                 cpiNameSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiNameSupplier is mandatory"),
                 cpiVersionSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiVersionSupplier is mandatory"),
-                cpiSshSupplier.invoke() ?: throw DslException("CpiCpkBuilder.cpiSshSupplier is mandatory"),
+                cpiSignerSummaryHashSupplier.invoke()
+                    ?: throw DslException("CpiCpkBuilder.cpiSignerSummaryHashSupplier is mandatory"),
                 supplyCpkFileChecksum()!!
             ),
             fileName ?: "cpk_filename_$randomId",

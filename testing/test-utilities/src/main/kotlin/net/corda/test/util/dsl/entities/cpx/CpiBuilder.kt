@@ -70,7 +70,7 @@ class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
         val cpk = CpiCpkBuilder(
             ::supplyCpiName,
             ::supplyCpiVersion,
-            ::supplyCpiSsh
+            ::supplyCpiSignerSummaryHash
         )
         init(cpk)
         cpks.add(cpk)
@@ -82,7 +82,7 @@ class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
             cpkMetadataBuilder,
             ::supplyCpiName,
             ::supplyCpiVersion,
-            ::supplyCpiSsh,
+            ::supplyCpiSignerSummaryHash,
         )
         additionalInit?.let { cpk.additionalInit() }
         cpks.add(cpk)
@@ -91,7 +91,7 @@ class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
 
     private fun supplyCpiName() = name
     private fun supplyCpiVersion() = version
-    private fun supplyCpiSsh() = signerSummaryHash
+    private fun supplyCpiSignerSummaryHash() = signerSummaryHash
 
     @Suppress("ComplexMethod")
     fun build(): CpiMetadataEntity {

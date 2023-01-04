@@ -520,12 +520,20 @@ internal class VirtualNodeWriterProcessor(
             val changelogsPerCpk: Map<String, List<CpkDbChangeLogEntity>> = getCurrentChangelogsForCpi(em, cpiMetadata.id)
                 .groupBy { it.id.cpkFileChecksum }
 
-            changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
-                // there is an assumption here that the changesetId of all changelogs in a CPK will be the same. Given that a new CPK record
-                // will be persisted if a changeset is changed in a force uploaded CPI, and given the changesetId is generated when
-                // extracting changelogs from a CPI, we can safely make this assumption.
-                val changesetId = changeLogs.first().changesetId.toString()
+            // ChangesetId is assigned to all changelogs from a CPI at extraction time.
+            val owningCpiChangesetIds = changelogsPerCpk.values.flatten().map { it.id.changesetId }.toSet()
+            if(owningCpiChangesetIds.size != 1) {
+                logger.warn(
+                    "While preparing to run migrations for CPI ${cpiMetadata.id}, discovered not all its CPK's changelogs have the same " +
+                            "changesetId. List of changesetIds: ${owningCpiChangesetIds.joinToString { it.toString() }}."
+                )
+            }
 
+            changelogsPerCpk.forEach { (cpkFileChecksum, changeLogs) ->
+                check(changeLogs.map { it.id.changesetId }.toSet().size == 1) {
+                    "all changelogs in this CPK should have the same changesetId"
+                }
+                val changesetId = changeLogs.first().id.changesetId.toString()
                 logger.info("Preparing to run ${changeLogs.size} migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
                 val allChangeLogsForCpk = VirtualNodeDbChangeLog(changeLogs.map { CpkDbChangeLog(it.id.filePath, it.content) })
                 try {
@@ -547,10 +555,10 @@ internal class VirtualNodeWriterProcessor(
         val changeLogsByChecksum: Map<String, List<CpkDbChangeLogEntity>> = changelogs.groupBy { it.id.cpkFileChecksum }
 
         changeLogsByChecksum.forEach { (cpkFileChecksum, changelogs) ->
-            check(changelogs.map { it.changesetId }.toSet().size == 1) {
+            check(changelogs.map { it.id.changesetId }.toSet().size == 1) {
                 "all changelogs in this CPK should have the same changesetId"
             }
-            val changesetId = changelogs.first().changesetId
+            val changesetId = changelogs.first().id.changesetId
 
             logger.info("Preparing to run ${changelogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
 

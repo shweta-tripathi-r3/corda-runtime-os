@@ -13,7 +13,7 @@ fun cpkDbChangeLogAudit(init: CpkDbChangeLogAuditBuilder.() -> Unit): CpkDbChang
 class CpkDbChangeLogAuditBuilder(
     private var cpiNameSupplier: () -> String? = { null },
     private var cpiVersionSupplier: () -> String? = { null },
-    private var cpiSshSupplier: () -> String? = { null },
+    private var cpiSignerSummaryHashSupplier: () -> String? = { null },
     private var fileChecksumSupplier: () -> String? = { null },
     private val randomUUID: UUID = UUID.randomUUID()
 ) {
@@ -33,8 +33,8 @@ class CpkDbChangeLogAuditBuilder(
         return this
     }
 
-    fun cpiSsh(value: String): CpkDbChangeLogAuditBuilder {
-        cpiSshSupplier = { value }
+    fun cpiSignerSummaryHash(value: String): CpkDbChangeLogAuditBuilder {
+        cpiSignerSummaryHashSupplier = { value }
         return this
     }
 
@@ -68,7 +68,7 @@ class CpkDbChangeLogAuditBuilder(
             CpkDbChangeLogAuditKey(
                 cpiNameSupplier.invoke() ?: "cpiName_$randomUUID",
                 cpiVersionSupplier.invoke() ?: "cpiVersion_$randomUUID",
-                cpiSshSupplier.invoke() ?: "cpiSsh_$randomUUID",
+                cpiSignerSummaryHashSupplier.invoke() ?: "cpiSignerSummaryHash_$randomUUID",
                 fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
                 changesetId ?: UUID.randomUUID(),
                 entityVersion ?: 0,

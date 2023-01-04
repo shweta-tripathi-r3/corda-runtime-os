@@ -253,6 +253,7 @@ internal class DatabaseCpiPersistenceTest {
         val cpk1 = mockCpk()
         val cpi = mockCpi(cpk1)
         val cpiFileName = "test${UUID.randomUUID()}.cpi"
+        val changesetId1 = UUID.randomUUID()
 
         // first of all, persist the original CPI along with its associated CPKs and a CpkDbChangeLog
         val groupId = "group-a"
@@ -262,7 +263,13 @@ internal class DatabaseCpiPersistenceTest {
             newRandomSecureHash(),
             UUID.randomUUID().toString(),
             groupId,
-            listOf(cpkDbChangeLog { fileChecksum(cpk1.fileChecksum) })
+            listOf(
+                cpkDbChangeLog {
+                    fileChecksum(cpk1.fileChecksum)
+                    changesetId(changesetId1)
+                    filePath(cpk1.path.toString())
+                }
+            )
         )
 
         val persistedCpi = loadCpiDirectFromDatabase(cpi)
@@ -275,6 +282,7 @@ internal class DatabaseCpiPersistenceTest {
 
         val cpk2 = mockCpk()
         val updatedCpi = mockCpiWithId(listOf(cpk1, cpk2), cpi.metadata.cpiId)
+        val changesetId2 = UUID.randomUUID()
 
         // simulate a force update to CPI, including adding two change logs
         cpiPersistence.updateMetadataAndCpks(
@@ -284,8 +292,16 @@ internal class DatabaseCpiPersistenceTest {
             UUID.randomUUID().toString(),
             groupId,
             listOf(
-                cpkDbChangeLog { fileChecksum(cpk1.fileChecksum) },
-                cpkDbChangeLog { fileChecksum(cpk2.fileChecksum) }
+                cpkDbChangeLog {
+                    fileChecksum(cpk1.fileChecksum)
+                    changesetId(changesetId2)
+                    filePath(cpk1.path.toString())
+                },
+                cpkDbChangeLog {
+                    fileChecksum(cpk2.fileChecksum)
+                    changesetId(changesetId2)
+                    filePath(cpk2.path.toString())
+                }
             )
         )
 
@@ -302,19 +318,21 @@ internal class DatabaseCpiPersistenceTest {
         assertThat(forceUploadedCpk2.entityVersion).isEqualTo(0)
         assertThat(forceUploadedCpk2.metadata.entityVersion).isEqualTo(0)
 
-//        assertChangeLogPersistedWithCpi(cpk1)
-//        assertChangeLogPersistedWithCpi(cpk2)
+        assertChangeLogPersistedWithCpi(cpk1, changesetId1)
+        assertChangeLogPersistedWithCpi(cpk1, changesetId2) // cpk2's database changelog is persisted with both changesets
+        assertChangeLogPersistedWithCpi(cpk2, changesetId2)
     }
 
-    private fun assertChangeLogPersistedWithCpi(cpk: Cpk) {
+    private fun assertChangeLogPersistedWithCpi(cpk: Cpk, changesetId: UUID) {
         val cpkFileChecksum = cpk.metadata.fileChecksum.toString()
-        val dbChangeLog = loadCpkDbChangeLog(cpkFileChecksum, cpk.path.toString())
-        assertThat(dbChangeLog.id.cpkFileChecksum).isEqualTo(cpkFileChecksum)
+        val dbChangeLogAsList = loadCpkDbChangeLog(cpkFileChecksum, cpk.path.toString(), changesetId)
+        assertThat(dbChangeLogAsList).isNotNull
+        assertThat(dbChangeLogAsList.id.cpkFileChecksum).isEqualTo(cpkFileChecksum)
     }
 
-    private fun loadCpkDbChangeLog(cpkFileChecksum: String, filePath: String): CpkDbChangeLogEntity {
+    private fun loadCpkDbChangeLog(cpkFileChecksum: String, filePath: String, changesetId: UUID): CpkDbChangeLogEntity {
         return entityManagerFactory.createEntityManager().transaction { em ->
-            em.find(CpkDbChangeLogEntity::class.java, CpkDbChangeLogKey(cpkFileChecksum, filePath))
+            em.find(CpkDbChangeLogEntity::class.java, CpkDbChangeLogKey(cpkFileChecksum, filePath, changesetId))
         }
     }
 
@@ -540,9 +558,11 @@ internal class DatabaseCpiPersistenceTest {
             .withFailMessage("Expecting only 1 changelog to be associated with the CPI as only one CPK is associated")
             .isEqualTo(1)
         assertThat(updatedChangelogAudits.size)
-            .withFailMessage("Expecting 2 changelog audit records since a virtual node may have run migration from the " +
-                    "previous CPK, and the content of this changelog should be persisted in an audit accessible via the cpi identifier " +
-                    "and changeset ID")
+            .withFailMessage(
+                "Expecting 2 changelog audit records since a virtual node may have run migration from the " +
+                        "previous CPK, and the content of this changelog should be persisted in an audit accessible via the cpi identifier " +
+                        "and changeset ID"
+            )
             .isEqualTo(2)
         assertThat((changelogs + updatedChangelogs).map { cpkDbChangeLogAuditEntity(cpi.metadata.cpiId, it).id })
             .containsAll(updatedChangelogAudits.map { it.id })
@@ -559,15 +579,16 @@ internal class DatabaseCpiPersistenceTest {
         )
     }
 
-    private fun findChangelogAudits(cpiEntity: CpiMetadataEntity, changesetIds: Set<UUID>) = entityManagerFactory.createEntityManager().transaction {
-        getCpiChangelogAuditEntitiesForGivenChangesetIds(
-            it,
-            cpiEntity.name,
-            cpiEntity.version,
-            cpiEntity.signerSummaryHash,
-            changesetIds
-        )
-    }
+    private fun findChangelogAudits(cpiEntity: CpiMetadataEntity, changesetIds: Set<UUID>) =
+        entityManagerFactory.createEntityManager().transaction {
+            getCpiChangelogAuditEntitiesForGivenChangesetIds(
+                it,
+                cpiEntity.name,
+                cpiEntity.version,
+                cpiEntity.signerSummaryHash,
+                changesetIds
+            )
+        }
 
     private fun cpkDbChangeLogAuditEntity(cpiIdentifier: CpiIdentifier, changelog: CpkDbChangeLogEntity): CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
@@ -576,7 +597,7 @@ internal class DatabaseCpiPersistenceTest {
                 cpiIdentifier.version,
                 cpiIdentifier.signerSummaryHash?.toString() ?: "",
                 changelog.id.cpkFileChecksum,
-                changelog.changesetId,
+                changelog.id.changesetId,
                 changelog.entityVersion,
                 changelog.id.filePath
             ),
@@ -700,10 +721,10 @@ internal class DatabaseCpiPersistenceTest {
             CpkDbChangeLogEntity(
                 CpkDbChangeLogKey(
                     cpk.metadata.fileChecksum.toString(),
-                    "resources/$changeLog"
+                    "resources/$changeLog",
+                    UUID.randomUUID()
                 ),
-                changeLog,
-                UUID.randomUUID()
+                changeLog
             )
         }
     }

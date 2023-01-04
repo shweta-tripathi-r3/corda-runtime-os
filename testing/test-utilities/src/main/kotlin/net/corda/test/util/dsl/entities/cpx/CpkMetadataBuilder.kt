@@ -52,7 +52,7 @@ class CpkMetadataBuilder(internal var fileChecksumSupplier: () -> String? = { nu
             fileChecksumSupplier.invoke() ?: "cpk_file_checksum_$randomId",
             cpkName ?: "name_$randomId",
             cpkVersion ?: "version_$randomId",
-            cpkSignerSummaryHash ?: "ssh_$randomId",
+            cpkSignerSummaryHash ?: "signerSummaryHash_$randomId",
             formatVersion ?: "format_version_$randomId".take(12),
             serializedMetadata ?: "serialized_metadata_$randomId"
         )

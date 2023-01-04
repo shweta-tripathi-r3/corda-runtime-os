@@ -52,7 +52,7 @@ fun getCpiChangelogAuditEntitiesForGivenChangesetIds(
     entityManager: EntityManager,
     cpiName: String,
     cpiVersion: String,
-    cpiSsh: String,
+    cpiSignerSummaryHash: String,
     changesetIds: Set<UUID>
 ): List<CpkDbChangeLogAuditEntity> = changesetIds.chunked(100) { changesetIdSlice ->
     entityManager.createQuery(
@@ -65,7 +65,7 @@ fun getCpiChangelogAuditEntitiesForGivenChangesetIds(
     )
         .setParameter("name", cpiName)
         .setParameter("version", cpiVersion)
-        .setParameter("signerSummaryHash", cpiSsh)
+        .setParameter("signerSummaryHash", cpiSignerSummaryHash)
         .setParameter("changesetIds", changesetIdSlice)
         .resultList
 }.flatten()

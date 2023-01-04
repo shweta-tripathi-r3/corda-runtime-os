@@ -11,7 +11,6 @@ import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
 import net.corda.libs.cpi.datamodel.CpkFileEntity
 import net.corda.libs.cpi.datamodel.CpkMetadataEntity
-import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.cpiupload.DuplicateCpiUploadException
 import net.corda.libs.cpiupload.ValidationException
 import net.corda.libs.packaging.Cpi
@@ -25,7 +24,6 @@ import javax.persistence.EntityManagerFactory
 import javax.persistence.LockModeType
 import javax.persistence.NonUniqueResultException
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
-import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
 
 /**
  * This class provides some simple APIs to interact with the database for manipulating CPIs, CPKs and their associated metadata.
@@ -161,15 +159,11 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
         // The incoming changelogs will not be marked deleted
         changelogsExtractedFromCpi.forEach { require(!it.isDeleted) }
 
-        // There could be pre-existing changelogs if some CPKs for this CPI already exist, for example, if the CPI is force uploaded and
-        // some CPKs are unchanged, or if some CPKs in this CPI were already uploaded by another CPI
-        val preExistingChangelogsForCpiMap: Map<CpkDbChangeLogKey,CpkDbChangeLogEntity> =
-            findCurrentCpkChangeLogsForCpi(em, cpi.metadata.cpiId).associateBy { it.id }
-
-        val (existingChangelogs, newChangelogs) = changelogsExtractedFromCpi.partition { it.id in preExistingChangelogsForCpiMap.keys }
-
-        log.info("Persisting new changelogs for CPKs: ${newChangelogs.joinToString { "(${it.id.cpkFileChecksum}, ${it.id.filePath})" }}")
-        newChangelogs.forEach { changelogEntity ->
+        log.info(
+            "Persisting new changelogs for CPKs: " +
+                    changelogsExtractedFromCpi.joinToString { "(${it.id.cpkFileChecksum}, ${it.id.filePath}, ${it.id.changesetId})" }
+        )
+        changelogsExtractedFromCpi.forEach { changelogEntity ->
             em.persist(changelogEntity)
             em.persist(
                 CpkDbChangeLogAuditEntity(
@@ -178,7 +172,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
                         cpi.metadata.cpiId.version,
                         cpi.metadata.cpiId.signerSummaryHashForDbQuery,
                         changelogEntity.id.cpkFileChecksum,
-                        changelogEntity.changesetId,
+                        changelogEntity.id.changesetId,
                         changelogEntity.entityVersion,
                         changelogEntity.id.filePath
                     ),
@@ -186,34 +180,6 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
                     changelogEntity.isDeleted
                 )
             )
-        }
-
-        // a CPK force uploaded with different changelogs will have a different file checksum.
-        // even if the only thing that changes is the filename of the changeset, will result in a different CPK.
-        // Thus, no change is necessary for existing changelogs.
-        if(existingChangelogs.isNotEmpty()) {
-            log.info(
-                "After uploading CPI ${cpi.metadata.cpiId.name}, v${cpi.metadata.cpiId.version}, discovered the following existing " +
-                        "CPK changelogs: [${existingChangelogs.joinToString { "(${it.id.cpkFileChecksum}, ${it.id.filePath})" }}]. " +
-                        "Persisting audit log entries for these changelogs."
-            )
-            existingChangelogs.forEach { changelogEntity ->
-                em.persist(
-                    CpkDbChangeLogAuditEntity(
-                        CpkDbChangeLogAuditKey(
-                            cpi.metadata.cpiId.name,
-                            cpi.metadata.cpiId.version,
-                            cpi.metadata.cpiId.signerSummaryHashForDbQuery,
-                            changelogEntity.id.cpkFileChecksum,
-                            changelogEntity.changesetId,
-                            changelogEntity.entityVersion,
-                            changelogEntity.id.filePath
-                        ),
-                        changelogEntity.content,
-                        changelogEntity.isDeleted
-                    )
-                )
-            }
         }
     }
 
