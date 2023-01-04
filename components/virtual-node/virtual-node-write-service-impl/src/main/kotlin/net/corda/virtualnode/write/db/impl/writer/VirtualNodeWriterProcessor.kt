@@ -242,22 +242,22 @@ internal class VirtualNodeWriterProcessor(
     ) {
         val em = dbConnectionManager.getClusterEntityManagerFactory().createEntityManager()
         val shortHashes = em.use {
-            dbResetRequest.holdingIdentityShortHashes.map { shortHashString ->
-                val shortHash = ShortHash.Companion.of(shortHashString)
+            dbResetRequest.holdingIdentityShortHashes.map { currentVNodeShortHash ->
+                val shortHash = ShortHash.Companion.of(currentVNodeShortHash)
                 // Open a TX to find the connection information we need for the virtual nodes vault as it may live on
                 //  another database.
                 it.transaction { tx ->
                     // Retrieve virtual node info
                     val virtualNodeInfo = virtualNodeRepository.find(tx, shortHash)
                     if(null == virtualNodeInfo) {
-                            logger.warn("Could not find the virtual node: $shortHashString")
+                            logger.warn("Could not find the virtual node: $currentVNodeShortHash")
                             respFuture.complete(
                                 VirtualNodeManagementResponse(
                                     instant,
                                     VirtualNodeManagementResponseFailure(
                                         ExceptionEnvelope(
                                             VirtualNodeNotFoundException::class.java.name,
-                                            "Could not find the virtual node: $shortHashString"
+                                            "Could not find the virtual node: $currentVNodeShortHash"
                                         )
                                     )
                                 )
@@ -277,6 +277,8 @@ internal class VirtualNodeWriterProcessor(
                             dataSource,
                             systemTerminatorTag
                         )
+                        logger.info("Currently applied changesetIds on vault schema for virtual node " +
+                                "$currentVNodeShortHash: [${appliedVersions.joinToString() }]")
                         // Look up all audit entries that correspond to the UUID set that we just got
                         val migrationSet = getCpiChangelogAuditEntitiesForGivenChangesetIds(
                             tx,
@@ -284,6 +286,14 @@ internal class VirtualNodeWriterProcessor(
                             virtualNodeInfo.cpiIdentifier.version,
                             virtualNodeInfo.cpiIdentifier.signerSummaryHash?.toString() ?: "",
                             appliedVersions
+                        )
+                        logger.info(
+                            "Attempting to roll back the following migrations for virtual node '$currentVNodeShortHash' " +
+                                    "with CPI name ${virtualNodeInfo.cpiIdentifier.name}, v${virtualNodeInfo.cpiIdentifier.version} " +
+                                    "[" +
+                                    "${migrationSet.joinToString { 
+                                        it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId 
+                                    }}]"
                         )
                         // Attempt to rollback the acquired changes
                         rollbackVirtualNodeDb(
