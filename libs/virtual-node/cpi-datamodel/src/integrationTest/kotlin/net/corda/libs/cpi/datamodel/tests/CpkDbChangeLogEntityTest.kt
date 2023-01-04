@@ -109,9 +109,7 @@ class CpkDbChangeLogEntityTest {
         transaction {
             persist(cpi)
             persist(changeLog1)
-            flush()
             persist(changeLog1Audit)
-            flush()
         }
 
         transaction {

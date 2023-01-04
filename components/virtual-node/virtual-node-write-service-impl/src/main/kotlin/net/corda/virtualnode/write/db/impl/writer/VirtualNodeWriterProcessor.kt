@@ -529,7 +529,7 @@ internal class VirtualNodeWriterProcessor(
 
             // ChangesetId is assigned to all changelogs from a CPI at extraction time.
             val owningCpiChangesetIds = changelogsPerCpk.values.flatten().map { it.id.changesetId }.toSet()
-            if(owningCpiChangesetIds.size != 1) {
+            if (owningCpiChangesetIds.size != 1) {
                 logger.warn(
                     "While preparing to run migrations for CPI ${cpiMetadata.id}, discovered not all its CPK's changelogs have the same " +
                             "changesetId. List of changesetIds: ${owningCpiChangesetIds.joinToString { it.toString() }}."
@@ -563,7 +563,7 @@ internal class VirtualNodeWriterProcessor(
 
         changeLogsByChecksum.forEach { (cpkFileChecksum, changelogs) ->
             check(changelogs.map { it.id.changesetId }.toSet().size == 1) {
-                "all changelogs in this CPK should have the same changesetId"
+                "All changelogs in this CPK '$cpkFileChecksum' should have the same changesetId."
             }
             val changesetId = changelogs.first().id.changesetId
 
@@ -574,6 +574,7 @@ internal class VirtualNodeWriterProcessor(
                 VirtualNodeDbChangeLog(changelogs.map { CpkDbChangeLog(it.id.filePath, it.content) }),
                 tag = changesetId.toString()
             )
+            logger.info("Resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId' completed.")
         }
     }
 
