@@ -51,7 +51,7 @@ import java.util.Random
 import java.util.UUID
 import javax.persistence.PersistenceException
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditKey
-import net.corda.libs.cpi.datamodel.getCpiChangelogAuditEntitiesForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.changelogAuditEntriesForGivenChangesetIds
 import net.corda.test.util.dsl.entities.cpx.cpkDbChangeLog
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -532,7 +532,7 @@ internal class DatabaseCpiPersistenceTest {
         )
 
         val changelogs = findChangelogs(cpiEntity)
-        val changelogAudits = findChangelogAudits(cpiEntity, setOf(rand1))
+        val changelogAudits = findChangelogAuditsForChangesetIds(setOf(rand1))
         assertThat(changelogs.size).isEqualTo(1)
         assertThat(changelogAudits.size).isEqualTo(1)
 
@@ -552,7 +552,7 @@ internal class DatabaseCpiPersistenceTest {
             )
         )
         val updatedChangelogs = findChangelogs(updateCpiEntity)
-        val updatedChangelogAudits = findChangelogAudits(updateCpiEntity, setOf(rand1, rand2))
+        val updatedChangelogAudits = findChangelogAuditsForChangesetIds(setOf(rand1, rand2))
 
         assertThat(updatedChangelogs.size)
             .withFailMessage("Expecting only 1 changelog to be associated with the CPI as only one CPK is associated")
@@ -579,15 +579,9 @@ internal class DatabaseCpiPersistenceTest {
         )
     }
 
-    private fun findChangelogAudits(cpiEntity: CpiMetadataEntity, changesetIds: Set<UUID>) =
+    private fun findChangelogAuditsForChangesetIds(changesetIds: Set<UUID>) =
         entityManagerFactory.createEntityManager().transaction {
-            getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                it,
-                cpiEntity.name,
-                cpiEntity.version,
-                cpiEntity.signerSummaryHash,
-                changesetIds
-            )
+            changelogAuditEntriesForGivenChangesetIds(it, changesetIds)
         }
 
     private fun cpkDbChangeLogAuditEntity(cpiIdentifier: CpiIdentifier, changelog: CpkDbChangeLogEntity): CpkDbChangeLogAuditEntity {
@@ -622,7 +616,7 @@ internal class DatabaseCpiPersistenceTest {
         )
 
         val changelogs = findChangelogs(cpiEntity)
-        val changelogAudits = findChangelogAudits(cpiEntity, setOf(rand1))
+        val changelogAudits = findChangelogAuditsForChangesetIds(setOf(rand1))
         assertThat(changelogs.size).isEqualTo(1)
         assertThat(changelogAudits.size).isEqualTo(1)
 
@@ -650,7 +644,7 @@ internal class DatabaseCpiPersistenceTest {
         )
 
         val updatedChangelogs = findChangelogs(updateCpiEntity)
-        val updatedChangelogAudits = findChangelogAudits(updateCpiEntity, setOf(rand1, rand2))
+        val updatedChangelogAudits = findChangelogAuditsForChangesetIds(setOf(rand1, rand2))
 
         assertThat(updatedChangelogs.size).isEqualTo(2)
         assertThat(updatedChangelogAudits.size).isEqualTo(3)

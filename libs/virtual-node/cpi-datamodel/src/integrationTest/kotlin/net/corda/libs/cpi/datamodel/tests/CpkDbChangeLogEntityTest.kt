@@ -8,7 +8,7 @@ import net.corda.libs.cpi.datamodel.CpiEntities
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogKey
-import net.corda.libs.cpi.datamodel.getCpiChangelogAuditEntitiesForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.changelogAuditEntriesForGivenChangesetIds
 import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.orm.EntityManagerConfiguration
@@ -119,13 +119,8 @@ class CpkDbChangeLogEntityTest {
                 CpkDbChangeLogEntity::class.java,
                 CpkDbChangeLogKey(cpkFileChecksum, "master", changesetId)
             )
-            val loadedDbLogAuditEntity = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpi.name,
-                cpi.version,
-                cpi.signerSummaryHash,
-                setOf(changesetId)
-            ).singleOrNull()
+            val loadedDbLogAuditEntity = changelogAuditEntriesForGivenChangesetIds(this, setOf(changesetId))
+                .singleOrNull()
 
             assertThat(loadedDbLogAuditEntity)
                 .isNotEqualTo(null)
@@ -183,13 +178,8 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val loadedDbLogAuditEntities = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpi.name,
-                cpi.version,
-                cpi.signerSummaryHash,
-                setOf(changesetId)
-            ).sortedBy { it.insertTimestamp }
+            val loadedDbLogAuditEntities = changelogAuditEntriesForGivenChangesetIds(this, setOf(changesetId))
+                .sortedBy { it.insertTimestamp }
 
             assertThat(loadedDbLogAuditEntities[0].id)
                 .isEqualTo(
@@ -226,13 +216,7 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val audits = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpkDbChangeLogAudit.id.cpiName,
-                cpkDbChangeLogAudit.id.cpiVersion,
-                cpkDbChangeLogAudit.id.cpiSignerSummaryHash,
-                setOf(cpkDbChangeLogAudit.id.changesetId)
-            )
+            val audits = changelogAuditEntriesForGivenChangesetIds(this, setOf(cpkDbChangeLogAudit.id.changesetId))
             assertThat(audits).hasSize(1)
             assertThat(audits[0].id.changesetId).isEqualTo(cpkDbChangeLogAudit.id.changesetId)
             assertThat(audits[0].id.cpiName).isEqualTo(cpkDbChangeLogAudit.id.cpiName)
@@ -266,13 +250,7 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val audits = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpiName,
-                cpiVersion,
-                cpiSignerSummaryHash,
-                setOf(audit1.id.changesetId, audit2.id.changesetId)
-            )
+            val audits = changelogAuditEntriesForGivenChangesetIds(this, setOf(audit1.id.changesetId, audit2.id.changesetId))
             assertThat(audits).hasSize(2)
             assertThat(audits.map { it.id.cpiName }.toSet()).isEqualTo(setOf(cpiName))
             assertThat(audits.map { it.id.cpiVersion }.toSet()).isEqualTo(setOf(cpiVersion))
@@ -311,13 +289,7 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val loadedDbLogAuditEntities = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpiName,
-                cpiVersion,
-                cpiSignerSummaryHash,
-                setOf(changesetId1)
-            )
+            val loadedDbLogAuditEntities = changelogAuditEntriesForGivenChangesetIds(this, setOf(changesetId1))
 
             assertThat(loadedDbLogAuditEntities.size).isEqualTo(3)
         }
@@ -350,13 +322,7 @@ class CpkDbChangeLogEntityTest {
         }
 
         transaction {
-            val loadedDbLogAuditEntities = getCpiChangelogAuditEntitiesForGivenChangesetIds(
-                this,
-                cpiName,
-                cpiVersion,
-                cpiSignerSummaryHash,
-                setOf(changesetId2)
-            )
+            val loadedDbLogAuditEntities = changelogAuditEntriesForGivenChangesetIds(this, setOf(changesetId2))
 
             assertThat(loadedDbLogAuditEntities.size).isEqualTo(2)
         }

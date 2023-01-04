@@ -47,25 +47,14 @@ data class CpkDbChangeLogAuditKey(
     val filePath: String,
 ) : Serializable
 
-
-fun getCpiChangelogAuditEntitiesForGivenChangesetIds(
-    entityManager: EntityManager,
-    cpiName: String,
-    cpiVersion: String,
-    cpiSignerSummaryHash: String,
-    changesetIds: Set<UUID>
-): List<CpkDbChangeLogAuditEntity> = changesetIds.chunked(100) { changesetIdSlice ->
-    entityManager.createQuery(
-        "FROM ${CpkDbChangeLogAuditEntity::class.simpleName}" +
-                " WHERE id.cpiName = :name AND" +
-                " id.cpiVersion = :version AND" +
-                " id.cpiSignerSummaryHash = :signerSummaryHash AND" +
-                " id.changesetId IN :changesetIds",
-        CpkDbChangeLogAuditEntity::class.java
-    )
-        .setParameter("name", cpiName)
-        .setParameter("version", cpiVersion)
-        .setParameter("signerSummaryHash", cpiSignerSummaryHash)
-        .setParameter("changesetIds", changesetIdSlice)
-        .resultList
-}.flatten()
+fun changelogAuditEntriesForGivenChangesetIds(entityManager: EntityManager, changesetIds: Set<UUID>): List<CpkDbChangeLogAuditEntity> {
+    return changesetIds.chunked(100) { changesetIdSlice ->
+        entityManager.createQuery(
+            "FROM ${CpkDbChangeLogAuditEntity::class.simpleName}" +
+                    " WHERE id.changesetId IN :changesetIds",
+            CpkDbChangeLogAuditEntity::class.java
+        )
+            .setParameter("changesetIds", changesetIdSlice)
+            .resultList
+    }.flatten()
+}

@@ -24,7 +24,7 @@ import net.corda.db.core.DbPrivilege.DML
 import net.corda.layeredpropertymap.toAvro
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogAuditEntity
 import net.corda.libs.cpi.datamodel.CpkDbChangeLogEntity
-import net.corda.libs.cpi.datamodel.getCpiChangelogAuditEntitiesForGivenChangesetIds
+import net.corda.libs.cpi.datamodel.changelogAuditEntriesForGivenChangesetIds
 import net.corda.libs.cpi.datamodel.findCurrentCpkChangeLogsForCpi
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.libs.virtualnode.common.exception.CpiNotFoundException
@@ -280,11 +280,8 @@ internal class VirtualNodeWriterProcessor(
                         logger.info("Currently applied changesetIds on vault schema for virtual node " +
                                 "$currentVNodeShortHash: [${appliedVersions.joinToString() }]")
                         // Look up all audit entries that correspond to the UUID set that we just got
-                        val migrationSet = getCpiChangelogAuditEntitiesForGivenChangesetIds(
+                        val migrationSet = changelogAuditEntriesForGivenChangesetIds(
                             tx,
-                            virtualNodeInfo.cpiIdentifier.name,
-                            virtualNodeInfo.cpiIdentifier.version,
-                            virtualNodeInfo.cpiIdentifier.signerSummaryHash?.toString() ?: "",
                             appliedVersions
                         )
                         logger.info(
