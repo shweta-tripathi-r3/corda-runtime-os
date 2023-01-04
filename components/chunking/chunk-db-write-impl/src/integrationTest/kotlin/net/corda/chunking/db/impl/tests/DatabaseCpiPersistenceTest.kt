@@ -131,12 +131,12 @@ internal class DatabaseCpiPersistenceTest {
         fileChecksum: SecureHash = newRandomSecureHash(),
         name: String = UUID.randomUUID().toString(),
         version: String = "cpk-version",
-        ssh: SecureHash = newRandomSecureHash()
+        signerSummaryHash: SecureHash = newRandomSecureHash()
     ) = mock<Cpk>().also { cpk ->
         val cpkId = CpkIdentifier(
             name = name,
             version = version,
-            signerSummaryHash = ssh
+            signerSummaryHash = signerSummaryHash
         )
 
         val cpkManifest = CpkManifest(CpkFormatVersion(1, 0))
@@ -411,16 +411,16 @@ internal class DatabaseCpiPersistenceTest {
     }
 
     @Test
-    fun `multiple CPKs with the same name, version, ssh but different checksum are allowed in a CPI`() {
+    fun `multiple CPKs with the same name, version, signerSummaryHash but different checksum are allowed in a CPI`() {
         val rand = UUID.randomUUID()
         val cpkName = "name_$rand"
         val cpkVersion = "version_$rand"
-        val cpkSsh = newRandomSecureHash()
+        val cpkSignerSummaryHash = newRandomSecureHash()
         val cpkFileChecksum1 = newRandomSecureHash()
         val cpkFileChecksum2 = newRandomSecureHash()
 
-        val cpk1 = mockCpk(cpkFileChecksum1, cpkName, cpkVersion, cpkSsh)
-        val cpk2 = mockCpk(cpkFileChecksum2, cpkName, cpkVersion, cpkSsh)
+        val cpk1 = mockCpk(cpkFileChecksum1, cpkName, cpkVersion, cpkSignerSummaryHash)
+        val cpk2 = mockCpk(cpkFileChecksum2, cpkName, cpkVersion, cpkSignerSummaryHash)
         val cpi = mockCpi(cpk1, cpk2)
 
         cpiPersistence.persistMetadataAndCpksWithDefaults(cpi, groupId = "group-a")

@@ -431,7 +431,6 @@ class VirtualNodeRpcTest {
         cluster {
             endpoint(CLUSTER_URI, USERNAME, PASSWORD)
 
-            val cpiName = "test-cordapp_42e66959-d5aa-47e6-b509-317e3d23753b"
             val initialCpiFileChecksum = getCpiFileChecksum(cpiName)
 
             val requestId = forceCpiUpload(CACHE_INVALIDATION_TEST_CPB, GROUP_ID, staticMemberList, cpiName)
@@ -465,8 +464,9 @@ class VirtualNodeRpcTest {
         cluster {
             endpoint(CLUSTER_URI, USERNAME, PASSWORD)
             // Status 204 indicates a non-error but no response data
-            assertThat(syncVirtualNode("57BA12DAF639").code).isEqualTo(204)
+            assertThat(syncVirtualNode(aliceHoldingId).code).isEqualTo(204)
 
+            runSimplePersistenceCheckFlow("Could persist Floaty")
         }
     }
 

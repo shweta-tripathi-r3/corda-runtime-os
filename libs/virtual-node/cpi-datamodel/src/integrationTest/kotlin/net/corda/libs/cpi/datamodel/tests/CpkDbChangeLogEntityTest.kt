@@ -134,13 +134,13 @@ class CpkDbChangeLogEntityTest {
         }
     }
 
-    private fun cpkDbChangeLogAuditEntity(cpiName: String, cpiVersion: String, cpiSsh: String, changeLog: CpkDbChangeLogEntity):
+    private fun cpkDbChangeLogAuditEntity(cpiName: String, cpiVersion: String, cpiSignerSummaryHash: String, changeLog: CpkDbChangeLogEntity):
             CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
                 cpiName,
                 cpiVersion,
-                cpiSsh,
+                cpiSignerSummaryHash,
                 changeLog.id.cpkFileChecksum,
                 changeLog.id.changesetId,
                 changeLog.entityVersion,
@@ -246,18 +246,18 @@ class CpkDbChangeLogEntityTest {
         val rand = UUID.randomUUID()
         val cpiName = "cpiName_$rand"
         val cpiVersion = "cpiVer_$rand"
-        val cpiSsh = "cpissh_$rand"
+        val cpiSignerSummaryHash = "cpiSignerSummaryHash_$rand"
 
         val audit1 = cpkDbChangeLogAudit {
             cpiName(cpiName)
             cpiVersion(cpiVersion)
-            cpiSignerSummaryHash(cpiSsh)
+            cpiSignerSummaryHash(cpiSignerSummaryHash)
             changesetId(UUID.randomUUID())
         }
         val audit2 = cpkDbChangeLogAudit {
             cpiName(cpiName)
             cpiVersion(cpiVersion)
-            cpiSignerSummaryHash(cpiSsh)
+            cpiSignerSummaryHash(cpiSignerSummaryHash)
             changesetId(UUID.randomUUID())
         }
         transaction {
@@ -270,13 +270,13 @@ class CpkDbChangeLogEntityTest {
                 this,
                 cpiName,
                 cpiVersion,
-                cpiSsh,
+                cpiSignerSummaryHash,
                 setOf(audit1.id.changesetId, audit2.id.changesetId)
             )
             assertThat(audits).hasSize(2)
             assertThat(audits.map { it.id.cpiName }.toSet()).isEqualTo(setOf(cpiName))
             assertThat(audits.map { it.id.cpiVersion }.toSet()).isEqualTo(setOf(cpiVersion))
-            assertThat(audits.map { it.id.cpiSignerSummaryHash }.toSet()).isEqualTo(setOf(cpiSsh))
+            assertThat(audits.map { it.id.cpiSignerSummaryHash }.toSet()).isEqualTo(setOf(cpiSignerSummaryHash))
             assertThat(audits.map { it.id.changesetId }.toSet()).isEqualTo(setOf(audit1.id.changesetId, audit2.id.changesetId))
         }
     }
@@ -286,11 +286,11 @@ class CpkDbChangeLogEntityTest {
         val changesetId1 = UUID.randomUUID()
         val cpiName = UUID.randomUUID().toString()
         val cpiVersion = UUID.randomUUID().toString()
-        val cpiSsh = UUID.randomUUID().toString()
+        val cpiSignerSummaryHash = UUID.randomUUID().toString()
         val originalCpi = cpi {
             name(cpiName)
             version(cpiVersion)
-            signerSummaryHash(cpiSsh)
+            signerSummaryHash(cpiSignerSummaryHash)
             cpk { }
             cpk { }
             cpk { }
@@ -315,7 +315,7 @@ class CpkDbChangeLogEntityTest {
                 this,
                 cpiName,
                 cpiVersion,
-                cpiSsh,
+                cpiSignerSummaryHash,
                 setOf(changesetId1)
             )
 
@@ -354,7 +354,7 @@ class CpkDbChangeLogEntityTest {
                 this,
                 cpiName,
                 cpiVersion,
-                cpiSsh,
+                cpiSignerSummaryHash,
                 setOf(changesetId2)
             )
 
