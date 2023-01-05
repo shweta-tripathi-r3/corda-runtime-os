@@ -96,6 +96,10 @@ class LiquibaseSchemaMigratorImpl(
         } else {
             lb.update(Contexts(), sql)
         }
+        // note cs - it appears that this only tags one of the changelogs. This may not be leading to a bug right now but is technically
+        //  incorrect. We make assumptions that all changelogs from CPKs have a tag. When we roll these back as part of resync operation,
+        //  we get list of tags of applied changes and find the corresponding audit rows containing the changelog xml. All changelogs in a
+        //  particular CPI will have the same changesetId, thus as long as one change is tagged with the changesetId it rolls them all back.
         if (tag != null) {
             lb.tag(tag)
         }

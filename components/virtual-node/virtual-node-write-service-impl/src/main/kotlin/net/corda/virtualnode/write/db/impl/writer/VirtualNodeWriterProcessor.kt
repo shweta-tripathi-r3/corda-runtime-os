@@ -300,7 +300,15 @@ internal class VirtualNodeWriterProcessor(
                         )
                     }
                     logger.info("Finished rolling back previous migrations, attempting to apply new ones")
-                    // Attempt to apply the changes from the current CPI
+                    // note cs - I noticed this function may kill the thread running liquibase API if it encounters an exception.
+                    //  I think this could be related to embedding creation of datasources inside entity manager transactions and then expecting
+                    //  the entity manager to roll back when liquibase throws. Liquibase handles its own transactionality (one transaction
+                    //  per changeset) and so we likely should not imply from the layout of this code that we get transactionality, and the
+                    //  code should likely be refactored.
+                    //  Example scenario: force upload a CPI with a CPK with a liquibase changelog that attempts to create a table that is already
+                    //  created, then call the resync function, will kill the db-worker and require restart of combined worker.
+                    //  Perhaps this refactoring can be handled in CORE-8744 and a suitable test created to handle liquibase exceptions
+                    //  when running resync migrations.
                     runCpiResyncMigrations(
                         dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
                         getCurrentChangelogsForCpi(em, cpiMetadata.id)

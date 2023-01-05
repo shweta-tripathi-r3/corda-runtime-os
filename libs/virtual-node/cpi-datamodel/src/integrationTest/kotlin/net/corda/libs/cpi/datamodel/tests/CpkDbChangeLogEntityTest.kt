@@ -29,7 +29,6 @@ import net.corda.test.util.dsl.entities.cpx.cpkDbChangeLogAudit
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CpkDbChangeLogEntityTest {
 
-    private val changesetId = UUID.randomUUID()
     private val dbConfig: EntityManagerConfiguration =
         DbUtils.getEntityManagerConfiguration("cpk_changelog_db")
 
@@ -65,6 +64,7 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs`() {
+        val changesetId = UUID.randomUUID()
         val (cpi, cpks) = TestObject.createCpiWithCpks(2)
         val cpk1 = cpks[0]
         val cpk2 = cpks[1]
@@ -96,6 +96,7 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs with audit`() {
+        val changesetId = UUID.randomUUID()
         val (cpi, cpks) = TestObject.createCpiWithCpks()
         val cpk = cpks.first()
         val cpkFileChecksum = cpk.id.cpkFileChecksum
@@ -146,6 +147,7 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can update changelogs and add new audit`() {
+        val changesetId = UUID.randomUUID()
         val (cpi, cpks) = TestObject.createCpiWithCpks()
         val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
@@ -328,6 +330,7 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `can persist changelogs to existing CPI`() {
+        val changesetId = UUID.randomUUID()
         val (cpi, cpks) = TestObject.createCpiWithCpks()
         val cpk = cpks.first()
         val changeLog1 = CpkDbChangeLogEntity(
@@ -357,6 +360,7 @@ class CpkDbChangeLogEntityTest {
 
     @Test
     fun `findCpkDbChangeLog returns all for cpk`() {
+        val changesetId = UUID.randomUUID()
         val (cpi1, cpks1) = TestObject.createCpiWithCpks(2)
         val (cpi2, cpks2) = TestObject.createCpiWithCpks()
         val cpk1 = cpks1.first()
