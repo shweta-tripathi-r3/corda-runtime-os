@@ -284,20 +284,23 @@ internal class VirtualNodeWriterProcessor(
                             tx,
                             appliedVersions
                         )
-                        logger.info(
-                            "Attempting to roll back the following migrations for virtual node '$currentVNodeShortHash' " +
-                                    "with CPI name ${virtualNodeInfo.cpiIdentifier.name}, v${virtualNodeInfo.cpiIdentifier.version} " +
-                                    "[" +
-                                    "${migrationSet.joinToString { 
-                                        it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId 
-                                    }}]"
-                        )
-                        // Attempt to rollback the acquired changes
-                        rollbackVirtualNodeDb(
-                            dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
-                            migrationSet,
-                            systemTerminatorTag
-                        )
+                        migrationSet.forEach { (cpkFileChecksum, changelogs) ->
+                            logger.info(
+                                "Attempting to roll back the following migrations for CPK '$cpkFileChecksum' " +
+                                        "[" +
+                                        "${
+                                            changelogs.joinToString {
+                                                it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId
+                                            }
+                                        }]"
+                            )
+                            // Attempt to rollback the acquired changes
+                            rollbackVirtualNodeDb(
+                                dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
+                                changelogs,
+                                systemTerminatorTag
+                            )
+                        }
                     }
                     logger.info("Finished rolling back previous migrations, attempting to apply new ones")
                     // note cs - I noticed this function may kill the thread running liquibase API if it encounters an exception.
@@ -309,30 +312,34 @@ internal class VirtualNodeWriterProcessor(
                     //  already created, then call the resync function, will kill the db-worker and require restart of combined worker.
                     //  Perhaps this refactoring can be handled in CORE-8744 and a suitable test created to handle liquibase exceptions
                     //  when running resync migrations.
-                    val changelogsToRun = getCurrentChangelogsForCpi(em, cpiMetadata.id)
-                    try {
-                        dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!).use {
-                            runCpiResyncMigrations(it, changelogsToRun)
-                        }
-                    } catch (e: Exception) {
-                        logger.error(
-                            "Error from liquibase API while running resync migrations for CPI ${cpiMetadata.id.name} - changelogs: [" +
-                                    "${changelogsToRun.joinToString {
-                                            it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId
-                                    }}]",
-                            e
-                        )
-                        respFuture.complete(
-                            VirtualNodeManagementResponse(
-                                instant,
-                                VirtualNodeManagementResponseFailure(
-                                    ExceptionEnvelope(
-                                        VirtualNodeWriteServiceException::class.java.name,
-                                        e.message
+                    val changelogsToRun = getCurrentChangelogsForCpi(em, cpiMetadata.id).groupBy { it.id.cpkFileChecksum }
+                    changelogsToRun.forEach { (cpkFileChecksum, changelogsForThisCpk) ->
+                        try {
+                            dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!).use {
+                                runCpkResyncMigrations(it, cpkFileChecksum, changelogsForThisCpk)
+                            }
+                        } catch (e: Exception) {
+                            logger.error(
+                                "Error from liquibase API while running resync migrations for CPI ${cpiMetadata.id.name} - changelogs: [" +
+                                        "${
+                                            changelogsForThisCpk.joinToString {
+                                                it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId
+                                            }
+                                        }]",
+                                e
+                            )
+                            respFuture.complete(
+                                VirtualNodeManagementResponse(
+                                    instant,
+                                    VirtualNodeManagementResponseFailure(
+                                        ExceptionEnvelope(
+                                            VirtualNodeWriteServiceException::class.java.name,
+                                            e.message
+                                        )
                                     )
                                 )
                             )
-                        )
+                        }
                     }
                 }
                 shortHash.value
@@ -586,25 +593,17 @@ internal class VirtualNodeWriterProcessor(
         }
     }
 
-    private fun runCpiResyncMigrations(dataSource: CloseableDataSource, changelogs: List<CpkDbChangeLogEntity>) {
-        // run all changesets per CPK, get the changesets in a cpkFileChecksum
-        val changeLogsByChecksum: Map<String, List<CpkDbChangeLogEntity>> = changelogs.groupBy { it.id.cpkFileChecksum }
+    private fun runCpkResyncMigrations(dataSource: CloseableDataSource, cpkFileChecksum: String, changelogs: List<CpkDbChangeLogEntity>) {
+        if (changelogs.isEmpty()) return
+        val changesetId = changelogs.first().id.changesetId
+        logger.info("Preparing to run ${changelogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
 
-        changeLogsByChecksum.forEach { (cpkFileChecksum, changelogs) ->
-            check(changelogs.map { it.id.changesetId }.toSet().size == 1) {
-                "All changelogs in this CPK '$cpkFileChecksum' should have the same changesetId."
-            }
-            val changesetId = changelogs.first().id.changesetId
-
-            logger.info("Preparing to run ${changelogs.size} resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId'.")
-
-            LiquibaseSchemaMigratorImpl().updateDb(
-                dataSource.connection,
-                VirtualNodeDbChangeLog(changelogs.map { CpkDbChangeLog(it.id.filePath, it.content) }),
-                tag = changesetId.toString()
-            )
-            logger.info("Resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId' completed.")
-        }
+        LiquibaseSchemaMigratorImpl().updateDb(
+            dataSource.connection,
+            VirtualNodeDbChangeLog(changelogs.map { CpkDbChangeLog(it.id.filePath, it.content) }),
+            tag = changesetId.toString()
+        )
+        logger.info("Resync migrations for CPK '$cpkFileChecksum' with changesetId '$changesetId' completed.")
     }
 
     private fun createVirtualNodeRecord(
