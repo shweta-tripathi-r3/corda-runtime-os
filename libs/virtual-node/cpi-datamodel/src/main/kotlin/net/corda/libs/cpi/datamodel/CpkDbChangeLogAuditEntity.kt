@@ -46,7 +46,8 @@ data class CpkDbChangeLogAuditKey(
     val filePath: String,
 ) : Serializable
 
-fun changelogAuditEntriesForGivenChangesetIds(entityManager: EntityManager, changesetIds: Set<UUID>): Map<String, List<CpkDbChangeLogAuditEntity>> {
+fun changelogAuditEntriesForGivenChangesetIds(entityManager: EntityManager, changesetIds: Set<UUID>):
+        Map<String, List<CpkDbChangeLogAuditEntity>> {
     return changesetIds.chunked(100) { changesetIdSlice ->
         entityManager.createQuery(
             "FROM ${CpkDbChangeLogAuditEntity::class.simpleName}" +
