@@ -85,7 +85,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
     }
 
     private fun createCpiCpkRelationships(em: EntityManager, cpi: Cpi): Set<CpiCpkEntity> {
-        // there may be some CPKs that already exist. We should load these first, then create CpiCpk associations for them.
+        // there may be some CPKs that already exist. We should load these first, then create CpiCpk associations for them (if necessary).
         val foundCpks = em.createQuery(
             "FROM ${CpkMetadataEntity::class.java.simpleName} cpk " +
                     "WHERE cpk.cpkFileChecksum IN :cpkFileChecksums",
@@ -123,17 +123,25 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
 
         val relationshipsForExistingCpks = existingCpks.map { thisCpk ->
             val cpkFileChecksum = thisCpk.metadata.fileChecksum.toString()
-            val cpkEntity = foundCpks[cpkFileChecksum]!!
-            CpiCpkEntity(
-                CpiCpkKey(
-                    cpi.metadata.cpiId.name,
-                    cpi.metadata.cpiId.version,
-                    cpi.metadata.cpiId.signerSummaryHashForDbQuery,
-                    cpkFileChecksum
-                ),
-                thisCpk.originalFileName!!,
-                cpkEntity
+            val cpiCpkKey = CpiCpkKey(
+                cpi.metadata.cpiId.name,
+                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId.signerSummaryHashForDbQuery,
+                cpkFileChecksum
             )
+            // cpiCpk relationship might already exist for this CPI, for example, if a force uploaded CPI doesn't change a CPK, otherwise
+            // create a new one with the CpkMetadataEntity
+            em.find(CpiCpkEntity::class.java, cpiCpkKey)
+                ?: CpiCpkEntity(
+                    CpiCpkKey(
+                        cpi.metadata.cpiId.name,
+                        cpi.metadata.cpiId.version,
+                        cpi.metadata.cpiId.signerSummaryHashForDbQuery,
+                        cpkFileChecksum
+                    ),
+                    thisCpk.originalFileName!!,
+                    foundCpks[cpkFileChecksum]!!
+                )
         }
 
         val totalCpiCpkRelationships = newCpiCpkRelationships + relationshipsForExistingCpks
@@ -308,7 +316,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
             em.persist(CpkFileEntity(it.metadata.fileChecksum.toString(), Files.readAllBytes(it.path!!)))
         }
 
-        if(existingCpks.isNotEmpty()) {
+        if (existingCpks.isNotEmpty()) {
             log.info(
                 "When persisting CPK files for CPI $cpiFileChecksum, ${existingCpks.size} file entities already existed with " +
                         "checksums ${existingCpkMap.keys.joinToString()}. No changes were made to these files."
@@ -322,7 +330,8 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
         cpiVersion: String,
         groupId: String,
         forceUpload: Boolean,
-        requestId: String) {
+        requestId: String
+    ) {
         val sameCPis = entityManagerFactory.createEntityManager().transaction {
             it.createQuery(
                 "FROM ${CpiMetadataEntity::class.simpleName} c " +
@@ -338,7 +347,7 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
             if (!sameCPis.any { it.version == cpiVersion }) {
                 throw ValidationException("No instance of same CPI with previous version found", requestId)
             }
-            if(sameCPis.first().groupId != groupId) {
+            if (sameCPis.first().groupId != groupId) {
                 throw ValidationException("Cannot force update a CPI with a different group ID", requestId)
             }
             // We can force-update this CPI because we found one with the same version
@@ -352,9 +361,11 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
 
         // NOTE: we may do additional validation here, such as validate that the group ID is not changing during a
         //  regular update. For now, just logging this as un-usual.
-        if(sameCPis.any { it.groupId != groupId }) {
-            log.info("CPI upload $requestId contains a CPI with the same name ($cpiName) and " +
-                    "signer ($cpiSignerSummaryHash) as an existing CPI, but a different Group ID.")
+        if (sameCPis.any { it.groupId != groupId }) {
+            log.info(
+                "CPI upload $requestId contains a CPI with the same name ($cpiName) and " +
+                        "signer ($cpiSignerSummaryHash) as an existing CPI, but a different Group ID."
+            )
         }
     }
 }

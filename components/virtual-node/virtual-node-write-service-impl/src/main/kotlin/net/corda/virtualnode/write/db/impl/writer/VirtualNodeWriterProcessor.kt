@@ -309,10 +309,31 @@ internal class VirtualNodeWriterProcessor(
                     //  already created, then call the resync function, will kill the db-worker and require restart of combined worker.
                     //  Perhaps this refactoring can be handled in CORE-8744 and a suitable test created to handle liquibase exceptions
                     //  when running resync migrations.
-                    runCpiResyncMigrations(
-                        dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!),
-                        getCurrentChangelogsForCpi(em, cpiMetadata.id)
-                    )
+                    val changelogsToRun = getCurrentChangelogsForCpi(em, cpiMetadata.id)
+                    try {
+                        dbConnectionManager.createDatasource(virtualNodeInfo.vaultDdlConnectionId!!).use {
+                            runCpiResyncMigrations(it, changelogsToRun)
+                        }
+                    } catch (e: Exception) {
+                        logger.error(
+                            "Error from liquibase API while running resync migrations for CPI ${cpiMetadata.id.name} - changelogs: [" +
+                                    "${changelogsToRun.joinToString {
+                                            it.id.cpkFileChecksum + ", " + it.id.filePath + ", " + it.id.changesetId
+                                    }}]",
+                            e
+                        )
+                        respFuture.complete(
+                            VirtualNodeManagementResponse(
+                                instant,
+                                VirtualNodeManagementResponseFailure(
+                                    ExceptionEnvelope(
+                                        VirtualNodeWriteServiceException::class.java.name,
+                                        e.message
+                                    )
+                                )
+                            )
+                        )
+                    }
                 }
                 shortHash.value
             }

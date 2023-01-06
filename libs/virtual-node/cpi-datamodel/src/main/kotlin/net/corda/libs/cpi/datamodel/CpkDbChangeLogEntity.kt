@@ -79,7 +79,9 @@ fun findCurrentCpkChangeLogsForCpi(
 
     if (allChangelogsForCPI.isEmpty()) return emptyList()
 
-    // select out the most recent changelogs
+    // If a CPI with the same name, version, signerSummaryHash was force uploaded, we could have the same CPK changelog persisted twice,
+    // the first changelog for the original CPI upload (with the original changesetId) and the second for the force uploaded CPI (with its
+    // new changesetId). If the original is not marked as deleted, we can select the most recent based on insertTimestamp.
     val mostRecentChangesetId = allChangelogsForCPI.first().id.changesetId
     return allChangelogsForCPI.filter { it.id.changesetId == mostRecentChangesetId }
 }
