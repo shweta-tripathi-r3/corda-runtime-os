@@ -14,11 +14,18 @@ import javax.persistence.Table
 /**
  * Audit representation of a DB ChangeLog (Liquibase) file associated with a CPK.
  */
+@Suppress("LongParameterList")
 @Entity
 @Table(name = "cpk_db_change_log_audit", schema = DbSchema.CONFIG)
 class CpkDbChangeLogAuditEntity(
     @EmbeddedId
     var id: CpkDbChangeLogAuditKey,
+    @Column(name = "cpi_name", nullable = false)
+    var cpiName: String,
+    @Column(name = "cpi_version", nullable = false)
+    var cpiVersion: String,
+    @Column(name = "cpi_signer_summary_hash", nullable = false)
+    var cpiSignerSummaryHash: String,
     @Column(name = "content", nullable = false)
     val content: String,
     @Column(name = "is_deleted", nullable = false)
@@ -31,18 +38,10 @@ class CpkDbChangeLogAuditEntity(
 
 @Embeddable
 data class CpkDbChangeLogAuditKey(
-    @Column(name = "cpi_name", nullable = false)
-    var cpiName: String,
-    @Column(name = "cpi_version", nullable = false)
-    var cpiVersion: String,
-    @Column(name = "cpi_signer_summary_hash", nullable = false)
-    var cpiSignerSummaryHash: String,
-    @Column(name = "cpk_file_checksum", nullable = false)
-    val cpkFileChecksum: String,
     @Column(name = "changeset_id", nullable = false)
     val changesetId: UUID,
-    @Column(name = "entity_version", nullable = false)
-    var entityVersion: Int,
+    @Column(name = "cpk_file_checksum", nullable = false)
+    val cpkFileChecksum: String,
     @Column(name = "file_path", nullable = false)
     val filePath: String,
 ) : Serializable

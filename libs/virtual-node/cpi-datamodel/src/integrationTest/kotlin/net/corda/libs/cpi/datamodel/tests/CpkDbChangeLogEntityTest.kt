@@ -81,7 +81,6 @@ class CpkDbChangeLogEntityTest {
             persist(cpi)
             persist(changeLog1)
             persist(changeLog2)
-            flush()
         }
 
         transaction {
@@ -132,14 +131,13 @@ class CpkDbChangeLogEntityTest {
             CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
-                cpiName,
-                cpiVersion,
-                cpiSignerSummaryHash,
-                changeLog.id.cpkFileChecksum,
                 changeLog.id.changesetId,
-                changeLog.entityVersion,
+                changeLog.id.cpkFileChecksum,
                 changeLog.id.filePath
             ),
+            cpiName,
+            cpiVersion,
+            cpiSignerSummaryHash,
             changeLog.content,
             changeLog.isDeleted
         )
@@ -160,9 +158,7 @@ class CpkDbChangeLogEntityTest {
         transaction {
             persist(cpi)
             persist(changeLog1)
-            flush()
             persist(changeLog1Audit)
-            flush()
         }
 
         transaction {
@@ -172,39 +168,23 @@ class CpkDbChangeLogEntityTest {
             )
             loadedDbLogEntity.isDeleted = true
             merge(loadedDbLogEntity)
-            flush()
-            persist(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, loadedDbLogEntity))
-            flush()
+
+            merge(cpkDbChangeLogAuditEntity(cpi.name, cpi.version, cpi.signerSummaryHash, loadedDbLogEntity))
+
         }
 
         transaction {
             val loadedDbLogAuditEntities = changelogAuditEntriesForGivenChangesetIds(this, setOf(changesetId))
                 .sortedBy { it.insertTimestamp }
 
-            assertThat(loadedDbLogAuditEntities[0].id)
-                .isEqualTo(
-                    CpkDbChangeLogAuditKey(
-                        cpi.name,
-                        cpi.version,
-                        cpi.signerSummaryHash,
-                        cpk.metadata.cpkFileChecksum,
-                        changesetId,
-                        0,
-                        "master"
-                    )
-                )
-            assertThat(loadedDbLogAuditEntities[1].id)
-                .isEqualTo(
-                    CpkDbChangeLogAuditKey(
-                        cpi.name,
-                        cpi.version,
-                        cpi.signerSummaryHash,
-                        cpk.metadata.cpkFileChecksum,
-                        changesetId,
-                        1,
-                        "master"
-                    )
-                )
+            assertThat(loadedDbLogAuditEntities).hasSize(1)
+
+            val auditEntity = loadedDbLogAuditEntities[0]
+            assertThat(auditEntity.id).isEqualTo(CpkDbChangeLogAuditKey(changesetId, cpk.metadata.cpkFileChecksum, "master"))
+            assertThat(auditEntity.cpiName).isEqualTo(cpi.name)
+            assertThat(auditEntity.cpiVersion).isEqualTo(cpi.version)
+            assertThat(auditEntity.cpiSignerSummaryHash).isEqualTo(cpi.signerSummaryHash)
+            assertThat(auditEntity.isDeleted).isEqualTo(true)
         }
     }
 
@@ -219,9 +199,9 @@ class CpkDbChangeLogEntityTest {
             val audits = changelogAuditEntriesForGivenChangesetIds(this, setOf(cpkDbChangeLogAudit.id.changesetId))
             assertThat(audits).hasSize(1)
             assertThat(audits[0].id.changesetId).isEqualTo(cpkDbChangeLogAudit.id.changesetId)
-            assertThat(audits[0].id.cpiName).isEqualTo(cpkDbChangeLogAudit.id.cpiName)
-            assertThat(audits[0].id.cpiVersion).isEqualTo(cpkDbChangeLogAudit.id.cpiVersion)
-            assertThat(audits[0].id.cpiSignerSummaryHash).isEqualTo(cpkDbChangeLogAudit.id.cpiSignerSummaryHash)
+            assertThat(audits[0].cpiName).isEqualTo(cpkDbChangeLogAudit.cpiName)
+            assertThat(audits[0].cpiVersion).isEqualTo(cpkDbChangeLogAudit.cpiVersion)
+            assertThat(audits[0].cpiSignerSummaryHash).isEqualTo(cpkDbChangeLogAudit.cpiSignerSummaryHash)
         }
     }
 
@@ -252,9 +232,9 @@ class CpkDbChangeLogEntityTest {
         transaction {
             val audits = changelogAuditEntriesForGivenChangesetIds(this, setOf(audit1.id.changesetId, audit2.id.changesetId))
             assertThat(audits).hasSize(2)
-            assertThat(audits.map { it.id.cpiName }.toSet()).isEqualTo(setOf(cpiName))
-            assertThat(audits.map { it.id.cpiVersion }.toSet()).isEqualTo(setOf(cpiVersion))
-            assertThat(audits.map { it.id.cpiSignerSummaryHash }.toSet()).isEqualTo(setOf(cpiSignerSummaryHash))
+            assertThat(audits.map { it.cpiName }.toSet()).isEqualTo(setOf(cpiName))
+            assertThat(audits.map { it.cpiVersion }.toSet()).isEqualTo(setOf(cpiVersion))
+            assertThat(audits.map { it.cpiSignerSummaryHash }.toSet()).isEqualTo(setOf(cpiSignerSummaryHash))
             assertThat(audits.map { it.id.changesetId }.toSet()).isEqualTo(setOf(audit1.id.changesetId, audit2.id.changesetId))
         }
     }
@@ -340,12 +320,10 @@ class CpkDbChangeLogEntityTest {
 
         transaction {
             persist(cpi)
-            flush()
         }
 
         transaction {
             persist(changeLog1)
-            flush()
         }
 
         transaction {
@@ -413,7 +391,7 @@ class CpkDbChangeLogEntityTest {
             persist(changeLog1b)
             persist(changeLog2)
             persist(changeLog3)
-            flush()
+
             val changeLogs = findCurrentCpkChangeLogsForCpi(
                 this,
                 CpiIdentifier(cpi1.name, cpi1.version, SecureHash.parse(cpi1.signerSummaryHash))
@@ -431,7 +409,7 @@ class CpkDbChangeLogEntityTest {
         transaction {
             persist(cpi1)
             persist(cpi2)
-            flush()
+
             val changeLogs = findCurrentCpkChangeLogsForCpi(
                 this,
                 CpiIdentifier(cpi1.name, cpi1.version, SecureHash("SHA1", cpi1.signerSummaryHash.toByteArray()))

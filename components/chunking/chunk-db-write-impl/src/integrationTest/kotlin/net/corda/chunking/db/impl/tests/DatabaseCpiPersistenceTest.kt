@@ -587,14 +587,13 @@ internal class DatabaseCpiPersistenceTest {
     private fun cpkDbChangeLogAuditEntity(cpiIdentifier: CpiIdentifier, changelog: CpkDbChangeLogEntity): CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
-                cpiIdentifier.name,
-                cpiIdentifier.version,
-                cpiIdentifier.signerSummaryHash?.toString() ?: "",
-                changelog.id.cpkFileChecksum,
                 changelog.id.changesetId,
-                changelog.entityVersion,
+                changelog.id.cpkFileChecksum,
                 changelog.id.filePath
             ),
+            cpiIdentifier.name,
+            cpiIdentifier.version,
+            cpiIdentifier.signerSummaryHash?.toString() ?: "",
             changelog.content,
             changelog.isDeleted
         )

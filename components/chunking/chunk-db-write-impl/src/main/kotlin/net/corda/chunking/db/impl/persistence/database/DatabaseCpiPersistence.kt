@@ -168,14 +168,13 @@ class DatabaseCpiPersistence(private val entityManagerFactory: EntityManagerFact
             em.persist(
                 CpkDbChangeLogAuditEntity(
                     CpkDbChangeLogAuditKey(
-                        cpi.metadata.cpiId.name,
-                        cpi.metadata.cpiId.version,
-                        cpi.metadata.cpiId.signerSummaryHashForDbQuery,
-                        changelogEntity.id.cpkFileChecksum,
                         changelogEntity.id.changesetId,
-                        changelogEntity.entityVersion,
+                        changelogEntity.id.cpkFileChecksum,
                         changelogEntity.id.filePath
                     ),
+                    cpi.metadata.cpiId.name,
+                    cpi.metadata.cpiId.version,
+                    cpi.metadata.cpiId.signerSummaryHashForDbQuery,
                     changelogEntity.content,
                     changelogEntity.isDeleted
                 )

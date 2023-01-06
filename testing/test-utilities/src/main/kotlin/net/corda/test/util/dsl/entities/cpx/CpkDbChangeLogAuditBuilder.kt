@@ -20,7 +20,6 @@ class CpkDbChangeLogAuditBuilder(
 
     private var filePath: String? = null
     private var changesetId: UUID? = null
-    private var entityVersion: Int? = null
     private var isDeleted: Boolean? = null
 
     fun cpiName(value: String): CpkDbChangeLogAuditBuilder {
@@ -58,22 +57,16 @@ class CpkDbChangeLogAuditBuilder(
         return this
     }
 
-    fun entityVersion(value: Int): CpkDbChangeLogAuditBuilder {
-        entityVersion = value
-        return this
-    }
-
     fun build(): CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
             CpkDbChangeLogAuditKey(
-                cpiNameSupplier.invoke() ?: "cpiName_$randomUUID",
-                cpiVersionSupplier.invoke() ?: "cpiVersion_$randomUUID",
-                cpiSignerSummaryHashSupplier.invoke() ?: "cpiSignerSummaryHash_$randomUUID",
-                fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
                 changesetId ?: UUID.randomUUID(),
-                entityVersion ?: 0,
+                fileChecksumSupplier.invoke() ?: "file_checksum_$randomUUID",
                 filePath ?: "file_path_$randomUUID"
             ),
+            cpiNameSupplier.invoke() ?: "cpiName_$randomUUID",
+            cpiVersionSupplier.invoke() ?: "cpiVersion_$randomUUID",
+            cpiSignerSummaryHashSupplier.invoke() ?: "cpiSignerSummaryHash_$randomUUID",
             "data_$randomUUID",
             isDeleted ?: false
         )
