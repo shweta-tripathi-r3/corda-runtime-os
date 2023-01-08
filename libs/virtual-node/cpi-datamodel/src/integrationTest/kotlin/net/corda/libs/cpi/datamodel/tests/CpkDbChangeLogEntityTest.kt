@@ -127,6 +127,10 @@ class CpkDbChangeLogEntityTest {
         }
     }
 
+    private fun changelogAuditEntriesForGivenChangesetIds(em: EntityManager, changesetIds: Set<UUID>) =
+        net.corda.libs.cpi.datamodel.changelogAuditEntriesForGivenChangesetIds(em, changesetIds)
+            .values.flatten()
+
     private fun cpkDbChangeLogAuditEntity(cpiName: String, cpiVersion: String, cpiSignerSummaryHash: String, changeLog: CpkDbChangeLogEntity):
             CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(

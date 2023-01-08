@@ -312,7 +312,7 @@ internal class DatabaseCpiPersistenceTest {
         assertThat(forceUploadedCpi.cpks.size).isEqualTo(2)
         // cpk1 has incremented because we called merge on the CPI with this entity already existing in the set.
         val forceUploadedCpk1 = forceUploadedCpi.cpks.single { it.id.cpkFileChecksum == cpk1.fileChecksum }
-        assertThat(forceUploadedCpk1.entityVersion).isEqualTo(1)
+        assertThat(forceUploadedCpk1.entityVersion).isEqualTo(0)
         assertThat(forceUploadedCpk1.metadata.entityVersion).isEqualTo(0)
         val forceUploadedCpk2 = forceUploadedCpi.cpks.single { it.id.cpkFileChecksum == cpk2.fileChecksum }
         assertThat(forceUploadedCpk2.entityVersion).isEqualTo(0)
@@ -345,7 +345,6 @@ internal class DatabaseCpiPersistenceTest {
 
         val loadedCpi = loadCpiDirectFromDatabase(cpi)
 
-        // adding cpk to cpi accounts for 1 modification
         assertThat(loadedCpi.entityVersion).isEqualTo(1)
         assertThat(loadedCpi.cpks.size).isEqualTo(1)
         assertThat(loadedCpi.cpks.first().entityVersion).isEqualTo(0)
@@ -361,8 +360,7 @@ internal class DatabaseCpiPersistenceTest {
         // merging updated cpi accounts for 1 modification + modifying cpk
         assertThat(updatedCpi.entityVersion).isEqualTo(3)
         assertThat(updatedCpi.cpks.size).isEqualTo(1)
-        // merging on cpi with a changed set of cpks results in increment to any existing cpks in the set (event if they are unchanged)
-        assertThat(updatedCpi.cpks.first().entityVersion).isEqualTo(1)
+        assertThat(updatedCpi.cpks.first().entityVersion).isEqualTo(0)
     }
 
     @Test
@@ -387,7 +385,7 @@ internal class DatabaseCpiPersistenceTest {
         cpiPersistence.updateMetadataAndCpksWithDefaults(updatedCpi, groupId = "group-b")
         assertThat(cpi.metadata.cpiId).isEqualTo(updatedCpi.metadata.cpiId)
 
-        findAndAssertCpks(listOf(Pair(cpi, cpk1)), expectedCpiCpkEntityVersion = 1) // incremented as we merged during force.
+        findAndAssertCpks(listOf(Pair(cpi, cpk1)))
         findAndAssertCpks(listOf(Pair(cpi, cpk2)))
     }
 
@@ -579,10 +577,10 @@ internal class DatabaseCpiPersistenceTest {
         )
     }
 
-    private fun findChangelogAuditsForChangesetIds(changesetIds: Set<UUID>) =
+    private fun findChangelogAuditsForChangesetIds(changesetIds: Set<UUID>): List<CpkDbChangeLogAuditEntity> =
         entityManagerFactory.createEntityManager().transaction {
             changelogAuditEntriesForGivenChangesetIds(it, changesetIds)
-        }
+        }.values.flatten()
 
     private fun cpkDbChangeLogAuditEntity(cpiIdentifier: CpiIdentifier, changelog: CpkDbChangeLogEntity): CpkDbChangeLogAuditEntity {
         return CpkDbChangeLogAuditEntity(
