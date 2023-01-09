@@ -3,16 +3,16 @@ package net.corda.cli.plugins.mgm
 import kong.unirest.Unirest
 import kong.unirest.json.JSONArray
 import kong.unirest.json.JSONObject
+import net.corda.cli.plugins.packaging.CreateCpiV2
+import net.corda.cli.plugins.packaging.signing.SigningOptions
 import net.corda.crypto.test.certificates.generation.toPem
+import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
-import java.util.jar.Attributes
-import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
-import java.util.zip.ZipEntry
 
 @Command(
     name = "mgm",
@@ -34,11 +34,16 @@ class OnboardMgm : Runnable, BaseOnboard() {
     )
     override var x500Name: String = "O=Mgm, L=London, C=GB, OU=${UUID.randomUUID()}"
 
+    private val dotCordaDir = File(File(System.getProperty("user.home")), ".corda")
+
     @Option(
-        names = ["--save-group-policy-as", "-s"],
+        names = ["--save-group-policy-as"],
         description = ["Location to save the group policy file (default to ~/.corda/gp/groupPolicy.json)"]
     )
-    var groupPolicyFile: File = File(File(File(File(System.getProperty("user.home")), ".corda"), "gp"), "groupPolicy.json")
+    var groupPolicyFile: File = File(File(dotCordaDir, "gp"), "groupPolicy.json")
+
+    @CommandLine.Mixin
+    var signingOptions = SigningOptions()
 
     private val groupPolicy by lazy {
         mapOf(
@@ -63,20 +68,23 @@ class OnboardMgm : Runnable, BaseOnboard() {
         manifest?.mainAttributes?.getValue("Bundle-Version") ?: "5.0.0.0-SNAPSHOT"
     }
 
-    private val jar by lazy {
-        ByteArrayOutputStream().use { outputStream ->
-            val manifest = Manifest()
-            manifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
-            manifest.mainAttributes.putValue("Corda-CPB-Name", cpbName)
-            manifest.mainAttributes.putValue("Corda-CPB-Version", cordaVersion)
+    private val jar: ByteArray by lazy {
 
-            JarOutputStream(outputStream, manifest).use { jarOutputStream ->
-                jarOutputStream.putNextEntry(ZipEntry("GroupPolicy.json"))
-                jarOutputStream.write(groupPolicy)
-                jarOutputStream.closeEntry()
-            }
-            outputStream.toByteArray()
-        }
+        val gpFile = File.createTempFile("gp", "tmp", dotCordaDir).apply { deleteOnExit() }
+        val cpiFile = File.createTempFile("cpi", "tmp", dotCordaDir).apply { deleteOnExit() }
+
+        gpFile.writeBytes(groupPolicy)
+
+        CreateCpiV2().apply {
+            groupPolicyFileName = gpFile.absolutePath
+            cpiName = cpbName
+            cpiVersion = cordaVersion
+            cpiUpgrade = false
+            outputFileName = cpiFile.absolutePath
+            signingOptions = this@OnboardMgm.signingOptions
+        }.run()
+
+        cpiFile.readBytes()
     }
 
     private fun saveGroupPolicy() {

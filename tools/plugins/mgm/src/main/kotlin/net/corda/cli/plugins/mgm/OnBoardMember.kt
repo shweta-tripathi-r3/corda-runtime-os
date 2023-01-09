@@ -3,16 +3,15 @@ package net.corda.cli.plugins.mgm
 import kong.unirest.Unirest
 import kong.unirest.json.JSONArray
 import kong.unirest.json.JSONObject
+import net.corda.cli.plugins.packaging.CreateCpiV2
+import net.corda.cli.plugins.packaging.signing.SigningOptions
 import net.corda.v5.base.util.toBase64
+import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
-import java.util.jar.JarInputStream
-import java.util.jar.JarOutputStream
-import java.util.zip.ZipEntry
 
 @Command(
     name = "member",
@@ -60,6 +59,9 @@ class OnBoardMember : Runnable, BaseOnboard() {
         description = ["The X500 name of the member. Default to a random member name"]
     )
     override var x500Name: String = "O=${UUID.randomUUID()}, L=London, C=GB"
+
+    @CommandLine.Mixin
+    var signingOptions = SigningOptions()
 
     override val cpiFileChecksum by lazy {
         if (cpiHash != null) {
@@ -174,25 +176,23 @@ class OnBoardMember : Runnable, BaseOnboard() {
             .replace('=', '_')
     }
 
-    private fun copyJar(source: JarInputStream, target: JarOutputStream) {
-        while (true) {
-            val entry = source.nextJarEntry ?: return
-            target.putNextEntry(entry)
-            source.copyTo(target)
-            target.closeEntry()
-        }
-    }
+    private val dotCordaDir = File(File(System.getProperty("user.home")), ".corda")
+
     private fun createCpi(cpbFile: File): ByteArray {
-        return JarInputStream(cpbFile.inputStream()).use { cpbJar ->
-            ByteArrayOutputStream().use { cpiByteStream ->
-                JarOutputStream(cpiByteStream, cpbJar.manifest).use { cpiJar ->
-                    cpiJar.putNextEntry(ZipEntry("GroupPolicy.json"))
-                    cpiJar.write(groupPolicyFile.readBytes())
-                    copyJar(cpbJar, cpiJar)
-                }
-                cpiByteStream.toByteArray()
-            }
-        }
+
+        val cpiFile = File.createTempFile("cpi", "tmp", dotCordaDir).apply { deleteOnExit() }
+
+        CreateCpiV2().apply {
+            cpbFileName = cpbFile.absolutePath
+            groupPolicyFileName = groupPolicyFile.absolutePath
+            cpiName = cpbFile.name
+            cpiVersion = "1.0"
+            cpiUpgrade = false
+            outputFileName = cpiFile.absolutePath
+            signingOptions = this@OnBoardMember.signingOptions
+        }.run()
+
+        return cpiFile.readBytes()
     }
 
     private val ledgerKeyId by lazy {
