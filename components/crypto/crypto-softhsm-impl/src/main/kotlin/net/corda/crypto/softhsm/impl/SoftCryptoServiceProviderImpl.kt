@@ -47,7 +47,7 @@ const val WRAPPING_DEFAULT_NAME = "DEFAULT"
 /**
  * A factory that creates [SoftCryptoService] instances given configuration.
  *
- * The service ranking is set to the smallest possible number to allow the upstream implementation to pick other
+ * The service ranking is set below the default ranking to allow the upstream implementation to pick other
  * providers as this one will always be present in the deployment.
  */
 
@@ -56,7 +56,7 @@ const val WRAPPING_DEFAULT_NAME = "DEFAULT"
 // the QA strategy for this code is to rely in smoke tests and e2e tests.
 
 @Suppress("LongParameterList")
-@ServiceRanking(Int.MIN_VALUE)
+@ServiceRanking(-1)
 @Component(service = [CryptoServiceProvider::class, SoftCryptoServiceProvider::class])
 open class SoftCryptoServiceProviderImpl @Activate constructor(
     @Reference(service = LifecycleCoordinatorFactory::class)

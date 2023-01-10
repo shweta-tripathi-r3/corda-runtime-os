@@ -4,7 +4,6 @@ import net.corda.common.json.validation.JsonValidator
 import net.corda.cpiinfo.read.CpiInfoReadService
 import net.corda.crypto.core.SecureHashImpl
 import net.corda.db.persistence.testkit.components.VirtualNodeService
-import net.corda.db.testkit.DbUtils
 import net.corda.ledger.common.data.transaction.SignedTransactionContainer
 import net.corda.ledger.common.data.transaction.TransactionMetadataInternal
 import net.corda.ledger.common.data.transaction.TransactionStatus
@@ -36,7 +35,6 @@ import net.corda.v5.ledger.common.transaction.CordaPackageSummary
 import net.corda.ledger.common.data.transaction.PrivacySalt
 import net.corda.test.util.dsl.entities.cpx.getCpkFileHashes
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -187,7 +185,6 @@ class ConsensualLedgerRepositoryTest {
 
     @Test
     fun `can persist signed transaction`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         val account = "Account"
         val transactionStatus = TransactionStatus.VERIFIED
         val signedTransaction = createSignedTransaction(Instant.now())
@@ -266,7 +263,6 @@ class ConsensualLedgerRepositoryTest {
 
     @Test
     fun `can persist links between signed transaction and existing CPKs`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         val account = "Account"
         // truncating to millis as on windows builds the micros are lost after fetching the data from Postgres
         val createdTs = Instant.now().truncatedTo(ChronoUnit.MILLIS)

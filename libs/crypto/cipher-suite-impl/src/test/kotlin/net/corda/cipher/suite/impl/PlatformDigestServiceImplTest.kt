@@ -8,10 +8,11 @@ import net.corda.crypto.impl.DoubleSHA256Digest
 import net.corda.v5.crypto.DigestAlgorithmName
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.condition.EnabledForJreRange
+import org.junit.jupiter.api.condition.JRE.JAVA_11
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.ByteArrayInputStream
@@ -121,9 +122,9 @@ class PlatformDigestServiceImplTest {
                 "54FC9D3A6B3BEA1ECA8CC4E6BA1CF4DE78D8822B3EA724DE9D6C", hash.toString())
     }
 
+    @EnabledForJreRange(min = JAVA_11)
     @Test
     fun `Should calculate sha3-256 secure hash`() {
-        assumeTrue(JavaVersion.isVersionAtLeast(JavaVersion.JAVA_11))
         val hash = digestService.hash(byteArrayOf(0x64, -0x13, 0x42, 0x3a), SHA3_256)
         assertEquals(32, hash.bytes.size)
         assertEquals(32, digestService.digestLength(SHA3_256))
@@ -137,9 +138,9 @@ class PlatformDigestServiceImplTest {
         )
     }
 
+    @EnabledForJreRange(min = JAVA_11)
     @Test
     fun `Should calculate sha3-384 secure hash`() {
-        assumeTrue(JavaVersion.isVersionAtLeast(JavaVersion.JAVA_11))
         val hash = digestService.hash(byteArrayOf(0x64, -0x13, 0x42, 0x3a), SHA3_384)
         assertEquals(48, hash.bytes.size)
         assertEquals(48, digestService.digestLength(SHA3_384))
@@ -154,9 +155,9 @@ class PlatformDigestServiceImplTest {
         )
     }
 
+    @EnabledForJreRange(min = JAVA_11)
     @Test
     fun `Should calculate sha3-512 secure hash`() {
-        assumeTrue(JavaVersion.isVersionAtLeast(JavaVersion.JAVA_11))
         val hash = digestService.hash(byteArrayOf(0x64, -0x13, 0x42, 0x3a), SHA3_512)
         assertEquals(64, hash.bytes.size)
         assertEquals(64, digestService.digestLength(SHA3_512))

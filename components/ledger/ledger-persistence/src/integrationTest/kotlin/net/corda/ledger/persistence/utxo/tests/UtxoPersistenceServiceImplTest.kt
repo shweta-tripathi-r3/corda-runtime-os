@@ -52,7 +52,6 @@ import net.corda.v5.ledger.utxo.TransactionState
 import net.corda.v5.ledger.utxo.transaction.UtxoLedgerTransaction
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -182,7 +181,6 @@ class UtxoPersistenceServiceImplTest {
 
     @Test
     fun `find unconsumed visible transaction states`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         val createdTs = testClock.instant()
         val entityFactory = UtxoEntityFactory(entityManagerFactory)
         val transaction1 = createSignedTransaction(createdTs)
@@ -264,7 +262,6 @@ class UtxoPersistenceServiceImplTest {
 
     @Test
     fun `update transaction status`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         var floorDateTime = nextTime()
 
         val entityFactory = UtxoEntityFactory(entityManagerFactory)
@@ -282,7 +279,6 @@ class UtxoPersistenceServiceImplTest {
 
     @Test
     fun `update transaction status does not affect other transactions`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         var floorDateTime = nextTime()
 
         val entityFactory = UtxoEntityFactory(entityManagerFactory)
@@ -302,7 +298,6 @@ class UtxoPersistenceServiceImplTest {
 
     @Test
     fun `persist signed transaction`() {
-        Assumptions.assumeFalse(DbUtils.isInMemory, "Skipping this test when run against in-memory DB.")
         val account = "Account"
         val transactionStatus = VERIFIED
         val signedTransaction = createSignedTransaction(Instant.now())
@@ -411,8 +406,8 @@ class UtxoPersistenceServiceImplTest {
                 .forEach { (dbRelevancy, visibleStateIndex) ->
                     assertThat(dbRelevancy.field<Int>("groupIndex")).isEqualTo(UtxoComponentGroup.OUTPUTS.ordinal)
                     assertThat(dbRelevancy.field<Int>("leafIndex")).isEqualTo(visibleStateIndex)
-                    assertThat(dbRelevancy.field<String>("customRepresentation"))
-                        .isEqualTo("{\"net.corda.v5.ledger.utxo.ContractState\": {\"stateRef\": \"${signedTransaction.id}:0\"}}")
+                    assertThat(dbRelevancy.field<String>("customRepresentation").replace("\\s".toRegex(), ""))
+                        .isEqualTo("{\"net.corda.v5.ledger.utxo.ContractState\":{\"stateRef\":\"${signedTransaction.id}:0\"}}")
                     assertThat(dbRelevancy.field<Instant>("consumed")).isNull()
                 }
 
