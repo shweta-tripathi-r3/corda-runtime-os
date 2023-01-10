@@ -1,27 +1,3 @@
-plugins {
-    id 'net.corda.plugins.cordapp-cpb2'
-}
-
-cordapp {
-    targetPlatformVersion platformVersion as Integer
-    minimumPlatformVersion platformVersion as Integer
-    workflow {
-        name "Apples utxo example app"
-        versionId 1
-        vendor "R3"
-    }
-}
-
-dependencies {
-    cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
-    cordaProvided 'net.corda:corda-ledger-utxo'
-
-    cordapp project(':testing:cpbs:ledger-apples-example:ledger-utxo-apples-example-contract')
-
-    // Common and API packages pulled in as transitive dependencies through client
-    cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
-}
-
 //plugins {
 //    id 'net.corda.plugins.cordapp-cpb2'
 //}
@@ -37,10 +13,34 @@ dependencies {
 //}
 //
 //dependencies {
-//    cordaProvided 'net.corda:corda-ledger-utxo:5.0.0.0-<VERSION>'
+//    cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
+//    cordaProvided 'net.corda:corda-ledger-utxo'
 //
 //    cordapp project(':testing:cpbs:ledger-apples-example:ledger-utxo-apples-example-contract')
 //
 //    // Common and API packages pulled in as transitive dependencies through client
-//    cordapp ':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client:<VERSION>'
+//    cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
 //}
+
+plugins {
+    id 'net.corda.plugins.cordapp-cpb2' version '7.0.0'
+}
+
+cordapp {
+    targetPlatformVersion 999
+    minimumPlatformVersion 999
+    workflow {
+        name "Apples utxo example app"
+        versionId 1
+        vendor "R3"
+    }
+}
+
+dependencies {
+    cordaProvided 'net.corda:corda-ledger-utxo:5.0.0.524-Fox-SNAPSHOT'
+
+    cordapp project(':testing:cpbs:ledger-apples-example:ledger-utxo-apples-example-contract')
+
+    // Common and API packages pulled in as transitive dependencies through client
+    cordapp 'com.r3.corda.notary.plugin.nonvalidating:notary-plugin-non-validating-client:5.0.0.0-Fox-SNAPSHOT'
+}

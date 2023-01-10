@@ -1,10 +1,29 @@
+//plugins {
+//    id 'net.corda.plugins.cordapp-cpb2'
+//}
+//
+//cordapp {
+//    targetPlatformVersion platformVersion as Integer
+//    minimumPlatformVersion platformVersion as Integer
+//    contract {
+//        name "Apples utxo example contract"
+//        versionId 1
+//        vendor "R3"
+//    }
+//}
+//
+//dependencies {
+//    cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
+//    cordaProvided 'net.corda:corda-ledger-utxo'
+//}
+
 plugins {
-    id 'net.corda.plugins.cordapp-cpb2'
+    id 'net.corda.plugins.cordapp-cpb2' version '7.0.0'
 }
 
 cordapp {
-    targetPlatformVersion platformVersion as Integer
-    minimumPlatformVersion platformVersion as Integer
+    targetPlatformVersion 999
+    minimumPlatformVersion 999
     contract {
         name "Apples utxo example contract"
         versionId 1
@@ -13,7 +32,6 @@ cordapp {
 }
 
 dependencies {
-    cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
-    cordaProvided 'net.corda:corda-ledger-utxo'
+    cordaProvided 'net.corda:corda-ledger-utxo:5.0.0.524-Fox-SNAPSHOT'
 }
 
