@@ -1,4 +1,4 @@
-package net.cordapp.demo.utxo
+package net.cordapp.utxo.apples.flows.redeem
 
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatingFlow
@@ -13,9 +13,9 @@ import net.corda.v5.base.util.loggerFor
 import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.common.Party
 import net.corda.v5.ledger.utxo.UtxoLedgerService
-import net.cordapp.demo.utxo.contract.AppleStamp
-import net.cordapp.demo.utxo.contract.BasketOfApples
-import net.cordapp.demo.utxo.contract.BasketOfApplesContract
+import net.cordapp.utxo.apples.states.AppleStamp
+import net.cordapp.utxo.apples.states.BasketOfApples
+import net.cordapp.utxo.apples.contracts.BasketOfApplesContract
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -48,10 +48,11 @@ class RedeemApplesFlow : RPCStartableFlow {
         val stampId = request.stampId
 
         // Retrieve the notaries public key (this will change)
-        val notary = notaryLookup.notaryServices.single()
+        val notaryInfo = notaryLookup.notaryServices.single()
         val notaryKey = memberLookup.lookup().single {
-            it.memberProvidedContext["corda.notary.service.name"] == notary.name.toString()
+            it.memberProvidedContext["corda.notary.service.name"] == notaryInfo.name.toString()
         }.ledgerKeys.first()
+        val notary = Party(notaryInfo.name, notaryKey)
 
         val ourIdentity = memberLookup.myInfo().let { Party(it.name, it.ledgerKeys.first()) }
 
@@ -74,7 +75,7 @@ class RedeemApplesFlow : RPCStartableFlow {
         // Create the transaction
         @Suppress("DEPRECATION")
         val transaction = utxoLedgerService.getTransactionBuilder()
-            .setNotary(Party(notary.name, notaryKey))
+            .setNotary(notary)
             .addInputStates(appleStampStateAndRef.ref, basketOfApplesStampStateAndRef.ref)
             .addOutputState(updatedBasket)
             .addCommand(BasketOfApplesContract.Commands.Redeem())

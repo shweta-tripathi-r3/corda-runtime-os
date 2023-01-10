@@ -1,4 +1,4 @@
-package net.cordapp.demo.utxo
+package net.cordapp.utxo.apples.flows.issue
 
 import net.corda.v5.base.types.MemberX500Name
 

@@ -1,4 +1,4 @@
-package net.cordapp.demo.utxo
+package net.cordapp.utxo.apples.flows.issue
 
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatedBy
@@ -7,8 +7,8 @@ import net.corda.v5.application.messaging.FlowSession
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.utxo.UtxoLedgerService
 
-@InitiatedBy(protocol = "redeem-apples")
-class RedeemApplesResponderFlow : ResponderFlow {
+@InitiatedBy(protocol = "create-and-issue-apple-stamp")
+class CreateAndIssueAppleStampResponderFlow : ResponderFlow {
 
     @CordaInject
     lateinit var utxoLedgerService: UtxoLedgerService

@@ -18,12 +18,29 @@ dependencies {
 
     cordapp project(':testing:cpbs:ledger-apples-example:ledger-utxo-apples-example-contract')
 
-    testImplementation project(":libs:application:application-impl")
-    testImplementation project(":libs:sandbox-types")
-    testImplementation "org.mockito:mockito-inline:$mockitoInlineVersion"
-    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
-
     // Common and API packages pulled in as transitive dependencies through client
     cordapp project(':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client')
 }
 
+//plugins {
+//    id 'net.corda.plugins.cordapp-cpb2'
+//}
+//
+//cordapp {
+//    targetPlatformVersion platformVersion as Integer
+//    minimumPlatformVersion platformVersion as Integer
+//    workflow {
+//        name "Apples utxo example app"
+//        versionId 1
+//        vendor "R3"
+//    }
+//}
+//
+//dependencies {
+//    cordaProvided 'net.corda:corda-ledger-utxo:5.0.0.0-<VERSION>'
+//
+//    cordapp project(':testing:cpbs:ledger-apples-example:ledger-utxo-apples-example-contract')
+//
+//    // Common and API packages pulled in as transitive dependencies through client
+//    cordapp ':notary-plugins:notary-plugin-non-validating:notary-plugin-non-validating-client:<VERSION>'
+//}

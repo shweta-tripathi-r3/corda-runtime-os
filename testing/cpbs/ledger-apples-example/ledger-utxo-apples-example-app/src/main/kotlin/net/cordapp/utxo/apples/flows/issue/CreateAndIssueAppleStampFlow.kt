@@ -1,4 +1,4 @@
-package net.cordapp.demo.utxo
+package net.cordapp.utxo.apples.flows.issue
 
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.InitiatingFlow
@@ -13,8 +13,8 @@ import net.corda.v5.base.util.loggerFor
 import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.common.Party
 import net.corda.v5.ledger.utxo.UtxoLedgerService
-import net.cordapp.demo.utxo.contract.AppleStamp
-import net.cordapp.demo.utxo.contract.AppleStampContract
+import net.cordapp.utxo.apples.states.AppleStamp
+import net.cordapp.utxo.apples.contracts.AppleStampContract
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -48,15 +48,16 @@ class CreateAndIssueAppleStampFlow : RPCStartableFlow {
         val holderName = request.holder
 
         // Retrieve the notaries public key (this will change)
-        val notary = notaryLookup.notaryServices.single()
+        val notaryInfo = notaryLookup.notaryServices.single()
         val notaryKey = memberLookup.lookup().single {
-            it.memberProvidedContext["corda.notary.service.name"] == notary.name.toString()
+            it.memberProvidedContext["corda.notary.service.name"] == notaryInfo.name.toString()
         }.ledgerKeys.first()
+        val notary = Party(notaryInfo.name, notaryKey)
 
         val issuer = memberLookup.myInfo().let { Party(it.name, it.ledgerKeys.first()) }
-        val holder = requireNotNull(memberLookup.lookup(holderName)?.let { Party(it.name, it.ledgerKeys.first()) }) {
-            "The holder does not exist within the network"
-        }
+        val holder = memberLookup.lookup(holderName)
+            ?.let { Party(it.name, it.ledgerKeys.first()) }
+            ?: throw IllegalArgumentException("The holder $holderName does not exist within the network")
 
         // Building the output AppleStamp state
         val newStamp = AppleStamp(
@@ -70,7 +71,7 @@ class CreateAndIssueAppleStampFlow : RPCStartableFlow {
         // Create the transaction
         @Suppress("DEPRECATION")
         val transaction = utxoLedgerService.getTransactionBuilder()
-            .setNotary(Party(notary.name, notaryKey))
+            .setNotary(notary)
             .addOutputState(newStamp)
             .addCommand(AppleStampContract.Commands.Issue())
             .setTimeWindowUntil(Instant.now().plus(1, ChronoUnit.DAYS))

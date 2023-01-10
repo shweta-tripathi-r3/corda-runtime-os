@@ -1,10 +1,12 @@
-package net.cordapp.demo.utxo.contract
+package net.cordapp.utxo.apples.contracts
 
 import net.corda.v5.ledger.utxo.Command
 import net.corda.v5.ledger.utxo.Contract
 import net.corda.v5.ledger.utxo.transaction.UtxoLedgerTransaction
 import net.corda.v5.ledger.utxo.transaction.getInputStates
 import net.corda.v5.ledger.utxo.transaction.getOutputStates
+import net.cordapp.utxo.apples.states.AppleStamp
+import net.cordapp.utxo.apples.states.BasketOfApples
 
 class BasketOfApplesContract : Contract{
 

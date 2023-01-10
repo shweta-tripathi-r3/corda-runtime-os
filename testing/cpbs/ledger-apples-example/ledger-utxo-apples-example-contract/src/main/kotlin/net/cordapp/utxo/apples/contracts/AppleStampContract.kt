@@ -1,9 +1,10 @@
-package net.cordapp.demo.utxo.contract
+package net.cordapp.utxo.apples.contracts
 
 import net.corda.v5.ledger.utxo.Command
 import net.corda.v5.ledger.utxo.Contract
 import net.corda.v5.ledger.utxo.transaction.UtxoLedgerTransaction
 import net.corda.v5.ledger.utxo.transaction.getOutputStates
+import net.cordapp.utxo.apples.states.AppleStamp
 
 class AppleStampContract : Contract {
 
@@ -34,6 +35,5 @@ class AppleStampContract : Contract {
                 throw IllegalArgumentException("Incorrect type of AppleStamp commands: ${command::class.java.name}")
             }
         }
-
     }
 }

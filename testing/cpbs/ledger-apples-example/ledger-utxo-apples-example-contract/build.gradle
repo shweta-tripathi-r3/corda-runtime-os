@@ -15,10 +15,5 @@ cordapp {
 dependencies {
     cordaProvided platform("net.corda:corda-api:$cordaApiVersion")
     cordaProvided 'net.corda:corda-ledger-utxo'
-
-    testImplementation project(":libs:application:application-impl")
-    testImplementation project(":libs:sandbox-types")
-    testImplementation "org.mockito:mockito-inline:$mockitoInlineVersion"
-    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
 }
 

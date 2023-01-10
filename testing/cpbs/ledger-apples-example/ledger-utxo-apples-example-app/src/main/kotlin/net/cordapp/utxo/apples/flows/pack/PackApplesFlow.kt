@@ -1,4 +1,4 @@
-package net.cordapp.demo.utxo
+package net.cordapp.utxo.apples.flows.pack
 
 import net.corda.v5.application.flows.CordaInject
 import net.corda.v5.application.flows.RPCRequestData
@@ -11,8 +11,8 @@ import net.corda.v5.base.util.loggerFor
 import net.corda.v5.ledger.common.NotaryLookup
 import net.corda.v5.ledger.common.Party
 import net.corda.v5.ledger.utxo.UtxoLedgerService
-import net.cordapp.demo.utxo.contract.BasketOfApples
-import net.cordapp.demo.utxo.contract.BasketOfApplesContract
+import net.cordapp.utxo.apples.states.BasketOfApples
+import net.cordapp.utxo.apples.contracts.BasketOfApplesContract
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -41,10 +41,11 @@ class PackApplesFlow : RPCStartableFlow {
         val weight = request.weight
 
         // Retrieve the notaries public key (this will change)
-        val notary = notaryLookup.notaryServices.single()
+        val notaryInfo = notaryLookup.notaryServices.single()
         val notaryKey = memberLookup.lookup().single {
-            it.memberProvidedContext["corda.notary.service.name"] == notary.name.toString()
+            it.memberProvidedContext["corda.notary.service.name"] == notaryInfo.name.toString()
         }.ledgerKeys.first()
+        val notary = Party(notaryInfo.name, notaryKey)
 
         val myInfo = memberLookup.myInfo()
         val ourIdentity = Party(myInfo.name, myInfo.ledgerKeys.first())
@@ -61,7 +62,7 @@ class PackApplesFlow : RPCStartableFlow {
         // Create the transaction
         @Suppress("DEPRECATION")
         val transaction = utxoLedgerService.getTransactionBuilder()
-            .setNotary(Party(notary.name, notaryKey))
+            .setNotary(notary)
             .addOutputState(basket)
             .addCommand(BasketOfApplesContract.Commands.PackBasket())
             .setTimeWindowUntil(Instant.now().plus(1, ChronoUnit.DAYS))
