@@ -65,6 +65,7 @@ dependencies {
     implementation project(':libs:crypto:crypto-config-impl')
     implementation project(':libs:crypto:crypto-core')
     implementation project(':libs:crypto:crypto-impl')
+    implementation project(':libs:lifecycle:lifecycle')
     implementation project(':libs:platform-info')
     // Processor list must be kept in sync with workersForProcessor in net.corda.cli.plugins.topicconfig.Create
     implementation project(':processors:crypto-processor')
