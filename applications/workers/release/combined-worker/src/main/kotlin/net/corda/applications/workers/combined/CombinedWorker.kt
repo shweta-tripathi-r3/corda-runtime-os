@@ -129,6 +129,7 @@ class CombinedWorker @Activate constructor(
 
         setupMonitor(workerMonitor, params.defaultParams, this.javaClass.simpleName)
         versionPublisher.start("Combined Worker")
+        platformInfoProvider.start()
 
         JavaSerialisationFilter.install()
 
@@ -158,6 +159,7 @@ class CombinedWorker @Activate constructor(
 
         workerMonitor.stop()
         versionPublisher.stop()
+        platformInfoProvider.stop()
     }
 }
 

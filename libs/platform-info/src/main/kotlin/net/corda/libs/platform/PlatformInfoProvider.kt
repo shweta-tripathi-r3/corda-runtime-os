@@ -1,5 +1,10 @@
 package net.corda.libs.platform
 
+data class ClusterWorkerVersion (
+    val localWorkerPlatformVersion: Int,
+    val localWorkerSoftwareVersion: String
+)
+
 /**
  * For retrieving corda platform information for the current Corda cluster this service is running on.
  */
@@ -22,4 +27,12 @@ interface PlatformInfoProvider {
      * This is sourced from `Bundle-Version` in the installed JAR's manifest.
      */
     val localWorkerSoftwareVersion: String
+
+    /**
+     *
+     */
+    val workerVersions: Map<String, ClusterWorkerVersion>
+
+    fun start()
+    fun stop()
 }
