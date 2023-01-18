@@ -2,12 +2,13 @@ package net.corda.applications.workers.member
 
 import net.corda.applications.workers.workercommon.ApplicationBanner
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
-import net.corda.applications.workers.workercommon.WorkerMonitor
+import net.corda.applications.workers.workercommon.VersionPublisher
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBootstrapConfig
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.loggerStartupInfo
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setupMonitor
+import net.corda.applications.workers.workercommon.WorkerMonitor
 import net.corda.libs.configuration.SmartConfigFactoryFactory
 import net.corda.libs.configuration.validation.ConfigurationValidatorFactory
 import net.corda.libs.platform.PlatformInfoProvider
@@ -34,6 +35,8 @@ class MemberWorker @Activate constructor(
     private val configurationValidatorFactory: ConfigurationValidatorFactory,
     @Reference(service = PlatformInfoProvider::class)
     val platformInfoProvider: PlatformInfoProvider,
+    @Reference(service = VersionPublisher::class)
+    private val versionPublisher: VersionPublisher,
     @Reference(service = ApplicationBanner::class)
     val applicationBanner: ApplicationBanner,
     @Reference(service = SmartConfigFactoryFactory::class)
@@ -60,11 +63,14 @@ class MemberWorker @Activate constructor(
             params.defaultParams,
             configurationValidatorFactory.createConfigValidator())
 
+        versionPublisher.start("Member Worker")
+
         processor.start(config)
     }
 
     override fun shutdown() {
         logger.info("Member worker stopping.")
+        versionPublisher.stop()
         processor.stop()
         workerMonitor.stop()
     }

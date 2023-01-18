@@ -2,13 +2,14 @@ package net.corda.applications.workers.rpc
 
 import net.corda.applications.workers.workercommon.ApplicationBanner
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
-import net.corda.applications.workers.workercommon.WorkerMonitor
 import net.corda.applications.workers.workercommon.JavaSerialisationFilter
+import net.corda.applications.workers.workercommon.VersionPublisher
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBootstrapConfig
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.loggerStartupInfo
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.printHelpOrVersion
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.setupMonitor
+import net.corda.applications.workers.workercommon.WorkerMonitor
 import net.corda.libs.configuration.SmartConfigFactoryFactory
 import net.corda.libs.configuration.validation.ConfigurationValidatorFactory
 import net.corda.libs.platform.PlatformInfoProvider
@@ -35,6 +36,8 @@ class RPCWorker @Activate constructor(
     private val configurationValidatorFactory: ConfigurationValidatorFactory,
     @Reference(service = PlatformInfoProvider::class)
     private val platformInfoProvider: PlatformInfoProvider,
+    @Reference(service = VersionPublisher::class)
+    private val versionPublisher: VersionPublisher,
     @Reference(service = ApplicationBanner::class)
     val applicationBanner: ApplicationBanner,
     @Reference(service = SmartConfigFactoryFactory::class)
@@ -64,11 +67,14 @@ class RPCWorker @Activate constructor(
                 params.defaultParams,
                 configurationValidatorFactory.createConfigValidator(), listOf())
 
+        versionPublisher.start("RPC Worker")
+
         processor.start(config)
     }
 
     override fun shutdown() {
         logger.info("RPC worker stopping.")
+        versionPublisher.stop()
         processor.stop()
         workerMonitor.stop()
     }

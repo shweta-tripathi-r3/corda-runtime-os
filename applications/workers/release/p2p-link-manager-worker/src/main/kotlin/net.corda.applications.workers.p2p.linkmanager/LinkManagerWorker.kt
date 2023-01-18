@@ -2,9 +2,10 @@ package net.corda.applications.workers.p2p.linkmanager
 
 import net.corda.applications.workers.workercommon.ApplicationBanner
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
-import net.corda.applications.workers.workercommon.WorkerMonitor
+import net.corda.applications.workers.workercommon.VersionPublisher
 import net.corda.applications.workers.workercommon.WorkerHelpers
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.loggerStartupInfo
+import net.corda.applications.workers.workercommon.WorkerMonitor
 import net.corda.libs.configuration.SmartConfigFactoryFactory
 import net.corda.libs.configuration.validation.ConfigurationValidatorFactory
 import net.corda.libs.platform.PlatformInfoProvider
@@ -30,6 +31,8 @@ class LinkManagerWorker @Activate constructor(
     private val configurationValidatorFactory: ConfigurationValidatorFactory,
     @Reference(service = PlatformInfoProvider::class)
     val platformInfoProvider: PlatformInfoProvider,
+    @Reference(service = VersionPublisher::class)
+    private val versionPublisher: VersionPublisher,
     @Reference(service = ApplicationBanner::class)
     val applicationBanner: ApplicationBanner,
     @Reference(service = SmartConfigFactoryFactory::class)
@@ -56,11 +59,14 @@ class LinkManagerWorker @Activate constructor(
             configurationValidatorFactory.createConfigValidator()
         )
 
+        versionPublisher.start("P2P Link Manager Worker")
+
         linkManagerProcessor.start(config)
     }
 
     override fun shutdown() {
         logger.info("P2P Link Manager worker stopping.")
+        versionPublisher.stop()
         linkManagerProcessor.stop()
         workerMonitor.stop()
     }

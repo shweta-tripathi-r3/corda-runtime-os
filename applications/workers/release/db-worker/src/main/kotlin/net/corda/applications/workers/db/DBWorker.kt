@@ -4,6 +4,7 @@ import net.corda.applications.workers.workercommon.ApplicationBanner
 import net.corda.applications.workers.workercommon.DefaultWorkerParams
 import net.corda.applications.workers.workercommon.JavaSerialisationFilter
 import net.corda.applications.workers.workercommon.PathAndConfig
+import net.corda.applications.workers.workercommon.VersionPublisher
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getBootstrapConfig
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.getParams
 import net.corda.applications.workers.workercommon.WorkerHelpers.Companion.loggerStartupInfo
@@ -16,8 +17,8 @@ import net.corda.libs.platform.PlatformInfoProvider
 import net.corda.osgi.api.Application
 import net.corda.osgi.api.Shutdown
 import net.corda.processors.db.DBProcessor
-import net.corda.schema.configuration.BootConfig.BOOT_DB_PARAMS
 import net.corda.processors.uniqueness.UniquenessProcessor
+import net.corda.schema.configuration.BootConfig.BOOT_DB_PARAMS
 import net.corda.v5.base.util.contextLogger
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -41,6 +42,8 @@ class DBWorker @Activate constructor(
     private val configurationValidatorFactory: ConfigurationValidatorFactory,
     @Reference(service = PlatformInfoProvider::class)
     val platformInfoProvider: PlatformInfoProvider,
+    @Reference(service = VersionPublisher::class)
+    private val versionPublisher: VersionPublisher,
     @Reference(service = ApplicationBanner::class)
     val applicationBanner: ApplicationBanner,
     @Reference(service = SmartConfigFactoryFactory::class)
@@ -72,12 +75,15 @@ class DBWorker @Activate constructor(
             listOf(databaseConfig)
         )
 
+        versionPublisher.start("DB Worker")
+
         processor.start(config)
         uniquenessProcessor.start()
     }
 
     override fun shutdown() {
         logger.info("DB worker stopping.")
+        versionPublisher.stop()
         processor.stop()
         workerMonitor.stop()
     }

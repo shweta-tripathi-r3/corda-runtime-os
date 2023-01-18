@@ -1,10 +1,9 @@
 package net.corda.applications.workers.workercommon
 
-import net.corda.lifecycle.Lifecycle
-
 /**
  * Publishes information about the current worker to a topic.
  */
-interface VersionPublisher: Lifecycle {
+interface VersionPublisher {
     fun start(name: String)
+    fun stop()
 }
