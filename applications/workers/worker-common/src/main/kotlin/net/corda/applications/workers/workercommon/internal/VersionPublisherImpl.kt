@@ -97,11 +97,6 @@ class VersionPublisherImpl @Activate constructor(
         lifecycleCoordinator.start()
     }
 
-    override val isRunning: Boolean
-        get() = running
-
-    override fun start() = lifecycleCoordinator.start()
-
     override fun stop() = lifecycleCoordinator.stop()
 
 }
