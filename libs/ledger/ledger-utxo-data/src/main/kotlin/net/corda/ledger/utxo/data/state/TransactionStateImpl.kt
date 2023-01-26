@@ -14,6 +14,7 @@ data class TransactionStateImpl<out T : ContractState>(
     override val notary: Party,
     override val encumbrance: EncumbranceGroup?,
 ) : TransactionState<T> {
-    override val contractType: Class<out Contract> get() = contractState.getContractClassOrThrow()
+    // TODO : Consider, should the transaction state only account for the subclass's Contract, or should it account for all Contracts in the type hierarchy?
+    override val contractType: Class<out Contract> get() = contractState.getContractClasses().first()
     override val contractStateType: Class<out T> get() = contractState.javaClass
 }

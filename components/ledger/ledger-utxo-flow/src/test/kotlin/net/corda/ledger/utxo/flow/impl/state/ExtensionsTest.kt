@@ -1,6 +1,6 @@
 package net.corda.ledger.utxo.flow.impl.state
 
-import net.corda.ledger.utxo.data.state.getContractClass
+import net.corda.ledger.utxo.data.state.getContractClasses
 import net.corda.v5.ledger.utxo.BelongsToContract
 import net.corda.v5.ledger.utxo.Contract
 import net.corda.v5.ledger.utxo.ContractState
@@ -23,7 +23,7 @@ class ExtensionsTest {
     fun canGetContractClassWhenEnclosed() {
         val state = TestContract.TestState(emptyList())
 
-        Assertions.assertNotNull(state.getContractClass())
+        Assertions.assertTrue(state.getContractClasses().isNotEmpty())
     }
 
     @BelongsToContract(TestContract::class)
@@ -33,7 +33,7 @@ class ExtensionsTest {
     fun canGetContractClassWithAnnotation() {
         val state = TestState2(emptyList())
 
-        Assertions.assertNotNull(state.getContractClass())
+        Assertions.assertTrue(state.getContractClasses().isNotEmpty())
     }
 
     class Enclosed(override val participants: List<PublicKey>) : ContractState
@@ -42,10 +42,10 @@ class ExtensionsTest {
     fun gettingContractFailsForOtherClasses() {
 
         val state1 = Enclosed(emptyList())
-        Assertions.assertNull(state1.getContractClass())
+        Assertions.assertTrue(state1.getContractClasses().isNotEmpty())
 
         val state2 = NonEnclosed(emptyList())
-        Assertions.assertNull(state2.getContractClass())
+        Assertions.assertTrue(state2.getContractClasses().isNotEmpty())
     }
 }
 
