@@ -41,6 +41,9 @@ class DbConnectionManagerEventHandler(
                     event.cause
                 )
             }
+            is DbCheckEvent -> {
+                event.run()
+            }
         }
     }
 

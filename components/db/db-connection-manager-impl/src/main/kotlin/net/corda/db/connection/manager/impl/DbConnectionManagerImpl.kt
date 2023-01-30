@@ -10,10 +10,12 @@ import net.corda.db.core.HikariDataSourceFactory
 import net.corda.db.schema.CordaDb
 import net.corda.libs.configuration.SmartConfig
 import net.corda.lifecycle.LifecycleCoordinatorFactory
+import net.corda.lifecycle.LifecycleStatus
 import net.corda.lifecycle.createCoordinator
 import net.corda.orm.DbEntityManagerConfiguration
 import net.corda.orm.EntityManagerFactoryFactory
 import net.corda.orm.JpaEntitiesRegistry
+import net.corda.v5.base.util.minutes
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Deactivate
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import javax.persistence.EntityManagerFactory
 import javax.sql.DataSource
+
 
 @Component(service = [DbConnectionManager::class])
 @Suppress("LongParameterList")
@@ -57,6 +60,11 @@ class DbConnectionManagerImpl (
 
     private companion object {
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
+
+        private val dbCheckTimerKey = this::class.java.name
+        private val dbCheckDelay = 1.minutes
+        private const val dbCheckSuccessMessage = "Connection to Cluster DB is successful."
+        private val dbCheckFailureMessage = "Failed to connect to Cluster DB. Will be retrying in ${dbCheckDelay.seconds}s."
     }
 
     private val eventHandler = DbConnectionManagerEventHandler(this)
@@ -120,12 +128,35 @@ class DbConnectionManagerImpl (
         while (true) {
             try {
                 checkDatabaseConnection(clusterDataSource)
-                logger.info("Connection to Cluster DB is successful.")
+                logger.info(dbCheckSuccessMessage)
+                scheduleDbCheck()
                 return
             } catch (e: DBConfigurationException) {
                 logger.warn("Failed to connect to Cluster DB. " +
                         "Will be retrying in ${checkConnectionRetryTimeout.seconds}s: $e")
                 sleeper(checkConnectionRetryTimeout)
+            }
+        }
+    }
+
+    private fun scheduleDbCheck() = lifecycleCoordinator.setTimer(dbCheckTimerKey, dbCheckDelay.toMillis(), ::runDbCheck)
+
+    private fun runDbCheck(timerKey: String): DbCheckEvent {
+        return DbCheckEvent(timerKey) {
+            try {
+                // Check DB connection
+                checkDatabaseConnection(getClusterDataSource())
+
+                // Success
+                logger.info(dbCheckSuccessMessage)
+                lifecycleCoordinator.updateStatus(LifecycleStatus.UP, dbCheckSuccessMessage)
+            } catch (e: DBConfigurationException) {
+                // Failure
+                logger.warn(dbCheckFailureMessage, e)
+                lifecycleCoordinator.updateStatus(LifecycleStatus.ERROR, dbCheckFailureMessage)
+            } finally {
+                // Schedule next check
+                scheduleDbCheck()
             }
         }
     }
