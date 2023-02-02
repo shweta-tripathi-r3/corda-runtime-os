@@ -179,6 +179,10 @@ class CpkWriteServiceImpl @Activate constructor(
     }
 
     private fun onReconcileCpkEvent(coordinator: LifecycleCoordinator) {
+        // Only run if our status is UP
+        if (coordinator.status != LifecycleStatus.UP)
+            return
+
         try {
             putMissingCpk()
         } catch (e: Exception) {
