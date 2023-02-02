@@ -48,6 +48,7 @@ import net.corda.schema.configuration.BootConfig.BOOT_DB_PARAMS
 import net.corda.schema.configuration.BootConfig.INSTANCE_ID
 import net.corda.schema.configuration.ConfigKeys
 import net.corda.v5.base.util.debug
+import net.corda.v5.base.util.minutes
 import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import net.corda.virtualnode.write.db.VirtualNodeInfoWriteService
 import net.corda.virtualnode.write.db.VirtualNodeWriteService
@@ -254,7 +255,7 @@ class DBProcessorImpl @Activate constructor(
     private fun onStartEvent() {
         // First Config reconciliation needs to run at least once. It cannot wait for its configuration as
         // it is the one to offer the DB Config (therefore its own configuration too) to `ConfigurationReadService`.
-        reconcilers.updateConfigReconciler(3600000)
+        reconcilers.updateConfigReconciler(6.minutes.toMillis())
     }
 
     private fun onStopEvent() {
