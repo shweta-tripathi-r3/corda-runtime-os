@@ -174,8 +174,8 @@ class CpkWriteServiceImpl @Activate constructor(
         createCpkChecksumsCache(messagingConfig)
         createCpkStorage()
 
-        scheduleNextReconciliationTask(coordinator)
         coordinator.updateStatus(LifecycleStatus.UP)
+        scheduleNextReconciliationTask(coordinator)
     }
 
     private fun onReconcileCpkEvent(coordinator: LifecycleCoordinator) {
