@@ -23,8 +23,10 @@ import net.corda.libs.virtualnode.datamodel.VirtualNodeEntities
 import net.corda.lifecycle.DependentComponents
 import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleCoordinatorFactory
+import net.corda.lifecycle.LifecycleCoordinatorName
 import net.corda.lifecycle.LifecycleEvent
 import net.corda.lifecycle.LifecycleStatus
+import net.corda.lifecycle.RegistrationHandle
 import net.corda.lifecycle.RegistrationStatusChangeEvent
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
@@ -186,6 +188,8 @@ class DBProcessorImpl @Activate constructor(
         allowedCertificatesReaderWriterService,
     )
 
+    private var dbManagerRegistrationHandler: RegistrationHandle? = null
+
     override fun start(bootConfig: SmartConfig) {
         log.info("DB processor starting.")
         lifecycleCoordinator.start()
@@ -256,10 +260,16 @@ class DBProcessorImpl @Activate constructor(
         // First Config reconciliation needs to run at least once. It cannot wait for its configuration as
         // it is the one to offer the DB Config (therefore its own configuration too) to `ConfigurationReadService`.
         reconcilers.updateConfigReconciler(6.minutes.toMillis())
+        dbManagerRegistrationHandler?.close()
+        dbManagerRegistrationHandler = lifecycleCoordinator.followStatusChangesByName(
+            setOf(LifecycleCoordinatorName.forComponent<DbConnectionManager>())
+        )
     }
 
     private fun onStopEvent() {
         reconcilers.close()
+        dbManagerRegistrationHandler?.close()
+        dbManagerRegistrationHandler = null
     }
 
     data class BootConfigEvent(val config: SmartConfig) : LifecycleEvent
