@@ -256,8 +256,6 @@ class CpkWriteServiceImpl @Activate constructor(
     }
 
     private fun closeResources() {
-        configReadServiceRegistration?.close()
-        configReadServiceRegistration = null
         configSubscription?.close()
         configSubscription = null
         cpkChecksumsCache?.close()
