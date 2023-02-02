@@ -141,11 +141,12 @@ class CpkWriteServiceImpl @Activate constructor(
                     RECONCILIATION_CONFIG,
                 )
             )
-        } else {
+        } else if (event.status == LifecycleStatus.DOWN || event.status == LifecycleStatus.ERROR) {
             logger.warn(
                 "Received a ${RegistrationStatusChangeEvent::class.java.simpleName} with status ${event.status}." +
                         " Component ${this::class.java.simpleName} is not started"
             )
+            coordinator.updateStatus(event.status)
             closeResources()
         }
     }
