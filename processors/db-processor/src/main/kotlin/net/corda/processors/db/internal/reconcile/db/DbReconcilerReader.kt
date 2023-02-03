@@ -125,8 +125,6 @@ class DbReconcilerReader<K : Any, V : Any>(
     }
 
     private fun closeResources() {
-        dependencyRegistration?.close()
-        dependencyRegistration = null
     }
 
     internal class GetRecordsErrorEvent(val exception: Exception) : LifecycleEvent
