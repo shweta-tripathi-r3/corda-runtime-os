@@ -22,5 +22,5 @@ class Scanner {
 
 fun main() {
 //    println(ExpressionLexer.parse("(1+21)*2+(332-4)/20"))
-    println(ExpressionLexer.parse("field ->> property"))
+    println(ExpressionLexer.parse("field ->> property AS chosen_field_name"))
 }

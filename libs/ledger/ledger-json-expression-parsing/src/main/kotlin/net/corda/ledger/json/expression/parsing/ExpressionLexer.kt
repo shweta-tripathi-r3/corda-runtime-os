@@ -28,7 +28,7 @@ object ExpressionLexer {
     )
 
     private val opsPattern = Regex(
-        """(?<op>(->>)|[+-/*]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem)"""
+        """(?<op>(->>)|[+-/*]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b)"""
     )
 
     fun parse(input: String): List<Token> {
