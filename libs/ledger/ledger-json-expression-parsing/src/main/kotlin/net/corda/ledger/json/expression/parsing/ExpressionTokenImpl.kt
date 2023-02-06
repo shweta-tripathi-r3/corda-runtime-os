@@ -74,6 +74,7 @@ fun operatorFactory(op: String): Operator {
         "FROM" -> JsonFrom()
         "SELECT" -> JsonSelect()
         "WHERE" -> JsonWhere()
+        "=" -> JsonEqualTo()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }

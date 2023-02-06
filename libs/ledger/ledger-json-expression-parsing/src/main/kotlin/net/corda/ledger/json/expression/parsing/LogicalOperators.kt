@@ -179,14 +179,18 @@ class JsonArrayOrObjectAsText : BinaryOperator {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is EqualsOperator
+        return other is JsonArrayOrObjectAsText
     }
 
     override fun hashCode(): Int {
         return precedence
     }
 
-    override fun copy(): Token = EqualsOperator()
+    override fun copy(): Token = JsonArrayOrObjectAsText()
+
+    override fun toString(): String {
+        return "->>"
+    }
 }
 
 class JsonAsNamedField : BinaryOperator {
@@ -205,14 +209,18 @@ class JsonAsNamedField : BinaryOperator {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is EqualsOperator
+        return other is JsonAsNamedField
     }
 
     override fun hashCode(): Int {
         return precedence
     }
 
-    override fun copy(): Token = EqualsOperator()
+    override fun copy(): Token = JsonAsNamedField()
+
+    override fun toString(): String {
+        return "AS"
+    }
 }
 
 class JsonFrom : BinaryOperator {
@@ -231,14 +239,18 @@ class JsonFrom : BinaryOperator {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is EqualsOperator
+        return other is JsonFrom
     }
 
     override fun hashCode(): Int {
         return precedence
     }
 
-    override fun copy(): Token = EqualsOperator()
+    override fun copy(): Token = JsonFrom()
+
+    override fun toString(): String {
+        return "FROM"
+    }
 }
 
 class JsonSelect : BinaryOperator {
@@ -257,14 +269,18 @@ class JsonSelect : BinaryOperator {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is EqualsOperator
+        return other is JsonSelect
     }
 
     override fun hashCode(): Int {
         return precedence
     }
 
-    override fun copy(): Token = EqualsOperator()
+    override fun copy(): Token = JsonSelect()
+
+    override fun toString(): String {
+        return "SELECT"
+    }
 }
 
 class JsonWhere : BinaryOperator {
@@ -283,12 +299,46 @@ class JsonWhere : BinaryOperator {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is EqualsOperator
+        return other is JsonWhere
     }
 
     override fun hashCode(): Int {
         return precedence
     }
 
-    override fun copy(): Token = EqualsOperator()
+    override fun copy(): Token = JsonWhere()
+
+    override fun toString(): String {
+        return "WHERE"
+    }
+}
+
+class JsonEqualTo : BinaryOperator {
+    override val associativity: Associativity = Associativity.Left
+    override val precedence: Int = 6
+    override var parentOffset: Int = -1
+
+    override fun evaluate(left: Value, right: Value): Value {
+        if (left is ByteArrayValue && right is ByteArrayValue) {
+            return BooleanValue(left.value.contentEquals(right.value))
+        }
+        if (left is DoubleValue && right is DoubleValue) {
+            return BooleanValue(left.value == right.value) // This ensures IEEE behaviour for NaN
+        }
+        return BooleanValue(left.value == right.value)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is JsonEqualTo
+    }
+
+    override fun hashCode(): Int {
+        return precedence
+    }
+
+    override fun copy(): Token = JsonEqualTo()
+
+    override fun toString(): String {
+        return "="
+    }
 }
