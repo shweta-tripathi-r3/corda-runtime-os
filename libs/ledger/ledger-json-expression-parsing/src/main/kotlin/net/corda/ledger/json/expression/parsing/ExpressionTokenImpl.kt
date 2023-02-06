@@ -69,6 +69,8 @@ fun operatorFactory(op: String): Operator {
         "<" -> LessThanOperator()
         "<=" -> LessThanEqualsOperator()
         "!" -> LogicalNotOperator()
+        "->>" -> JsonArrayOrObjectAsText()
+        "AS" -> JsonAsNamedField()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }
