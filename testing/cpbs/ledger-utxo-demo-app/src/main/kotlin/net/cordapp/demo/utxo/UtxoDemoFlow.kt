@@ -80,6 +80,10 @@ class UtxoDemoFlow : ClientStartableFlow {
 
             val sessions = members.map { flowMessaging.initiateFlow(it.name) }
 
+            for (session in sessions) {
+                session.send(utxoLedgerService.filterSignedTransaction(signedTransaction))
+            }
+
             return try {
                 val finalizedSignedTransaction = utxoLedgerService.finalize(
                     signedTransaction,
