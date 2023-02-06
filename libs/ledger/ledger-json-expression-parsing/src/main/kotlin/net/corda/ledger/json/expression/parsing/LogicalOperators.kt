@@ -240,3 +240,29 @@ class JsonFrom : BinaryOperator {
 
     override fun copy(): Token = EqualsOperator()
 }
+
+class JsonSelect : BinaryOperator {
+    override val associativity: Associativity = Associativity.Left
+    override val precedence: Int = 6
+    override var parentOffset: Int = -1
+
+    override fun evaluate(left: Value, right: Value): Value {
+        if (left is ByteArrayValue && right is ByteArrayValue) {
+            return BooleanValue(left.value.contentEquals(right.value))
+        }
+        if (left is DoubleValue && right is DoubleValue) {
+            return BooleanValue(left.value == right.value) // This ensures IEEE behaviour for NaN
+        }
+        return BooleanValue(left.value == right.value)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is EqualsOperator
+    }
+
+    override fun hashCode(): Int {
+        return precedence
+    }
+
+    override fun copy(): Token = EqualsOperator()
+}

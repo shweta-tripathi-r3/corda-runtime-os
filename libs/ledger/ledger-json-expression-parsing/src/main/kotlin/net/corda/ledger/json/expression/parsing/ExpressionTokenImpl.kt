@@ -72,6 +72,7 @@ fun operatorFactory(op: String): Operator {
         "->>" -> JsonArrayOrObjectAsText()
         "AS" -> JsonAsNamedField()
         "FROM" -> JsonFrom()
+        "SELECT" -> JsonSelect()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }
