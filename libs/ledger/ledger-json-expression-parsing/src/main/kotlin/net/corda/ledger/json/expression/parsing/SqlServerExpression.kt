@@ -11,7 +11,7 @@ object SqlServerExpression {
                     if (jsonArrayOrObjectAsTextComponents.first == null) {
                         jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = token.ref)
                     } else if (jsonArrayOrObjectAsTextComponents.second) {
-                        output.append("JSON_VALUE(${jsonArrayOrObjectAsTextComponents.first}, '$.${token.ref}')")
+                        output.append("JSON_VALUE(${jsonArrayOrObjectAsTextComponents.first}, '$.${token.ref.trim('\'')}')")
                         jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null, second = false)
                     }
                 }
