@@ -167,6 +167,7 @@ abstract class SubscriptionDominoTileBase(
                     updateState(Started)
                 } else {
                     logger.info("The status of $name had started. Waiting for $notReady.")
+                    updateState(StoppedDueToChildStopped)
                 }
             }
             LifecycleStatus.DOWN, LifecycleStatus.ERROR -> {
