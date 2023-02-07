@@ -22,5 +22,9 @@ class Scanner {
 
 fun main() {
 //    println(ExpressionLexer.parse("(1+21)*2+(332-4)/20"))
-    println(ExpressionLexer.parse("SELECT field ->> property AS chosen_field_name FROM table_name WHERE field ->> property = some_value").joinToString("\n"))
+    val expression = ExpressionLexer.parse("SELECT field ->> property AS chosen_field_name FROM table_name WHERE field ->> property = some_value")
+    println(expression.joinToString("\n"))
+    println("Postgres => ${PostgresExpression.convert(expression)}")
+    println("Oracle => ${OracleExpression.convert(expression)}")
+    println("SQL Server => ${SqlServerExpression.convert(expression)}")
 }
