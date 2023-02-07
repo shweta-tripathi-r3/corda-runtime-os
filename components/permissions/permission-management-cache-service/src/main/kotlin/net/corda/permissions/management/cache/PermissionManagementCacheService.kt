@@ -115,8 +115,9 @@ class PermissionManagementCacheService @Activate constructor(
                         configHandle = configurationReadService.registerComponentForUpdates(
                             coordinator, setOf(BOOT_CONFIG, MESSAGING_CONFIG))
                     }
+                    setStatusUp()
                 } else {
-                    downTransition()
+                    setStatusDown()
                 }
             }
             is ConfigChangedEvent -> {
@@ -155,12 +156,10 @@ class PermissionManagementCacheService @Activate constructor(
     }
 
     private fun downTransition() {
-        coordinator.updateStatus(LifecycleStatus.DOWN)
+        setStatusDown()
 
         configHandle?.close()
         configHandle = null
-        topicsRegistration?.close()
-        topicsRegistration = null
         userSubscription?.close()
         userSubscription = null
         groupSubscription?.close()
@@ -179,6 +178,10 @@ class PermissionManagementCacheService @Activate constructor(
     private fun setStatusUp() {
         log.info("Permission cache service has received all snapshots, setting status UP.")
         coordinator.updateStatus(LifecycleStatus.UP)
+    }
+
+    private fun setStatusDown() {
+        coordinator.updateStatus(LifecycleStatus.DOWN)
     }
 
     private fun createAndStartSubscriptionsAndCache(config: SmartConfig) {
