@@ -79,7 +79,8 @@ internal class WorkerMonitorImpl @Activate constructor(
                 val status = if (notReadyComponents.isEmpty()) {
                     HTTP_OK_CODE
                 } else {
-                    logger.warn("There are components with error or down state: $notReadyComponents.")
+                    val notReadySorted = notReadyComponents.sortedBy { it.toString() }
+                    logger.warn("There are components with error or down state: $notReadySorted.")
                     HTTP_SERVICE_UNAVAILABLE_CODE
                 }
                 context.status(status)
