@@ -15,7 +15,7 @@ import net.corda.lifecycle.createCoordinator
 import net.corda.orm.DbEntityManagerConfiguration
 import net.corda.orm.EntityManagerFactoryFactory
 import net.corda.orm.JpaEntitiesRegistry
-import net.corda.v5.base.util.minutes
+import net.corda.v5.base.util.seconds
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Deactivate
@@ -62,7 +62,7 @@ class DbConnectionManagerImpl (
         private val logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
 
         private val dbCheckTimerKey = this::class.java.name
-        private val dbCheckDelay = 1.minutes
+        private val dbCheckDelay = 10.seconds
         private const val dbCheckSuccessMessage = "Connection to Cluster DB is successful."
         private val dbCheckFailureMessage = "Failed to connect to Cluster DB. Will be retrying in ${dbCheckDelay.seconds}s."
     }
