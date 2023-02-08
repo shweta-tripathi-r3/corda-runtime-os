@@ -6,6 +6,12 @@ data class PathReference(override val ref: String) : Reference {
     override fun copy(): Token = PathReference(ref)
 }
 
+data class PathReferenceWithSpaces(override val ref: String) : Reference {
+    override var parentOffset: Int = -1
+
+    override fun copy(): Token = PathReference(ref)
+}
+
 class LeftParentheses : Token {
     var paramCount = 1
     override var parentOffset: Int = -1

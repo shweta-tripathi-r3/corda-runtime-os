@@ -7,6 +7,7 @@ object OracleExpression {
         for (token in expression) {
             when (token) {
                 is PathReference -> output.append(token.ref)
+                is PathReferenceWithSpaces -> output.append("\"${token.ref}\"")
                 is JsonArrayOrObjectAsText -> {
                     output.append(".")
                 }
@@ -24,6 +25,9 @@ object OracleExpression {
                 }
                 is JsonEqualTo -> {
                     output.append(" = ")
+                }
+                is ParameterEnd -> {
+                    output.append(", ")
                 }
             }
         }

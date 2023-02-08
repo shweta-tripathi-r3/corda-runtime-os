@@ -33,4 +33,19 @@ fun main() {
     println("Postgres => ${PostgresExpression.convert(expression2)}")
     println("Oracle => ${OracleExpression.convert(expression2)}")
     println("SQL Server => ${SqlServerExpression.convert(expression2)}")
+
+    println()
+
+    val expression3 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary FROM people WHERE custom ->> 'salary' = '10'")
+    println("Postgres => ${PostgresExpression.convert(expression3)}")
+    println("Oracle => ${OracleExpression.convert(expression3)}")
+    println("SQL Server => ${SqlServerExpression.convert(expression3)}")
+
+    println()
+
+    // lowercase keywords not working?
+    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' = '10'")
+    println("Postgres => ${PostgresExpression.convert(expression4)}")
+    println("Oracle => ${OracleExpression.convert(expression4)}")
+    println("SQL Server => ${SqlServerExpression.convert(expression4)}")
 }

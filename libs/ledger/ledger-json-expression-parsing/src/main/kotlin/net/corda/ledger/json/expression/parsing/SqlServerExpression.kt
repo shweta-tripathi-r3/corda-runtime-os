@@ -15,6 +15,14 @@ object SqlServerExpression {
                         jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null, second = false)
                     }
                 }
+                is PathReferenceWithSpaces -> {
+                    if (jsonArrayOrObjectAsTextComponents.first == null) {
+                        jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = token.ref)
+                    } else if (jsonArrayOrObjectAsTextComponents.second) {
+                        output.append("JSON_VALUE(${jsonArrayOrObjectAsTextComponents.first}, '$.\"${token.ref.trim('\'')}\"')")
+                        jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null, second = false)
+                    }
+                }
                 is JsonArrayOrObjectAsText -> {
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(second = true)
                 }
@@ -47,6 +55,13 @@ object SqlServerExpression {
                         output.append(jsonArrayOrObjectAsTextComponents.first)
                     }
                     output.append(" = ")
+                    jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null)
+                }
+                is ParameterEnd -> {
+                    if (jsonArrayOrObjectAsTextComponents.first != null) {
+                        output.append(jsonArrayOrObjectAsTextComponents.first)
+                    }
+                    output.append(", ")
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null)
                 }
             }

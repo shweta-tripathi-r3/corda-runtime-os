@@ -83,7 +83,10 @@ object ExpressionLexer {
             if (strMatch != null && strMatch.range.first == index) {
                 val str = strMatch.groups["str"]
                 if (str != null) {
-                    outputTokens += PathReference(str.value)
+                    outputTokens += when {
+                        " " !in str.value -> PathReference(str.value)
+                        else -> PathReferenceWithSpaces(str.value)
+                    }
                     index = strMatch.range.last + 1
                     continue
                 }
