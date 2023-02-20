@@ -849,3 +849,9 @@ workers:
               name: ""
               # -- the P2P gateway worker SASL password secret key for client connection to Kafka
               key: ""
+
+deployments:
+  v5_0:
+    enabled: true
+  v5_1:
+    enabled: false

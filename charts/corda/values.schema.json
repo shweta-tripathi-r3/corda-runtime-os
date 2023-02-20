@@ -1609,6 +1609,46 @@
                     }
                 }
             }]
+        },
+        "deployments" : {
+            "type": "object",
+            "default": {},
+            "title": "deployments",
+            "required": [],
+            "properties": {
+                "v5_0": {
+                    "type": "object",
+                    "default": {},
+                    "title": "5.0 deployment",
+                    "required": [],
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "is Corda 5.0 deployment enabled",
+                            "examples": [
+                                false
+                            ]
+                        }
+                    }
+                },
+                "v5_1": {
+                    "type": "object",
+                    "default": {},
+                    "title": "5.1 deployment",
+                    "required": [],
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "is Corda 5.1 deployment enabled",
+                            "examples": [
+                                false
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "examples": [{
