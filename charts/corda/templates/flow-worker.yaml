@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "corda.workerName" . | quote }}
+  version: {{ .Values.flowworkerDeployment }}
   labels:
     {{- include "corda.workerLabels" . | nindent 4 }}
 spec:
