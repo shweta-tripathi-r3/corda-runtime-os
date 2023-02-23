@@ -854,4 +854,4 @@ deployments:
   v5_0:
     enabled: true
   v5_1:
-    enabled: false
+    enabled: true
