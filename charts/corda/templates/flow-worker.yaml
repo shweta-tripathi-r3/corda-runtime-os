@@ -70,11 +70,13 @@ spec:
       {{- end }}
 {{ end }}
 {{ if .Values.deployments.v5_0.enabled }}
-{{- $_ := set . "flowworkerDeployment" "5-0" }}
-{{- template "flowworker.deployment" . }}
+  {{- $_ := set . "flowworkerDeployment" "5-0" }}
+  {{- $_ := set . "deploymentImageTag" .Values.deployments.v5_0.image.tag }}
+  {{- template "flowworker.deployment" . }}
 {{ end }}
 {{ if .Values.deployments.v5_1.enabled }}
-{{- $_ := set . "flowworkerDeployment" "5-1" }}
+  {{- $_ := set . "flowworkerDeployment" "5-1" }}
+  {{- $_ := set . "deploymentImageTag" .Values.deployments.v5_1.image.tag }}
 ---
-{{- template "flowworker.deployment" . }}
+  {{- template "flowworker.deployment" . }}
 {{ end }}
