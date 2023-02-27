@@ -127,7 +127,7 @@ app.kubernetes.io/component: {{ .worker }}-worker
 Worker image
 */}}
 {{- define "corda.workerImage" -}}
-"{{ ( get .Values.workers .worker ).image.registry | default .Values.image.registry }}/{{ ( get .Values.workers .worker ).image.repository }}:{{ ( get .Values.workers .worker ).image.tag | default .Values.deploymentImageTag | default .Values.image.tag | default .Chart.AppVersion }}"
+"{{ ( get .Values.workers .worker ).image.registry | default .Values.image.registry }}/{{ ( get .Values.workers .worker ).image.repository }}:{{ ( get .Values.workers .worker ).image.tag | default .Values.image.tag | default .Chart.AppVersion }}"
 {{- end }}
 
 {{/*

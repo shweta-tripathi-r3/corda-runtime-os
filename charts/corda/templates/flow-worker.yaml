@@ -35,7 +35,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
       - name: {{ include "corda.workerName" . }}-{{ .flowworkerDeployment }}
-        image: {{ include "corda.workerImage" . }}
+        image: {{ .deploymentImageTag }}
         imagePullPolicy:  {{ .Values.imagePullPolicy }}
         {{- include "corda.containerSecurityContext" . | nindent 8 }}
         {{- include "corda.workerResources" . | nindent 8 }}
@@ -71,7 +71,7 @@ spec:
 {{ end }}
 {{ if .Values.deployments.v5_0.enabled }}
   {{- $_ := set . "flowworkerDeployment" "5-0" }}
-  {{- $_ := set . "deploymentImageTag" .Values.deployments.v5_0.image.tag }}
+  {{- $_ := set . "deploymentImageTag" ( .Values.deployments.v5_0.image.tag | default ( include "corda.workerImage" . ) ) }}
   {{- template "flowworker.deployment" . }}
 {{ end }}
 {{ if .Values.deployments.v5_1.enabled }}

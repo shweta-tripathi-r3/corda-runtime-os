@@ -854,7 +854,7 @@ deployments:
   v5_0:
     enabled: true
     image:
-      tag: "5.0"
+      tag: ""
   v5_1:
     enabled: true
     image:
