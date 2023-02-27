@@ -853,5 +853,9 @@ workers:
 deployments:
   v5_0:
     enabled: true
+    image:
+      tag: "5.0"
   v5_1:
     enabled: true
+    image:
+      tag: "5.1"
