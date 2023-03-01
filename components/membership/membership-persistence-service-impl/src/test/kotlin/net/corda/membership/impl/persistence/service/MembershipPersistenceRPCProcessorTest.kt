@@ -416,7 +416,8 @@ class MembershipPersistenceRPCProcessorTest {
             uRqContext,
             UpdateRegistrationRequestStatus(
                 ourRegistrationId,
-                RegistrationStatus.APPROVED
+                RegistrationStatus.APPROVED,
+                "test reason"
             )
         )
 
