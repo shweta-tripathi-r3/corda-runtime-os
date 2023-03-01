@@ -22,6 +22,7 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-osgi-bundle'
 
     implementation project(":libs:membership:membership-common")
+    implementation project(':components:virtual-node:virtual-node-info-read-service')
     implementation "com.typesafe:config:$typeSafeConfigVersion"
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
 

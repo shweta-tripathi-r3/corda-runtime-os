@@ -3,6 +3,7 @@ package net.corda.membership.lib
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.membership.lib.notary.MemberNotaryDetails
 import net.corda.utilities.NetworkHostAndPort
+import net.corda.v5.base.types.MemberX500Name
 import net.corda.v5.base.util.parse
 import net.corda.v5.base.util.parseList
 import net.corda.v5.base.util.parseOrNull
@@ -147,6 +148,8 @@ class MemberInfoExtension {
          */
         const val INTEROP_SERVICE_NAME = "corda.interop.service.name"
 
+        const val INTEROP_ALIAS_MAPPING = "corda.interop.mapping"
+
 
         /** Key name for TLS certificate subject. */
         const val TLS_CERTIFICATE_SUBJECT = "corda.tls.certificate.subject"
@@ -276,5 +279,8 @@ class MemberInfoExtension {
          */
         @JvmStatic
         val MemberInfo.notaryKeys: List<PublicKey> get() = memberProvidedContext.parseList(NOTARY_KEYS)
+
+//        @JvmStatic
+//        val MemberInfo.interopAliasMapping: MemberX500Name get() = HoldingIdentity(groupId = "3dfc0aae-be7c-44c2-aa4f-4d0d7145cf08", x500Name = name).x500Name
     }
 }

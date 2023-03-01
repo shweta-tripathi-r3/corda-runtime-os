@@ -6,6 +6,8 @@ import net.corda.data.membership.PersistentMemberInfo
 import net.corda.data.p2p.HostedIdentityEntry
 import net.corda.membership.lib.MemberInfoExtension
 import net.corda.membership.lib.MemberInfoExtension.Companion.GROUP_ID
+import net.corda.membership.lib.MemberInfoExtension.Companion.INTEROP_ALIAS_MAPPING
+import net.corda.membership.lib.MemberInfoExtension.Companion.INTEROP_ROLE
 import net.corda.membership.lib.MemberInfoExtension.Companion.LEDGER_KEYS_KEY
 import net.corda.membership.lib.MemberInfoExtension.Companion.LEDGER_KEY_HASHES_KEY
 import net.corda.membership.lib.MemberInfoExtension.Companion.LEDGER_KEY_SIGNATURE_SPEC
@@ -20,12 +22,18 @@ import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas
 import net.corda.v5.base.types.MemberX500Name
 import net.corda.virtualnode.HoldingIdentity
+import net.corda.virtualnode.VirtualNodeInfo
+import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import net.corda.virtualnode.toAvro
+import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
+import org.osgi.service.component.annotations.Reference
 import java.time.Instant
 
 @Component(service = [InteropMemberRegistrationService::class])
-class InteropMemberRegistrationService {
+class InteropMemberRegistrationService @Activate constructor(
+    @Reference(service = VirtualNodeInfoReadService::class)
+    private val virtualNodeInfoReadService: VirtualNodeInfoReadService) {
 
     companion object {
         private val ALICE_ALTER_EGO_X500 = "CN=Alice Alter Ego, O=Alice Alter Ego Corp, L=LDN, C=GB"
@@ -45,6 +53,7 @@ class InteropMemberRegistrationService {
     fun createDummyMemberInfo(): List<Record<String, PersistentMemberInfo>> {
         val memberInfoList = mutableListOf<Record<String, PersistentMemberInfo>>()
         memberList.forEach {member ->
+          //add interop role & holding identity for underlying identity
             val memberContext = listOf(
                 KeyValuePair(PARTY_NAME, member.x500Name.toString()),
                 KeyValuePair(PARTY_SESSION_KEY, DUMMY_CERTIFICATE),
@@ -58,6 +67,8 @@ class InteropMemberRegistrationService {
                 KeyValuePair(LEDGER_KEY_SIGNATURE_SPEC.format(0), "SHA256withECDSA"),
                 KeyValuePair(SOFTWARE_VERSION, "5.0.0.0-Fox10-RC03"),
                 KeyValuePair(PLATFORM_VERSION, "5000"),
+                KeyValuePair(INTEROP_ROLE, "interop"),
+                KeyValuePair(INTEROP_ALIAS_MAPPING, createInteropAliasToIdentityMapping(virtualNodeInfoReadService.getAll(), ALICE_ALTER_EGO_X500, ALICE_X500).get(ALICE_ALTER_EGO_X500).toString()),
                 //TODO : Following info may not be required for interops group,
                 // need to investigate that LinkManager is happy without this info.
 //            KeyValuePair(MEMBER_CPI_NAME, "calculator.cpi"),
@@ -107,4 +118,24 @@ class InteropMemberRegistrationService {
             )
         }
     }
+
+    //returns the alias to real holding identity mapping
+    //takes name of the alias identity
+    private fun createInteropAliasToIdentityMapping(
+        vNodeInfoList: List<VirtualNodeInfo>,
+        aliasName: String,
+        originalIdentityName: String
+    ): MutableMap<String, HoldingIdentity?> {
+        val map = mutableMapOf<String, HoldingIdentity?>()
+        memberList.forEach {
+            //what if there's more than one alias for an original holding identity
+            if (it.x500Name.toString().contains(aliasName))
+                map.put(
+                    it.x500Name.toString(),
+                    InteropAliasMappingService().getMapping(vNodeInfoList, originalIdentityName)
+                )
+        }
+        return map
+    }
+
 }

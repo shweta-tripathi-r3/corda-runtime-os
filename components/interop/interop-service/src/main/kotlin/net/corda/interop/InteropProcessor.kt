@@ -7,10 +7,13 @@ import net.corda.data.interop.InteropMessage
 import net.corda.data.p2p.app.AppMessage
 import net.corda.data.p2p.app.AuthenticatedMessage
 import net.corda.data.p2p.app.AuthenticatedMessageHeader
+import net.corda.interop.service.InteropAliasMappingService
+import net.corda.interop.service.InteropMemberRegistrationService
 import net.corda.interop.service.InteropMessageTransformer
 import net.corda.messaging.api.processor.DurableProcessor
 import net.corda.messaging.api.records.Record
 import net.corda.schema.Schemas
+import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
 import java.util.UUID
@@ -28,12 +31,19 @@ class InteropProcessor(cordaAvroSerializationFactory: CordaAvroSerializationFact
     private val cordaAvroDeserializer: CordaAvroDeserializer<InteropMessage> =
         cordaAvroSerializationFactory.createAvroDeserializer({}, InteropMessage::class.java)
     private val cordaAvroSerializer: CordaAvroSerializer<InteropMessage> = cordaAvroSerializationFactory.createAvroSerializer {}
-
+// when a new message comes in, after we decrypt then convert alias to real
+    //add method (class) to extract real identity, output should match info needed to start a flow
     override fun onNext(
         events: List<Record<String, AppMessage>>
     ): List<Record<*, *>> {
         val outputEvents = mutableListOf<Record<*, *>>()
         events.forEach { appMessage ->
+            //1. identity mapping params: alias identity (return real holding identity & groupId)
+//            val realIdentity = getMapping()
+            logger.info("This alias ${InteropMemberRegistrationService} is mapped to this real holding identity")
+            //2. authorisation placeholder: sender's identity, real holding id of recipient, facade request
+            //3. convert facade name to underlying flow name
+            //4. interop processor sends start flow request
             val authMessage = appMessage.value?.message
             if (authMessage != null && authMessage is AuthenticatedMessage && authMessage.header.subsystem == SUBSYSTEM) {
                 getOutputRecord(authMessage.header, authMessage.payload, appMessage.key)?.let { outputRecord ->
@@ -54,6 +64,7 @@ class InteropProcessor(cordaAvroSerializationFactory: CordaAvroSerializationFact
         //following logging is added just check serialisation/de-serialisation result and can be removed later
         logger.info ( "Processing message from p2p.in with subsystem $SUBSYSTEM. Key: $key, facade request: $interopMessage" )
         return if (interopMessage != null) {
+            logger.info("The new destination: ${header.destination}")
             val facadeRequest = InteropMessageTransformer.getFacadeRequest(interopMessage)
             logger.info("Converted interop message to facade request : $facadeRequest")
             val message : InteropMessage = InteropMessageTransformer.getInteropMessage(interopMessage.messageId, facadeRequest)
@@ -86,6 +97,14 @@ class InteropProcessor(cordaAvroSerializationFactory: CordaAvroSerializationFact
                 ByteBuffer.wrap(interopMessageSerializer.serialize(interopMessage))
             )
         )
+    }
+
+    fun getRealIdentity(recipientName: String) {
+        //get real identity from alias member info
+    }
+
+    fun facadeToFlowMapper() {
+        //placeholder method
     }
 
 }

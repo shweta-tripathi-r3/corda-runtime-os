@@ -22,6 +22,7 @@ import net.corda.messaging.api.subscription.config.SubscriptionConfig
 import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 import net.corda.schema.Schemas.P2P.Companion.P2P_IN_TOPIC
 import net.corda.schema.configuration.ConfigKeys.MESSAGING_CONFIG
+import net.corda.virtualnode.read.VirtualNodeInfoReadService
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Deactivate
@@ -40,7 +41,9 @@ class InteropService @Activate constructor(
     @Reference(service = CordaAvroSerializationFactory::class)
     private val cordaAvroSerializationFactory: CordaAvroSerializationFactory,
     @Reference(service = PublisherFactory::class)
-    private val publisherFactory: PublisherFactory
+    private val publisherFactory: PublisherFactory,
+    @Reference(service = VirtualNodeInfoReadService::class)
+    private val virtualNodeInfoReadService: VirtualNodeInfoReadService
 ) : Lifecycle {
 
     companion object {
@@ -102,8 +105,8 @@ class InteropService @Activate constructor(
             event.config.getConfig(MESSAGING_CONFIG)
         )
         publisher?.start()
-        publisher?.publish(InteropMemberRegistrationService().createDummyMemberInfo())
-        publisher?.publish(InteropMemberRegistrationService().createDummyHostedIdentity())
+        publisher?.publish(InteropMemberRegistrationService(virtualNodeInfoReadService).createDummyMemberInfo())
+        publisher?.publish(InteropMemberRegistrationService(virtualNodeInfoReadService).createDummyHostedIdentity())
         coordinator.updateStatus(LifecycleStatus.UP)
     }
 
