@@ -33,6 +33,8 @@ import net.corda.membership.lib.registration.RegistrationRequest
 import net.corda.membership.lib.toWire
 import net.corda.membership.persistence.client.MembershipPersistenceClient
 import net.corda.membership.persistence.client.MembershipPersistenceResult
+import net.corda.membership.persistence.client.MembershipQueryClient
+import net.corda.membership.persistence.client.MembershipQueryResult
 import net.corda.utilities.time.Clock
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.membership.MemberInfo
@@ -73,37 +75,6 @@ internal class MGMRegistrationMemberInfoHandler(
     ): MemberInfo {
         return buildMgmInfo(holdingIdentity, context).also {
             persistMemberInfo(holdingIdentity, it)
-        }
-    }
-
-    fun persistRegistrationRequest(
-        registrationId: UUID,
-        holdingIdentity: HoldingIdentity,
-        mgmInfo: MemberInfo
-    ) {
-        val serializedMemberContext = keyValuePairListSerializer.serialize(
-            mgmInfo.memberProvidedContext.toWire()
-        ) ?: throw MGMRegistrationMemberInfoHandlingException(
-            "Failed to serialize the member context for this request."
-        )
-        val registrationRequestPersistenceResult = membershipPersistenceClient.persistRegistrationRequest(
-            viewOwningIdentity = holdingIdentity,
-            registrationRequest = RegistrationRequest(
-                status = RegistrationStatus.APPROVED,
-                registrationId = registrationId.toString(),
-                requester = holdingIdentity,
-                memberContext = ByteBuffer.wrap(serializedMemberContext),
-                signature = CryptoSignatureWithKey(
-                    ByteBuffer.wrap(byteArrayOf()),
-                    ByteBuffer.wrap(byteArrayOf()),
-                    KeyValuePairList(emptyList())
-                )
-            )
-        )
-        if (registrationRequestPersistenceResult is MembershipPersistenceResult.Failure) {
-            throw MGMRegistrationMemberInfoHandlingException(
-                "Registration failed, persistence error. Reason: ${registrationRequestPersistenceResult.errorMsg}"
-            )
         }
     }
 
