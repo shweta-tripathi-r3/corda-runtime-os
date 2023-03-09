@@ -5,7 +5,6 @@ import net.corda.lifecycle.LifecycleCoordinator
 import net.corda.lifecycle.LifecycleEvent
 import net.corda.lifecycle.LifecycleEventHandler
 import net.corda.lifecycle.LifecycleStatus
-import net.corda.lifecycle.RegistrationHandle
 import net.corda.lifecycle.RegistrationStatusChangeEvent
 import net.corda.lifecycle.StartEvent
 import net.corda.lifecycle.StopEvent
@@ -25,6 +24,9 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
     valueClass: Class<V>,
     var reconciliationIntervalMs: Long,
 ) : LifecycleEventHandler {
+    companion object {
+        private const val REGISTRATION = "REGISTRATION"
+    }
 
     val name = "${ReconcilerEventHandler::class.java.name}<${keyClass.name}, ${valueClass.name}>"
 
@@ -32,8 +34,6 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
     private val logger = LoggerFactory.getLogger(name)
 
     private val timerKey = name
-
-    private var readersWritersRegistration: RegistrationHandle? = null
 
     // Errors in sub services will surface here
     override fun processEvent(event: LifecycleEvent, coordinator: LifecycleCoordinator) {
@@ -47,25 +47,24 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
     }
 
     private fun onStartEvent(coordinator: LifecycleCoordinator) {
-        readersWritersRegistration?.close()
-        readersWritersRegistration = coordinator.followStatusChangesByName(
-            setOf(
-                dbReader.lifecycleCoordinatorName,
-                kafkaReader.lifecycleCoordinatorName,
-                writer.lifecycleCoordinatorName
+        coordinator.createManagedResource(REGISTRATION) {
+            coordinator.followStatusChangesByName(
+                setOf(
+                    dbReader.lifecycleCoordinatorName,
+                    kafkaReader.lifecycleCoordinatorName,
+                    writer.lifecycleCoordinatorName
+                )
             )
-        )
+        }
     }
 
     private fun onRegistrationStatusChangeEvent(event: RegistrationStatusChangeEvent, coordinator: LifecycleCoordinator) {
+        coordinator.updateStatus(event.status, "RegistrationStatusChangeEvent")
         if (event.status == LifecycleStatus.UP) {
             logger.info("Starting reconciliations")
-            coordinator.updateStatus(LifecycleStatus.UP)
-            reconcileAndScheduleNext(coordinator)
+            scheduleNextReconciliation(coordinator)
         } else {
-            // TODO Revise below actions in case of an error from sub services (DOWN vs ERROR)
-            coordinator.updateStatus(event.status)
-            coordinator.cancelTimer(timerKey)
+            cancelNextReconciliation(coordinator)
         }
     }
 
@@ -81,7 +80,8 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
             // An error here could be a transient or not exception. We should transition to `DOWN` and wait
             // on subsequent `RegistrationStatusChangeEvent` to see if it is going to be a `DOWN` or an `ERROR`.
             logger.warn("Reconciliation failed. Terminating reconciliations", e)
-            coordinator.updateStatus(LifecycleStatus.DOWN)
+            coordinator.updateStatus(LifecycleStatus.DOWN, "Exception during reconciliation")
+            cancelNextReconciliation(coordinator)
         }
     }
 
@@ -127,29 +127,26 @@ internal class ReconcilerEventHandler<K : Any, V : Any>(
 
     private fun scheduleNextReconciliation(coordinator: LifecycleCoordinator) {
         logger.debug { "Registering new ${ReconcileEvent::class.simpleName}" }
-        coordinator.setTimer(timerKey, reconciliationIntervalMs) { ReconcileEvent(it) }
+        coordinator.setTimer(timerKey, reconciliationIntervalMs, ::ReconcileEvent)
+    }
+
+    private fun cancelNextReconciliation(coordinator: LifecycleCoordinator) {
+        logger.debug { "Cancelling ${ReconcileEvent::class.simpleName} timer" }
+        coordinator.cancelTimer(timerKey)
     }
 
     private fun onUpdateIntervalEvent(event: UpdateIntervalEvent, coordinator: LifecycleCoordinator) {
         logger.info("Updating interval to ${event.intervalMs} ms")
-        val newIntervalMs = event.intervalMs
-        reconciliationIntervalMs = newIntervalMs
-        coordinator.setTimer(timerKey, newIntervalMs) { ReconcileEvent(it) }
+        reconciliationIntervalMs = event.intervalMs
+        scheduleNextReconciliation(coordinator)
     }
 
     private fun onStopEvent(coordinator: LifecycleCoordinator) {
-        coordinator.cancelTimer(timerKey)
-        closeResources()
-    }
-
-    private fun closeResources() {
-        readersWritersRegistration?.close()
-        readersWritersRegistration = null
+        cancelNextReconciliation(coordinator)
     }
 
     internal data class ReconcileEvent(override val key: String) : TimerEvent
 
     internal data class UpdateIntervalEvent(val intervalMs: Long): LifecycleEvent
-
     private class ReconciliationException(message: String) : CordaRuntimeException(message)
 }

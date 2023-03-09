@@ -63,7 +63,7 @@ class DbReconcilerReader<K : Any, V : Any>(
         event: RegistrationStatusChangeEvent,
         coordinator: LifecycleCoordinator
     ) {
-        coordinator.updateStatus(event.status)
+        coordinator.updateStatus(event.status, "RegistrationStatusChangeEvent")
     }
 
     @Suppress("UNUSED_PARAMETER")
