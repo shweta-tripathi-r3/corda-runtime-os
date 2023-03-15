@@ -11,7 +11,7 @@ class RightParentheses : Token
 class ParameterEnd : Token
 
 fun operatorFactory(op: String): Keyword {
-    return when (op) {
+    return when (op.uppercase()) {
         "||" -> Or()
         "&&" -> And()
         "!=" -> NotEquals()
