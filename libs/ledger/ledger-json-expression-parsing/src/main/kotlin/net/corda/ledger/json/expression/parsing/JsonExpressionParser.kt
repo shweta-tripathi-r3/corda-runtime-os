@@ -25,8 +25,9 @@ fun main() {
 
     println()
 
-    // lowercase keywords not working?
-    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' = '10'")
+    // currently isn't really a valid expression
+    // also not focusing on keeping oracle and sql server working in my current code, will fix them up later
+    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' = '10' AND custom ->> 'salary' > '5' OR custom ->> 'field with space' IS NULL")
     println("Postgres => ${PostgresExpression.convert(expression4)}")
     println("Oracle => ${OracleExpression.convert(expression4)}")
     println("SQL Server => ${SqlServerExpression.convert(expression4)}")

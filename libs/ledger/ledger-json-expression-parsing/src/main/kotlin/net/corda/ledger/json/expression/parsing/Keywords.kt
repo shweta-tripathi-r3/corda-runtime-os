@@ -18,9 +18,15 @@ class Or : Keyword {
     }
 }
 
-class Not : Keyword {
+class IsNull : Keyword {
     override fun toString(): String {
-        return "!"
+        return "IS NULL"
+    }
+}
+
+class IsNotNull : Keyword {
+    override fun toString(): String {
+        return "IS NOT NULL"
     }
 }
 

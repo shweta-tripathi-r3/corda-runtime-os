@@ -23,8 +23,17 @@ object OracleExpression {
                 is Where -> {
                     output.append(" WHERE ")
                 }
+                is And -> {
+                    output.append(" AND ")
+                }
                 is Equals -> {
                     output.append(" = ")
+                }
+                is IsNull -> {
+                    output.append(" IS NULL ")
+                }
+                is IsNotNull -> {
+                    output.append(" IS NOT NULL ")
                 }
                 is ParameterEnd -> {
                     output.append(", ")

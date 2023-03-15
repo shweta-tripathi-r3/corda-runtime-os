@@ -12,19 +12,20 @@ class ParameterEnd : Token
 
 fun operatorFactory(op: String): Keyword {
     return when (op.uppercase()) {
-        "||" -> Or()
-        "&&" -> And()
         "!=" -> NotEquals()
         ">" -> GreaterThan()
         ">=" -> GreaterThanEquals()
         "<" -> LessThan()
         "<=" -> LessThanEquals()
-        "!" -> Not()
+        "IS NULL" -> IsNull()
+        "IS NOT NULL" -> IsNotNull()
         "->>" -> JsonArrayOrObjectAsText()
         "AS" -> As()
         "FROM" -> From()
         "SELECT" -> Select()
         "WHERE" -> Where()
+        "OR" -> Or()
+        "AND" -> And()
         "=" -> Equals()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }

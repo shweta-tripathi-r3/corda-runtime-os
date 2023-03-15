@@ -8,27 +8,22 @@ object PostgresExpression {
             when (token) {
                 is PathReference -> output.append(token.ref)
                 is PathReferenceWithSpaces -> output.append(token.ref)
-                is JsonArrayOrObjectAsText -> {
-                    output.append(" ->> ")
-                }
-                is Select -> {
-                    output.append("SELECT ")
-                }
-                is As -> {
-                    output.append(" AS ")
-                }
-                is From -> {
-                    output.append(" FROM ")
-                }
-                is Where -> {
-                    output.append(" WHERE ")
-                }
-                is Equals -> {
-                    output.append(" = ")
-                }
-                is ParameterEnd -> {
-                    output.append(", ")
-                }
+                is JsonArrayOrObjectAsText -> output.append(" ->> ")
+                is Select -> output.append(" SELECT ")
+                is As -> output.append(" AS ")
+                is From -> output.append(" FROM ")
+                is Where -> output.append(" WHERE ")
+                is And -> output.append(" AND ")
+                is Or -> output.append(" OR ")
+                is Equals -> output.append(" = ")
+                is GreaterThan -> output.append(" > ")
+                is GreaterThanEquals -> output.append(" >= ")
+                is LessThan -> output.append(" < ")
+                is LessThanEquals -> output.append(" <= ")
+                is IsNull -> output.append(" IS NULL ")
+                is IsNotNull -> output.append(" IS NOT NULL ")
+                is ParameterEnd -> output.append(", ")
+                else -> throw IllegalArgumentException("Invalid token in expression - $token")
             }
         }
         return output.toString()
