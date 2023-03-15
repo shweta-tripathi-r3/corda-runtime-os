@@ -11,19 +11,19 @@ object PostgresExpression {
                 is JsonArrayOrObjectAsText -> {
                     output.append(" ->> ")
                 }
-                is JsonSelect -> {
+                is Select -> {
                     output.append("SELECT ")
                 }
-                is JsonAsNamedField -> {
+                is As -> {
                     output.append(" AS ")
                 }
-                is JsonFrom -> {
+                is From -> {
                     output.append(" FROM ")
                 }
-                is JsonWhere -> {
+                is Where -> {
                     output.append(" WHERE ")
                 }
-                is JsonEqualTo -> {
+                is Equals -> {
                     output.append(" = ")
                 }
                 is ParameterEnd -> {

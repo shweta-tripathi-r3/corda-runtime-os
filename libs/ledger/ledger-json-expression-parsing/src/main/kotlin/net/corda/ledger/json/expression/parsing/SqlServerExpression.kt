@@ -26,31 +26,31 @@ object SqlServerExpression {
                 is JsonArrayOrObjectAsText -> {
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(second = true)
                 }
-                is JsonSelect -> {
+                is Select -> {
                     output.append("SELECT ")
                 }
-                is JsonAsNamedField -> {
+                is As -> {
                     if (jsonArrayOrObjectAsTextComponents.first != null) {
                         output.append(jsonArrayOrObjectAsTextComponents.first)
                     }
                     output.append(" AS ")
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null)
                 }
-                is JsonFrom -> {
+                is From -> {
                     if (jsonArrayOrObjectAsTextComponents.first != null) {
                         output.append(jsonArrayOrObjectAsTextComponents.first)
                     }
                     output.append(" FROM ")
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null)
                 }
-                is JsonWhere -> {
+                is Where -> {
                     if (jsonArrayOrObjectAsTextComponents.first != null) {
                         output.append(jsonArrayOrObjectAsTextComponents.first)
                     }
                     output.append(" WHERE ")
                     jsonArrayOrObjectAsTextComponents = jsonArrayOrObjectAsTextComponents.copy(first = null)
                 }
-                is JsonEqualTo -> {
+                is Equals -> {
                     if (jsonArrayOrObjectAsTextComponents.first != null) {
                         output.append(jsonArrayOrObjectAsTextComponents.first)
                     }

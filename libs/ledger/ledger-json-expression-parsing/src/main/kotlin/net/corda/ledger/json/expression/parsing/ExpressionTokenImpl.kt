@@ -10,23 +10,22 @@ class RightParentheses : Token
 
 class ParameterEnd : Token
 
-fun operatorFactory(op: String): Operator {
+fun operatorFactory(op: String): Keyword {
     return when (op) {
-        "||" -> LogicalOrOperator()
-        "&&" -> LogicalAndOperator()
-        "==" -> EqualsOperator()
-        "!=" -> NotEqualsOperator()
-        ">" -> GreaterThanOperator()
-        ">=" -> GreaterThanEqualsOperator()
-        "<" -> LessThanOperator()
-        "<=" -> LessThanEqualsOperator()
-        "!" -> LogicalNotOperator()
+        "||" -> Or()
+        "&&" -> And()
+        "!=" -> NotEquals()
+        ">" -> GreaterThan()
+        ">=" -> GreaterThanEquals()
+        "<" -> LessThan()
+        "<=" -> LessThanEquals()
+        "!" -> Not()
         "->>" -> JsonArrayOrObjectAsText()
-        "AS" -> JsonAsNamedField()
-        "FROM" -> JsonFrom()
-        "SELECT" -> JsonSelect()
-        "WHERE" -> JsonWhere()
-        "=" -> JsonEqualTo()
+        "AS" -> As()
+        "FROM" -> From()
+        "SELECT" -> Select()
+        "WHERE" -> Where()
+        "=" -> Equals()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }

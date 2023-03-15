@@ -6,4 +6,4 @@ interface Reference : Token {
     val ref: String
 }
 
-interface Operator : Token
+interface Keyword : Token
