@@ -95,3 +95,5 @@ class In : Keyword {
         return "IN"
     }
 }
+
+val DISABLED_KEYWORDS = listOf(Select(), From())

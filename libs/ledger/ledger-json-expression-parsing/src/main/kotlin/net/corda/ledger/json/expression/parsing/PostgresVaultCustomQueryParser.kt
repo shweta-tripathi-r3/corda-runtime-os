@@ -1,10 +1,15 @@
 package net.corda.ledger.json.expression.parsing
 
-class PostgresVaultCustomQueryParser(private val expressionParser: ExpressionParser) : VaultCustomQueryParser {
+class PostgresVaultCustomQueryParser(
+    private val expressionParser: ExpressionParser,
+    private val expressionValidator: ExpressionValidator
+) : VaultCustomQueryParser {
 
     override fun parse(query: String): String {
+        val expression = expressionParser.parse(query)
+        expressionValidator.validate(query, expression)
         val output = StringBuilder("")
-        for (token in expressionParser.parse(query)) {
+        for (token in expression) {
             when (token) {
                 is PathReference -> output.append(token.ref)
                 is PathReferenceWithSpaces -> output.append(token.ref)
