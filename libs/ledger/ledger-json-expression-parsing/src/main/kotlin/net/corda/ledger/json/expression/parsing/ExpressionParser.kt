@@ -1,6 +1,6 @@
 package net.corda.ledger.json.expression.parsing
 
-object ExpressionLexer {
+object ExpressionParser {
     private val stringPattern = Regex(
         """(?<str>('[^']*)'|("[^"]*)")"""
     )
