@@ -1,7 +1,5 @@
 package net.corda.ledger.json.expression.parsing
 
-import java.time.Instant
-
 object ExpressionLexer {
     private val stringPattern = Regex(
         """(?<str>('[^']*)'|("[^"]*)")"""
@@ -14,6 +12,8 @@ object ExpressionLexer {
     private val opsPattern = Regex(
         """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b|\b(FROM|from)\b|\b(SELECT|select)\b|\b(WHERE|where)\b|\b(AND|and)\b|\b(OR|or)\b|\b(IS NULL|is null)\b|\b(IS NOT NULL|is not null)\b)"""
     )
+
+    private val jsonCastPattern = Regex("""(?<cast>::\S+)""")
 
     fun parse(input: String): List<Token> {
         val outputTokens = mutableListOf<Token>()
@@ -56,6 +56,15 @@ object ExpressionLexer {
                 if (ops != null) {
                     outputTokens += operatorFactory(ops.value)
                     index = opsMatch.range.last + 1
+                    continue
+                }
+            }
+            val jsonCastMatch = jsonCastPattern.find(input, index)
+            if (jsonCastMatch != null && jsonCastMatch.range.first == index) {
+                val cast = jsonCastMatch.groups["cast"]
+                if (cast != null) {
+                    outputTokens += JsonCast(cast.value.removePrefix("::"))
+                    index = jsonCastMatch.range.last + 1
                     continue
                 }
             }

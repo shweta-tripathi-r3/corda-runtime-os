@@ -22,6 +22,9 @@ object PostgresExpression {
                 is LessThanEquals -> output.append(" <= ")
                 is IsNull -> output.append(" IS NULL ")
                 is IsNotNull -> output.append(" IS NOT NULL ")
+                is LeftParentheses -> output.append("(")
+                is RightParentheses -> output.append(")")
+                is JsonCast -> output.append("::${token.value}")
                 is ParameterEnd -> output.append(", ")
                 else -> throw IllegalArgumentException("Invalid token in expression - $token")
             }
