@@ -89,3 +89,9 @@ class Equals : Keyword {
         return "="
     }
 }
+
+class In : Keyword {
+    override fun toString(): String {
+        return "IN"
+    }
+}

@@ -29,6 +29,7 @@ fun operatorFactory(op: String): Keyword {
         "OR" -> Or()
         "AND" -> And()
         "=" -> Equals()
+        "IN" -> In()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }

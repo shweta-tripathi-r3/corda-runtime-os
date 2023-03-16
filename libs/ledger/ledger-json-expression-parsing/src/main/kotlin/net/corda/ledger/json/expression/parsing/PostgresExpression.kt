@@ -21,6 +21,7 @@ object PostgresExpression {
                 is GreaterThanEquals -> output.append(" >= ")
                 is LessThan -> output.append(" < ")
                 is LessThanEquals -> output.append(" <= ")
+                is In -> output.append(" IN ")
                 is IsNull -> output.append(" IS NULL ")
                 is IsNotNull -> output.append(" IS NOT NULL ")
                 is LeftParentheses -> output.append("(")

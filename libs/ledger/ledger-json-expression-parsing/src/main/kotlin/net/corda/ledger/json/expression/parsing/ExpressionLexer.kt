@@ -10,7 +10,7 @@ object ExpressionLexer {
     )
 
     private val opsPattern = Regex(
-        """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b|\b(FROM|from)\b|\b(SELECT|select)\b|\b(WHERE|where)\b|\b(AND|and)\b|\b(OR|or)\b|\b(IS NULL|is null)\b|\b(IS NOT NULL|is not null)\b)"""
+        """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b|\b(FROM|from)\b|\b(SELECT|select)\b|\b(WHERE|where)\b|\b(AND|and)\b|\b(OR|or)\b|\b(IS NULL|is null)\b|\b(IS NOT NULL|is not null)\b|\b(IN|in)\b)"""
     )
 
     private val jsonCastPattern = Regex("""(?<cast>::\S+)""")
@@ -19,7 +19,7 @@ object ExpressionLexer {
         val outputTokens = mutableListOf<Token>()
         var index = 0
         while (index < input.length) {
-            if (input[index] == ' ') {
+            if (input[index].isWhitespace() || input[index] == '\n') {
                 ++index
                 continue
             }
@@ -77,7 +77,7 @@ object ExpressionLexer {
                     continue
                 }
             }
-            throw IllegalArgumentException("Unexpected input $input (${input[index]})")
+            throw IllegalArgumentException("Unexpected input index = $index, value (${input[index]}), $input")
         }
         return outputTokens
     }

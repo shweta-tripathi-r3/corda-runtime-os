@@ -27,7 +27,18 @@ fun main() {
 
     // currently isn't really a valid expression
     // also not focusing on keeping oracle and sql server working in my current code, will fix them up later
-    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' = '10' AND (custom ->> 'salary')::int > '5' OR custom ->> 'field with space' IS NULL")
+//    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' != '10' AND (custom ->> 'salary')::int > '5' OR custom ->> 'field with space' IS NULL")
+    val expression4 = ExpressionLexer.parse("""
+        select
+	name,
+	custom ->> 'salary' as salary,
+	custom ->> 'field with space' as field
+from
+	people
+where
+	(custom ->> 'salary' != '10' or (custom ->> 'salary')::int > '9') and 
+	custom ->> 'field with space' in ('asd', 'fields values', 'asd')
+    """.trimIndent())
     println("Postgres => ${PostgresExpression.convert(expression4)}")
     println("Oracle => ${OracleExpression.convert(expression4)}")
     println("SQL Server => ${SqlServerExpression.convert(expression4)}")
