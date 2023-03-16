@@ -9,6 +9,10 @@ object ExpressionLexer {
         """(?<path>(\$?[a-zA-Z_][a-zA-Z0-9_]*(\[([0-9]+|"[a-zA-Z_][a-zA-Z0-9_]*")])?)(\.[a-zA-Z_][a-zA-Z0-9_]*(\[([0-9]+|"[a-zA-Z_][a-zA-Z0-9_]*")])?)*)"""
     )
 
+    private val numberPattern = Regex(
+        """(?<num>[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?)"""
+    )
+
     private val opsPattern = Regex(
         """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b|\b(FROM|from)\b|\b(SELECT|select)\b|\b(WHERE|where)\b|\b(AND|and)\b|\b(OR|or)\b|\b(IS NULL|is null)\b|\b(IS NOT NULL|is not null)\b|\b(IN|in)\b)"""
     )
@@ -74,6 +78,15 @@ object ExpressionLexer {
                 if (path != null) {
                     outputTokens += PathReference(path.value)
                     index = pathMatch.range.last + 1
+                    continue
+                }
+            }
+            val numberMatch = numberPattern.find(input, index)
+            if (numberMatch != null && numberMatch.range.first == index) {
+                val number = numberMatch.groups["num"]
+                if (number != null) {
+                    outputTokens += Number(number.value)
+                    index = numberMatch.range.last + 1
                     continue
                 }
             }

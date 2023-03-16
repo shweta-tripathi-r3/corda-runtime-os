@@ -36,7 +36,7 @@ fun main() {
 from
 	people
 where
-	(custom ->> 'salary' != '10' or (custom ->> 'salary')::int > '9') and 
+	(custom ->> 'salary' != '10' or (custom ->> 'salary')::int > 9) and 
 	custom ->> 'field with space' in ('asd', 'fields values', 'asd')
     """.trimIndent())
     println("Postgres => ${PostgresExpression.convert(expression4)}")
