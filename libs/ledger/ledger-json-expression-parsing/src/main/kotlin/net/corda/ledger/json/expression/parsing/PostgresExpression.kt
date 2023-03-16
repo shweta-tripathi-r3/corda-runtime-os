@@ -16,6 +16,7 @@ object PostgresExpression {
                 is And -> output.append(" AND ")
                 is Or -> output.append(" OR ")
                 is Equals -> output.append(" = ")
+                is NotEquals -> output.append(" != ")
                 is GreaterThan -> output.append(" > ")
                 is GreaterThanEquals -> output.append(" >= ")
                 is LessThan -> output.append(" < ")
