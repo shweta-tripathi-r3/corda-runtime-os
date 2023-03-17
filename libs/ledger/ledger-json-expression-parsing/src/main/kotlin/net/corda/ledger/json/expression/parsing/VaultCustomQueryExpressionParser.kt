@@ -18,6 +18,7 @@ class PostgresVaultCustomQueryExpressionParser : VaultCustomQueryExpressionParse
         """(?<num>[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?)"""
     )
 
+    // like? need to keep % in that case
     private val opsPattern = Regex(
         """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|(?i)\bas\b|(?i)\bfrom\b|(?i)\bselect\b|(?i)\bwhere\b|(?i)\band\b|(?i)\bor\b|(?i)\bis null\b|(?i)\bis not null\b|(?i)\bin\b)"""
     )
