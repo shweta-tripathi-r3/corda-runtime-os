@@ -14,7 +14,7 @@ object ExpressionParser {
     )
 
     private val opsPattern = Regex(
-        """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|\b(AS|as)\b|\b(FROM|from)\b|\b(SELECT|select)\b|\b(WHERE|where)\b|\b(AND|and)\b|\b(OR|or)\b|\b(IS NULL|is null)\b|\b(IS NOT NULL|is not null)\b|\b(IN|in)\b)"""
+        """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|(?i)\bas\b|(?i)\bfrom\b|(?i)\bselect\b|(?i)\bwhere\b|(?i)\band\b|(?i)\bor\b|(?i)\bis null\b|(?i)\bis not null\b|(?i)\bin\b)"""
     )
 
     private val jsonCastPattern = Regex("""(?<cast>::\S+)""")

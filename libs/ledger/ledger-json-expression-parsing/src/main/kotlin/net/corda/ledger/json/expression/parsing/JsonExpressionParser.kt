@@ -51,9 +51,9 @@ where
     println(
         PostgresVaultCustomQueryParser(ExpressionParser, ExpressionValidator()).parse(
             """
-where
-	(custom ->> 'salary' != '10' or (custom ->> 'salary')::int > 9) and 
-	custom ->> 'field with space' in ('asd', 'fields values', 'asd')
+wHerE
+	((custom ->> 'salary')::int != 10 or (custom ->> 'salary')::int > 9) and 
+	custom ->> 'field with space' iN ('asd', 'fields values', 'asd')
     """.trimIndent()
         )
     )
