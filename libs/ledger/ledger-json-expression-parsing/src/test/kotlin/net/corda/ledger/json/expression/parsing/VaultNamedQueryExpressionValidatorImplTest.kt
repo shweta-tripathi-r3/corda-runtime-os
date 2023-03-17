@@ -4,9 +4,9 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
-class VaultNamedQueryExpressionValidatorTest {
+class VaultNamedQueryExpressionValidatorImplTest {
 
-    private val validator = VaultNamedQueryExpressionValidator()
+    private val validator = VaultNamedQueryExpressionValidatorImpl()
 
     @Test
     fun `acceptable expression does not throw an exception`() {

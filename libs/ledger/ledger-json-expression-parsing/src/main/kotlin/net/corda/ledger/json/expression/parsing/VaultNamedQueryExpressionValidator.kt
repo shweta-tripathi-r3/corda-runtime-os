@@ -1,8 +1,13 @@
 package net.corda.ledger.json.expression.parsing
 
-class VaultNamedQueryExpressionValidator {
+interface VaultNamedQueryExpressionValidator {
 
-    fun validateWhereJson(query: String, expression: List<Token>) {
+    fun validateWhereJson(query: String, expression: List<Token>)
+}
+
+class VaultNamedQueryExpressionValidatorImpl : VaultNamedQueryExpressionValidator {
+
+    override fun validateWhereJson(query: String, expression: List<Token>) {
         for (token in expression) {
             when (token) {
                 is Select -> throw exception(query, "SELECT")
@@ -12,6 +17,6 @@ class VaultNamedQueryExpressionValidator {
     }
 
     private fun exception(query: String, keyword: String): IllegalArgumentException {
-        return IllegalArgumentException("Vault custom queries cannot contain the $keyword keyword. Query: $query")
+        return IllegalArgumentException("Vault named queries cannot contain the $keyword keyword. Query: $query")
     }
 }
