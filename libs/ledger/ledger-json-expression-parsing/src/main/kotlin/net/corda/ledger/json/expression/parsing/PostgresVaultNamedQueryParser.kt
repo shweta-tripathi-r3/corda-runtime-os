@@ -5,9 +5,13 @@ class PostgresVaultNamedQueryParser(
     private val expressionValidator: VaultNamedQueryExpressionValidator
 ) : VaultNamedQueryParser {
 
-    override fun parse(query: String): String {
+    override fun parseWhereJson(query: String): String {
         val expression = expressionParser.parse(query)
         expressionValidator.validateWhereJson(query, expression)
+        return parseExpressionToPostgresQuery(expression)
+    }
+
+    private fun parseExpressionToPostgresQuery(expression: List<Token>): String {
         val output = StringBuilder("")
         for (token in expression) {
             when (token) {
@@ -37,6 +41,6 @@ class PostgresVaultNamedQueryParser(
                 else -> throw IllegalArgumentException("Invalid token in expression - $token")
             }
         }
-        return output.toString()
+        return output.toString().replace("  ", " ").trim()
     }
 }
