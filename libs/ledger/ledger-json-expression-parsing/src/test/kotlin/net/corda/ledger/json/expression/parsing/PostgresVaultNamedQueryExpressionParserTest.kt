@@ -10,7 +10,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     private val expressionParser = PostgresVaultNamedQueryExpressionParser()
 
     @Test
-    fun `field names not in quotes are parsed as PathReferences`() {
+    fun `field name not in quotes is parsed as PathReference`() {
         val expression = expressionParser.parse("these ARE 123 field nAmEs != ->> is null is not null")
         assertThat(expression.filterIsInstance<PathReference>()).hasSize(4)
         assertThat(expression)
@@ -22,7 +22,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `field names in quotes are parsed as PathReferences`() {
+    fun `field name in quotes is parsed as PathReference`() {
         val expression = expressionParser.parse("'these' 'ARE' 123 '456' 'field' 'nAmEs.' != ->> '->>' is null is not null")
         assertThat(expression.filterIsInstance<PathReference>()).hasSize(6)
         assertThat(expression)
@@ -36,7 +36,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `field names in quotes with spaces are parsed as PathReferenceWithSpaces`() {
+    fun `field name in quotes with spaces is parsed as PathReferenceWithSpace`() {
         val expression = expressionParser.parse("'these ARE' 123 '456 789' 'field nAmEs.' != ->> '->> is null' is not null")
         assertThat(expression.filterIsInstance<PathReferenceWithSpaces>()).hasSize(4)
         assertThat(expression)
@@ -50,7 +50,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
      * Valid for columns in tables but not for JSON keys.
      */
     @Test
-    fun `field names in double quotes are parsed`() {
+    fun `field name in double quotes is parsed as PathReference`() {
         val expression = expressionParser.parse("\"these\" \"ARE\" 123 \"456\" \"field\" \"nAmEs.\" != ->> \"->>\" is null is not null")
         assertThat(expression.filterIsInstance<PathReference>()).hasSize(6)
         assertThat(expression)
@@ -66,7 +66,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
      * Valid for columns in tables but not for JSON keys.
      */
     @Test
-    fun `field names in double quotes with spaces are parsed as PathReferenceWithSpaces`() {
+    fun `field name in double quotes with spaces is parsed as PathReferenceWithSpace`() {
         val expression = expressionParser.parse("\"these ARE\" 123 \"456 789\" \"field nAmEs.\" != ->> \"->> is null\" is not null")
         assertThat(expression.filterIsInstance<PathReferenceWithSpaces>()).hasSize(4)
         assertThat(expression)
@@ -77,7 +77,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `numbers with no decimal points are parsed`() {
+    fun `number with no decimal points is parsed as Number`() {
         val expression = expressionParser.parse("1 23456 field nAmEs 78910 != ->> is null is not null")
         assertThat(expression.filterIsInstance<Number>()).hasSize(3)
         assertThat(expression)
@@ -87,7 +87,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `numbers with decimal points are parsed`() {
+    fun `number with decimal points is parsed as Number`() {
         val expression = expressionParser.parse("1.0 23.456 field nAmEs 78910.00000001 != ->> is null is not null")
         assertThat(expression.filterIsInstance<Number>()).hasSize(3)
         assertThat(expression)
@@ -100,7 +100,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
      * JSON array or object to text = "->>"
      */
     @Test
-    fun `json array or object to text is parsed`() {
+    fun `json array or object to text is parsed as JsonArrayOrObjectAsText`() {
         val expression = expressionParser.parse("these ARE ->> field nAmEs != ->> is null is not null")
         assertThat(expression.filterIsInstance<JsonArrayOrObjectAsText>()).hasSize(2)
         assertThat(expression)
@@ -109,7 +109,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `as is parsed (case insensitive)`() {
+    fun `as is parsed (case insensitive) as As`() {
         val expression = expressionParser.parse("asasas AS ->> as aS zasz != ->> is null is not null")
         assertThat(expression.filterIsInstance<As>()).hasSize(3)
         assertThat(expression)
@@ -119,7 +119,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `from is parsed (case insensitive)`() {
+    fun `from is parsed (case insensitive) as From`() {
         val expression = expressionParser.parse("fromfromfrom FROM ->> from frOM zfromz != ->> is null is not null")
         assertThat(expression.filterIsInstance<From>()).hasSize(3)
         assertThat(expression)
@@ -129,7 +129,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `select is parsed (case insensitive)`() {
+    fun `select is parsed (case insensitive) as Select`() {
         val expression = expressionParser.parse("selectselectselect SELECT ->> select seLEcT zselectz != ->> is null is not null")
         assertThat(expression.filterIsInstance<Select>()).hasSize(3)
         assertThat(expression)
@@ -139,7 +139,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `where is parsed (case insensitive)`() {
+    fun `where is parsed (case insensitive) as Where`() {
         val expression = expressionParser.parse("wherewherewhere WHERE ->> where wheRE zwherez != ->> is null is not null")
         assertThat(expression.filterIsInstance<Where>()).hasSize(3)
         assertThat(expression)
@@ -149,7 +149,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `and is parsed (case insensitive)`() {
+    fun `and is parsed (case insensitive) as And`() {
         val expression = expressionParser.parse("andandand AND ->> and ANd zandz != ->> is null is not null")
         assertThat(expression.filterIsInstance<And>()).hasSize(3)
         assertThat(expression)
@@ -159,7 +159,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `or is parsed (case insensitive)`() {
+    fun `or is parsed (case insensitive) as Or`() {
         val expression = expressionParser.parse("ororor OR ->> or Or zorz != ->> is null is not null")
         assertThat(expression.filterIsInstance<Or>()).hasSize(3)
         assertThat(expression)
@@ -169,7 +169,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `is null is parsed (case insensitive)`() {
+    fun `is null is parsed (case insensitive) as IsNull`() {
         val expression = expressionParser.parse("is nullis nullis null IS NULL ->> is null Is NuLL zis nullz != ->> is not null")
         assertThat(expression.filterIsInstance<IsNull>()).hasSize(3)
         assertThat(expression)
@@ -179,7 +179,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `is not null is parsed (case insensitive)`() {
+    fun `is not null is parsed (case insensitive) as IsNotNull`() {
         val expression =
             expressionParser.parse("is not nullis not nullis not null IS NOT NULL ->> is not null Is NoT NuLL zis not nullz != ->> is null")
         assertThat(expression.filterIsInstance<IsNotNull>()).hasSize(3)
@@ -193,7 +193,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
      * !in or not in??
      */
     @Test
-    fun `in is parsed (case insensitive)`() {
+    fun `in is parsed (case insensitive) as In`() {
         val expression = expressionParser.parse("ininin IN ->> in iN zinz != ->> is null is not null")
         assertThat(expression.filterIsInstance<In>()).hasSize(3)
         assertThat(expression)
@@ -203,7 +203,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `equals is parsed`() {
+    fun `equals is parsed as Equals`() {
         val expression = expressionParser.parse("=== = ->> = = z=z != ->> is null is not null")
         assertThat(expression.filterIsInstance<Equals>()).hasSize(7)
         assertThat(expression)
@@ -217,7 +217,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `not equals is parsed`() {
+    fun `not equals is parsed as NotEquals`() {
         val expression = expressionParser.parse("!=!=!= != ->> != != z!=z ->> is null is not null")
         assertThat(expression.filterIsInstance<NotEquals>()).hasSize(7)
         assertThat(expression)
@@ -231,7 +231,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `less than is parsed`() {
+    fun `less than is parsed as LessThan`() {
         val expression = expressionParser.parse("<<< < ->> < < z<z != ->> is null is not null")
         assertThat(expression.filterIsInstance<LessThan>()).hasSize(7)
         assertThat(expression)
@@ -245,7 +245,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `less than or equal to is parsed`() {
+    fun `less than or equal to is parsed as LessThanEquals`() {
         val expression = expressionParser.parse("<=<=<= <= ->> <= <= z<=z != ->> is null is not null")
         assertThat(expression.filterIsInstance<LessThanEquals>()).hasSize(7)
         assertThat(expression)
@@ -259,7 +259,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `greater than is parsed`() {
+    fun `greater than is parsed as GreaterThan`() {
         val expression = expressionParser.parse(">>> > ->> > > z>z != ->> is null is not null")
         assertThat(expression.filterIsInstance<GreaterThan>()).hasSize(7)
         assertThat(expression)
@@ -273,7 +273,7 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
-    fun `greater than or equal to is parsed`() {
+    fun `greater than or equal to is parsed as GreaterThanEquals`() {
         val expression = expressionParser.parse(">=>=>= >= ->> >= >= z>=z != ->> is null is not null")
         assertThat(expression.filterIsInstance<GreaterThanEquals>()).hasSize(7)
         assertThat(expression)
@@ -284,6 +284,18 @@ class PostgresVaultNamedQueryExpressionParserTest {
             .contains(GreaterThanEquals(), Index.atIndex(5))
             .contains(GreaterThanEquals(), Index.atIndex(6))
             .contains(GreaterThanEquals(), Index.atIndex(8))
+    }
+
+    @Test
+    fun `json cast to is parsed as JsonCast`() {
+        val expression = expressionParser.parse("::int::int::int ::string ->> ::int ::int z::intz != ->> is null is not null")
+        assertThat(expression.filterIsInstance<JsonCast>()).hasSize(5)
+        assertThat(expression)
+            .contains(JsonCast("int::int::int"), Index.atIndex(0))
+            .contains(JsonCast("string"), Index.atIndex(1))
+            .contains(JsonCast("int"), Index.atIndex(3))
+            .contains(JsonCast("int"), Index.atIndex(4))
+            .contains(JsonCast("intz"), Index.atIndex(6))
     }
 
     @Test
