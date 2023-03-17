@@ -1,13 +1,13 @@
 package net.corda.ledger.json.expression.parsing
 
-class PostgresVaultCustomQueryParser(
-    private val expressionParser: VaultCustomQueryExpressionParser,
-    private val expressionValidator: VaultCustomQueryExpressionValidator
-) : VaultCustomQueryParser {
+class PostgresVaultNamedQueryParser(
+    private val expressionParser: VaultNamedQueryExpressionParser,
+    private val expressionValidator: VaultNamedQueryExpressionValidator
+) : VaultNamedQueryParser {
 
     override fun parse(query: String): String {
         val expression = expressionParser.parse(query)
-        expressionValidator.validate(query, expression)
+        expressionValidator.validateWhereJson(query, expression)
         val output = StringBuilder("")
         for (token in expression) {
             when (token) {

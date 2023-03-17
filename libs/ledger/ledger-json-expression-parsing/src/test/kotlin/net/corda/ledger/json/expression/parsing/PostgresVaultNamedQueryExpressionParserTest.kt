@@ -5,9 +5,9 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.data.Index
 import org.junit.jupiter.api.Test
 
-class PostgresVaultCustomQueryExpressionParserTest {
+class PostgresVaultNamedQueryExpressionParserTest {
 
-    private val expressionParser = PostgresVaultCustomQueryExpressionParser()
+    private val expressionParser = PostgresVaultNamedQueryExpressionParser()
 
     @Test
     fun `field names not in quotes are parsed as PathReferences`() {

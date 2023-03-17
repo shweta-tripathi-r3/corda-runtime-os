@@ -1,11 +1,11 @@
 package net.corda.ledger.json.expression.parsing
 
-interface VaultCustomQueryExpressionParser {
+interface VaultNamedQueryExpressionParser {
 
     fun parse(query: String): List<Token>
 }
 
-class PostgresVaultCustomQueryExpressionParser : VaultCustomQueryExpressionParser {
+class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser {
     private val stringPattern = Regex(
         """(?<str>('[^']*)'|("[^"]*)")"""
     )

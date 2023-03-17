@@ -4,18 +4,18 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
-class VaultCustomQueryExpressionValidatorTest {
+class VaultNamedQueryExpressionValidatorTest {
 
-    private val validator = VaultCustomQueryExpressionValidator()
+    private val validator = VaultNamedQueryExpressionValidator()
 
     @Test
     fun `acceptable expression does not throw an exception`() {
-        assertDoesNotThrow { validator.validate("my query", listOf(PathReference("field"), Number("1"))) }
+        assertDoesNotThrow { validator.validateWhereJson("my query", listOf(PathReference("field"), Number("1"))) }
     }
 
     @Test
     fun `expression containing a select token throws an exception`() {
-        assertThatThrownBy { validator.validate("my query", listOf(PathReference("field"), Select())) }
+        assertThatThrownBy { validator.validateWhereJson("my query", listOf(PathReference("field"), Select())) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("cannot contain the SELECT keyword")
             .hasMessageContaining("my query")
@@ -23,7 +23,7 @@ class VaultCustomQueryExpressionValidatorTest {
 
     @Test
     fun `expression containing a from token throws an exception`() {
-        assertThatThrownBy { validator.validate("my query", listOf(PathReference("field"), From())) }
+        assertThatThrownBy { validator.validateWhereJson("my query", listOf(PathReference("field"), From())) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("cannot contain the FROM keyword")
             .hasMessageContaining("my query")

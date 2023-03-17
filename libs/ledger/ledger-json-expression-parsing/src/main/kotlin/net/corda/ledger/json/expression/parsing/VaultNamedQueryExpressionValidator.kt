@@ -1,8 +1,8 @@
 package net.corda.ledger.json.expression.parsing
 
-class VaultCustomQueryExpressionValidator {
+class VaultNamedQueryExpressionValidator {
 
-    fun validate(query: String, expression: List<Token>) {
+    fun validateWhereJson(query: String, expression: List<Token>) {
         for (token in expression) {
             when (token) {
                 is Select -> throw exception(query, "SELECT")
