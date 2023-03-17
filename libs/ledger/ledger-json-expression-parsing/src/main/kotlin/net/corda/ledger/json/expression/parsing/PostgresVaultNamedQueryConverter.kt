@@ -1,18 +1,8 @@
 package net.corda.ledger.json.expression.parsing
 
-class PostgresVaultNamedQueryParser(
-    private val expressionParser: VaultNamedQueryExpressionParser,
-    private val expressionValidator: VaultNamedQueryExpressionValidator
-) : VaultNamedQueryParser {
+class PostgresVaultNamedQueryConverter : VaultNamedQueryConverter {
 
-    override fun parseWhereJson(query: String): String {
-        val expression = expressionParser.parse(query)
-        expressionValidator.validateWhereJson(query, expression)
-        return parseExpressionToPostgresQuery(expression)
-    }
-
-    private fun parseExpressionToPostgresQuery(expression: List<Token>): String {
-        val output = StringBuilder("")
+    override fun convert(output: StringBuilder, expression: List<Token>): StringBuilder {
         for (token in expression) {
             when (token) {
                 is PathReference -> output.append(token.ref)
@@ -41,6 +31,6 @@ class PostgresVaultNamedQueryParser(
                 else -> throw IllegalArgumentException("Invalid token in expression - $token")
             }
         }
-        return output.toString().replace("  ", " ").trim()
+        return output
     }
 }

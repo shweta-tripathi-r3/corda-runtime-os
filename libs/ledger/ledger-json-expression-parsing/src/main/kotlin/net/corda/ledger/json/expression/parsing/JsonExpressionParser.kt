@@ -20,7 +20,8 @@ fun main() {
 
     println()
 
-    val expression3 = PostgresVaultNamedQueryExpressionParser().parse("SELECT name, custom ->> 'salary' AS salary FROM people WHERE custom ->> 'salary' = '10'")
+    val expression3 =
+        PostgresVaultNamedQueryExpressionParser().parse("SELECT name, custom ->> 'salary' AS salary FROM people WHERE custom ->> 'salary' = '10'")
     println("Postgres => ${PostgresExpression.convert(expression3)}")
     println("Oracle => ${OracleExpression.convert(expression3)}")
     println("SQL Server => ${SqlServerExpression.convert(expression3)}")
@@ -31,7 +32,11 @@ fun main() {
     // also not focusing on keeping oracle and sql server working in my current code, will fix them up later
 //    val expression4 = ExpressionLexer.parse("SELECT name, custom ->> 'salary' AS salary, custom ->> 'field with space' AS field FROM people WHERE custom ->> 'salary' != '10' AND (custom ->> 'salary')::int > '5' OR custom ->> 'field with space' IS NULL")
     try {
-        PostgresVaultNamedQueryParser(PostgresVaultNamedQueryExpressionParser(), VaultNamedQueryExpressionValidatorImpl()).parseWhereJson(
+        VaultNamedQueryParserImpl(
+            PostgresVaultNamedQueryExpressionParser(),
+            VaultNamedQueryExpressionValidatorImpl(),
+            PostgresVaultNamedQueryConverter()
+        ).parseWhereJson(
             """
         select
 	name,
@@ -51,7 +56,11 @@ where
     println()
 
     println(
-        PostgresVaultNamedQueryParser(PostgresVaultNamedQueryExpressionParser(), VaultNamedQueryExpressionValidatorImpl()).parseWhereJson(
+        VaultNamedQueryParserImpl(
+            PostgresVaultNamedQueryExpressionParser(),
+            VaultNamedQueryExpressionValidatorImpl(),
+            PostgresVaultNamedQueryConverter()
+        ).parseWhereJson(
             """
 wHerE
 	((custom ->> 'salary')::int != 10 or (custom ->> 'salary')::int > 9) and 
