@@ -96,4 +96,24 @@ class In : Keyword {
     }
 }
 
-val DISABLED_KEYWORDS = listOf(Select(), From())
+fun operatorFactory(op: String): Keyword {
+    return when (op.uppercase()) {
+        "!=" -> NotEquals()
+        ">" -> GreaterThan()
+        ">=" -> GreaterThanEquals()
+        "<" -> LessThan()
+        "<=" -> LessThanEquals()
+        "IS NULL" -> IsNull()
+        "IS NOT NULL" -> IsNotNull()
+        "->>" -> JsonArrayOrObjectAsText()
+        "AS" -> As()
+        "FROM" -> From()
+        "SELECT" -> Select()
+        "WHERE" -> Where()
+        "OR" -> Or()
+        "AND" -> And()
+        "=" -> Equals()
+        "IN" -> In()
+        else -> throw IllegalArgumentException("Unknown operator $op")
+    }
+}

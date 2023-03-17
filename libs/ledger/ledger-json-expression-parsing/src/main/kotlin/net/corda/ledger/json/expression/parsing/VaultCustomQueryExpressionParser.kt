@@ -1,6 +1,11 @@
 package net.corda.ledger.json.expression.parsing
 
-object ExpressionParser {
+interface VaultCustomQueryExpressionParser {
+
+    fun parse(query: String): List<Token>
+}
+
+class PostgresVaultCustomQueryExpressionParser : VaultCustomQueryExpressionParser {
     private val stringPattern = Regex(
         """(?<str>('[^']*)'|("[^"]*)")"""
     )
@@ -19,15 +24,15 @@ object ExpressionParser {
 
     private val jsonCastPattern = Regex("""(?<cast>::\S+)""")
 
-    fun parse(input: String): List<Token> {
+    override fun parse(query: String): List<Token> {
         val outputTokens = mutableListOf<Token>()
         var index = 0
-        while (index < input.length) {
-            if (input[index].isWhitespace() || input[index] == '\n') {
+        while (index < query.length) {
+            if (query[index].isWhitespace() || query[index] == '\n') {
                 ++index
                 continue
             }
-            val strMatch = stringPattern.find(input, index)
+            val strMatch = stringPattern.find(query, index)
             if (strMatch != null && strMatch.range.first == index) {
                 val str = strMatch.groups["str"]
                 if (str != null) {
@@ -39,22 +44,22 @@ object ExpressionParser {
                     continue
                 }
             }
-            if (input[index] == '(') {
+            if (query[index] == '(') {
                 outputTokens += LeftParentheses()
                 ++index
                 continue
             }
-            if (input[index] == ')') {
+            if (query[index] == ')') {
                 outputTokens += RightParentheses()
                 ++index
                 continue
             }
-            if (input[index] == ',') {
+            if (query[index] == ',') {
                 outputTokens += ParameterEnd()
                 ++index
                 continue
             }
-            val opsMatch = opsPattern.find(input, index)
+            val opsMatch = opsPattern.find(query, index)
             if (opsMatch != null && opsMatch.range.first == index) {
                 val ops = opsMatch.groups["op"]
                 if (ops != null) {
@@ -63,7 +68,7 @@ object ExpressionParser {
                     continue
                 }
             }
-            val jsonCastMatch = jsonCastPattern.find(input, index)
+            val jsonCastMatch = jsonCastPattern.find(query, index)
             if (jsonCastMatch != null && jsonCastMatch.range.first == index) {
                 val cast = jsonCastMatch.groups["cast"]
                 if (cast != null) {
@@ -72,7 +77,7 @@ object ExpressionParser {
                     continue
                 }
             }
-            val pathMatch = pathPattern.find(input, index)
+            val pathMatch = pathPattern.find(query, index)
             if (pathMatch != null && pathMatch.range.first == index) {
                 val path = pathMatch.groups["path"]
                 if (path != null) {
@@ -81,7 +86,7 @@ object ExpressionParser {
                     continue
                 }
             }
-            val numberMatch = numberPattern.find(input, index)
+            val numberMatch = numberPattern.find(query, index)
             if (numberMatch != null && numberMatch.range.first == index) {
                 val number = numberMatch.groups["num"]
                 if (number != null) {
@@ -90,7 +95,7 @@ object ExpressionParser {
                     continue
                 }
             }
-            throw IllegalArgumentException("Unexpected input index = $index, value (${input[index]}), $input")
+            throw IllegalArgumentException("Unexpected input index = $index, value (${query[index]}), $query")
         }
         return outputTokens
     }

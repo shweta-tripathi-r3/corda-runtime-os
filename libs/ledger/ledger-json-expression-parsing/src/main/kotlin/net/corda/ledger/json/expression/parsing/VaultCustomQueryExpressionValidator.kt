@@ -1,6 +1,6 @@
 package net.corda.ledger.json.expression.parsing
 
-class ExpressionValidator {
+class VaultCustomQueryExpressionValidator {
 
     fun validate(query: String, expression: List<Token>) {
         for (token in expression) {

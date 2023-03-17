@@ -1,8 +1,8 @@
 package net.corda.ledger.json.expression.parsing
 
 class PostgresVaultCustomQueryParser(
-    private val expressionParser: ExpressionParser,
-    private val expressionValidator: ExpressionValidator
+    private val expressionParser: VaultCustomQueryExpressionParser,
+    private val expressionValidator: VaultCustomQueryExpressionValidator
 ) : VaultCustomQueryParser {
 
     override fun parse(query: String): String {
