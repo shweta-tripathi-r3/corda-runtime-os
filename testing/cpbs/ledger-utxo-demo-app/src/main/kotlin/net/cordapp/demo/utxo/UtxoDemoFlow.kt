@@ -1,5 +1,6 @@
 package net.cordapp.demo.utxo
 
+import net.corda.v5.application.crypto.DigestService
 import net.corda.v5.application.flows.ClientRequestBody
 import net.corda.v5.application.flows.ClientStartableFlow
 import net.corda.v5.application.flows.CordaInject
@@ -48,6 +49,9 @@ class UtxoDemoFlow : ClientStartableFlow {
 
     @CordaInject
     lateinit var notaryLookup: NotaryLookup
+
+    @CordaInject
+    lateinit var digestService: DigestService
 
     @Suspendable
     override fun call(requestBody: ClientRequestBody): String {

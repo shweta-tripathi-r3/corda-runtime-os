@@ -17,7 +17,7 @@ class VaultNamedQueryRegistryImplTest {
 
     private val mockNamedQuery = mock<VaultNamedQuery> {
         on { name } doReturn DUMMY_QUERY_NAME
-        on { jsonString } doReturn DUMMY_JSON_QUERY
+        on { query } doReturn DUMMY_JSON_QUERY
     }
 
     @Test
@@ -31,7 +31,7 @@ class VaultNamedQueryRegistryImplTest {
         assertThat(storedNamedQuery).isNotNull
         assertThat(storedNamedQuery?.name).isNotNull
         assertThat(storedNamedQuery?.name).isEqualTo(DUMMY_QUERY_NAME)
-        assertThat(storedNamedQuery?.jsonString).isEqualTo(DUMMY_JSON_QUERY)
+        assertThat(storedNamedQuery?.query).isEqualTo(DUMMY_JSON_QUERY)
     }
 
     @Test

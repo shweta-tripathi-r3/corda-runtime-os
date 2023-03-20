@@ -53,7 +53,7 @@ class VaultNamedQueryBuilderFactoryImplTest {
 
         assertThat(storedQuery).isNotNull
         assertThat(storedQuery.name).isEqualTo(DUMMY_QUERY_NAME)
-        assertThat(storedQuery.jsonString).isEqualTo(DUMMY_WHERE_CLAUSE)
+        assertThat(storedQuery.query).isEqualTo(DUMMY_WHERE_CLAUSE)
         assertThat(storedQuery.filter).isNotNull
         assertThat(storedQuery.mapper).isNotNull
         assertThat(storedQuery.collector).isNotNull
@@ -71,7 +71,7 @@ class VaultNamedQueryBuilderFactoryImplTest {
 
         assertThat(storedQuery).isNotNull
         assertThat(storedQuery.name).isEqualTo(DUMMY_QUERY_NAME)
-        assertThat(storedQuery.jsonString).isNull()
+        assertThat(storedQuery.query).isNull()
         assertThat(storedQuery.filter).isNull()
         assertThat(storedQuery.mapper).isNull()
         assertThat(storedQuery.collector).isNull()
