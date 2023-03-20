@@ -323,6 +323,16 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
+    fun `like is parsed as Like`() {
+        val expression = expressionParser.parse("likelikelike LIKE ->> like LiKe zlikez != ->> is null is not null")
+        assertThat(expression.filterIsInstance<Like>()).hasSize(3)
+        assertThat(expression)
+            .contains(Like(), Index.atIndex(1))
+            .contains(Like(), Index.atIndex(3))
+            .contains(Like(), Index.atIndex(4))
+    }
+
+    @Test
     fun `spaces are ignored`() {
         val expression = expressionParser.parse("  spaces spaces  spaces      spaces ")
         assertThat(expression).hasSize(4)

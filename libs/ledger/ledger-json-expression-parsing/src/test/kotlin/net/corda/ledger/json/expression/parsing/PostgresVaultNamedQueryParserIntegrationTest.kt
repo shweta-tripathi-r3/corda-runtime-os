@@ -1,6 +1,8 @@
 package net.corda.ledger.json.expression.parsing
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -8,7 +10,12 @@ import java.util.stream.Stream
 
 class PostgresVaultNamedQueryParserIntegrationTest {
 
-    // Need to support strings with no spaces between some keywords
+    private val vaultNamedQueryParser = VaultNamedQueryParserImpl(
+        PostgresVaultNamedQueryExpressionParser(),
+        VaultNamedQueryExpressionValidatorImpl(),
+        PostgresVaultNamedQueryConverter()
+    )
+
     private companion object {
         @JvmStatic
         fun inputsToOutputs(): Stream<Arguments> {
@@ -64,6 +71,10 @@ class PostgresVaultNamedQueryParserIntegrationTest {
                     "WHERE (field ->> property IN ('asd', 'fields value', 'asd') AND field ->> property2 = 'another value')"
                 ),
                 Arguments.of(
+                    "WHERE (field ->> property LIKE '%hello there%')",
+                    "WHERE (field ->> property LIKE '%hello there%')"
+                ),
+                Arguments.of(
                     """
                         where
                             ("custom"->>'salary'='10'
@@ -86,41 +97,16 @@ class PostgresVaultNamedQueryParserIntegrationTest {
     @ParameterizedTest
     @MethodSource("inputsToOutputs")
     fun `queries are parsed from a postgres query and output back into a postgres query`(input: String, output: String) {
-        val vaultNamedQueryParser = VaultNamedQueryParserImpl(
-            PostgresVaultNamedQueryExpressionParser(),
-            VaultNamedQueryExpressionValidatorImpl(),
-            PostgresVaultNamedQueryConverter()
-        )
         assertThat(vaultNamedQueryParser.parseWhereJson(input)).isEqualTo(output)
     }
 
+    @Test
+    fun `queries containing a select throws an exception`() {
+        assertThatThrownBy { vaultNamedQueryParser.parseWhereJson("SELECT field") }.isExactlyInstanceOf(IllegalArgumentException::class.java)
+    }
 
-//    @Test
-//    fun `query with a single WHERE clause`() {
-//
-//    }
-//
-//    @Test
-//    fun `query with a single WHERE clause and a parameter`() {
-//
-//    }
-//
-//    @Test
-//    fun `query with an AND`() {
-//
-//    }
-//
-//    @Test
-//    fun `query with multiple ANDs`() {
-//
-//    }
-//
-//    @Test
-//    fun `query with an OR`() {
-//
-//    }
-//
-//    @Test
-//    fun `query
-
+    @Test
+    fun `queries containing a from throws an exception`() {
+        assertThatThrownBy { vaultNamedQueryParser.parseWhereJson("FROM table") }.isExactlyInstanceOf(IllegalArgumentException::class.java)
+    }
 }

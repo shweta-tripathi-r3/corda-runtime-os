@@ -20,7 +20,7 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
 
     // like? need to keep % in that case
     private val opsPattern = Regex(
-        """(?<op>(->>)|[+-/*=]|<(=)?|>(=)?|==|!(=)?|\?|(?i)\bas\b|(?i)\bfrom\b|(?i)\bselect\b|(?i)\bwhere\b|(?i)\band\b|(?i)\bor\b|(?i)\bis null\b|(?i)\bis not null\b|(?i)\bin\b)"""
+        """(?<op>(->>)|[+-/*=?]|<(=)?|>(=)?|==|!(=)?|(?i)\bas\b|(?i)\bfrom\b|(?i)\bselect\b|(?i)\bwhere\b|(?i)\band\b|(?i)\bor\b|(?i)\bis null\b|(?i)\bis not null\b|(?i)\bin\b|(?i)\blike\b)"""
     )
 
     private val jsonCastPattern = Regex("""(?<cast>::.*?)((->>)|[+*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|\s)""")

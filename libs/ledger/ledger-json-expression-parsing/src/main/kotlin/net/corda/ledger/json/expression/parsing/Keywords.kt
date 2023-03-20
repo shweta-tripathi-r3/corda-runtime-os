@@ -272,6 +272,22 @@ class JsonKeyExists : Keyword {
     }
 }
 
+class Like : Keyword {
+    override fun toString(): String {
+        return "LIKE"
+    }
+
+    override fun hashCode(): Int {
+        return "LIKE".hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return true
+    }
+}
+
 fun operatorFactory(op: String): Keyword {
     return when (op.uppercase()) {
         "!=" -> NotEquals()
@@ -291,6 +307,7 @@ fun operatorFactory(op: String): Keyword {
         "=" -> Equals()
         "IN" -> In()
         "?" -> JsonKeyExists()
+        "LIKE" -> Like()
         else -> throw IllegalArgumentException("Unknown operator $op")
     }
 }
