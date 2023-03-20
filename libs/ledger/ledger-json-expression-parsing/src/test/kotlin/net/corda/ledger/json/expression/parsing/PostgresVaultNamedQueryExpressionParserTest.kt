@@ -309,6 +309,20 @@ class PostgresVaultNamedQueryExpressionParserTest {
     }
 
     @Test
+    fun `json key exist is parsed as JsonKeyExists`() {
+        val expression = expressionParser.parse("??? ? ->> ? ? z?z ->> is null is not null")
+        assertThat(expression.filterIsInstance<JsonKeyExists>()).hasSize(7)
+        assertThat(expression)
+            .contains(JsonKeyExists(), Index.atIndex(0))
+            .contains(JsonKeyExists(), Index.atIndex(1))
+            .contains(JsonKeyExists(), Index.atIndex(2))
+            .contains(JsonKeyExists(), Index.atIndex(3))
+            .contains(JsonKeyExists(), Index.atIndex(5))
+            .contains(JsonKeyExists(), Index.atIndex(6))
+            .contains(JsonKeyExists(), Index.atIndex(8))
+    }
+
+    @Test
     fun `spaces are ignored`() {
         val expression = expressionParser.parse("  spaces spaces  spaces      spaces ")
         assertThat(expression).hasSize(4)

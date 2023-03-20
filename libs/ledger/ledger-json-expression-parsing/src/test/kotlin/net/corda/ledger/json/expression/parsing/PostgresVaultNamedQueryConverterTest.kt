@@ -216,6 +216,12 @@ class PostgresVaultNamedQueryConverterTest {
     }
 
     @Test
+    fun `JsonKeyExists is appended to the output with a space on either side`() {
+        val expression = listOf(JsonKeyExists())
+        assertThat(postgresVaultNamedQueryParser.convert(output, expression).toString()).isEqualTo(" ? ")
+    }
+
+    @Test
     fun `ParameterEnd is appended with a space on its right`() {
         val expression = listOf(ParameterEnd())
         assertThat(postgresVaultNamedQueryParser.convert(output, expression).toString()).isEqualTo(", ")
