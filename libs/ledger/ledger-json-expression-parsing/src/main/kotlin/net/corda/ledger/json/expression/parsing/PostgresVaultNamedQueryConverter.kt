@@ -7,6 +7,7 @@ class PostgresVaultNamedQueryConverter : VaultNamedQueryConverter {
             when (token) {
                 is PathReference -> output.append(token.ref)
                 is PathReferenceWithSpaces -> output.append(token.ref)
+                is Parameter -> output.append(token.ref)
                 is Number -> output.append(token.ref)
                 is JsonArrayOrObjectAsText -> output.append(" ->> ")
                 is Select -> output.append(" SELECT ")

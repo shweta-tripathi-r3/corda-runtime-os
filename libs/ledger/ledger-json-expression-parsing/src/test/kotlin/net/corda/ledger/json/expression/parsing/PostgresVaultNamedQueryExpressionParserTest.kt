@@ -18,7 +18,6 @@ class PostgresVaultNamedQueryExpressionParserTest {
             .contains(PathReference("ARE"), Index.atIndex(1))
             .contains(PathReference("field"), Index.atIndex(3))
             .contains(PathReference("nAmEs"), Index.atIndex(4))
-
     }
 
     @Test
@@ -32,7 +31,6 @@ class PostgresVaultNamedQueryExpressionParserTest {
             .contains(PathReference("'field'"), Index.atIndex(4))
             .contains(PathReference("'nAmEs.'"), Index.atIndex(5))
             .contains(PathReference("'->>'"), Index.atIndex(8))
-
     }
 
     @Test
@@ -74,6 +72,17 @@ class PostgresVaultNamedQueryExpressionParserTest {
             .contains(PathReferenceWithSpaces("\"456 789\""), Index.atIndex(2))
             .contains(PathReferenceWithSpaces("\"field nAmEs.\""), Index.atIndex(3))
             .contains(PathReferenceWithSpaces("\"->> is null\""), Index.atIndex(6))
+    }
+
+    @Test
+    fun `parameter name is parsed as Parameter`() {
+        val expression = expressionParser.parse(":parameter ARE 123 :another_one nAmEs != :with-dashes ::int ->> is null is not null")
+        assertThat(expression.filterIsInstance<Parameter>()).hasSize(3)
+        assertThat(expression)
+            .contains(Parameter(":parameter"), Index.atIndex(0))
+            .contains(Parameter(":another_one"), Index.atIndex(3))
+            .contains(Parameter(":with-dashes"), Index.atIndex(6))
+
     }
 
     @Test

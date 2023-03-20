@@ -25,6 +25,8 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
 
     private val jsonCastPattern = Regex("""(?<cast>::\S+)""")
 
+    private val parameterPattern = Regex("""(?<parameter>:[^:]\S+)""")
+
     override fun parse(query: String): List<Token> {
         val outputTokens = mutableListOf<Token>()
         var index = 0
@@ -78,6 +80,15 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
                     continue
                 }
             }
+            val parameterMatch = parameterPattern.find(query, index)
+            if (parameterMatch != null && parameterMatch.range.first == index) {
+                val cast = parameterMatch.groups["parameter"]
+                if (cast != null) {
+                    outputTokens += Parameter(cast.value)
+                    index = parameterMatch.range.last + 1
+                    continue
+                }
+            }
             val pathMatch = pathPattern.find(query, index)
             if (pathMatch != null && pathMatch.range.first == index) {
                 val path = pathMatch.groups["path"]
@@ -96,7 +107,7 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
                     continue
                 }
             }
-            throw IllegalArgumentException("Unexpected input index = $index, value (${query[index]}), $query")
+            throw IllegalArgumentException("Unexpected input index: $index, value: (${query[index]}), query: ($query)")
         }
         return outputTokens
     }

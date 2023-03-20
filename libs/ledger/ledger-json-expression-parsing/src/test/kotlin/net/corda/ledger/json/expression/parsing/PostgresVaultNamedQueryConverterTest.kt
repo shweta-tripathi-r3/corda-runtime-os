@@ -27,6 +27,12 @@ class PostgresVaultNamedQueryConverterTest {
     }
 
     @Test
+    fun `Parameter is appended directly to the output with no spaces`() {
+        val expression = listOf(Parameter(":parameter"))
+        assertThat(postgresVaultNamedQueryParser.convert(output, expression).toString()).isEqualTo(":parameter")
+    }
+
+    @Test
     fun `Number is appended directly to the output with no spaces`() {
         val expression = listOf(Number("1"))
         assertThat(postgresVaultNamedQueryParser.convert(output, expression).toString()).isEqualTo("1")
