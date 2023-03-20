@@ -201,6 +201,15 @@ class PostgresVaultNamedQueryConverterTest {
     }
 
     @Test
+    fun `RightParentheses removes last space to the left if previous token was a keyword`() {
+        val expression1 = listOf(IsNull(), RightParentheses())
+        val expression2 = listOf(IsNotNull(), RightParentheses())
+        assertThat(postgresVaultNamedQueryParser.convert(output, expression1).toString()).isEqualTo(" IS NULL)")
+        output.clear()
+        assertThat(postgresVaultNamedQueryParser.convert(output, expression2).toString()).isEqualTo(" IS NOT NULL)")
+    }
+
+    @Test
     fun `JsonCast is appended directly to the output with no spaces`() {
         val expression = listOf(JsonCast("int"))
         assertThat(postgresVaultNamedQueryParser.convert(output, expression).toString()).isEqualTo("::int")
