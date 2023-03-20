@@ -297,14 +297,15 @@ class PostgresVaultNamedQueryExpressionParserTest {
 
     @Test
     fun `json cast to is parsed as JsonCast`() {
-        val expression = expressionParser.parse("::int::int::int ::string ->> ::int ::int z::intz != ->> is null is not null")
-        assertThat(expression.filterIsInstance<JsonCast>()).hasSize(5)
+        val expression = expressionParser.parse("::int::int::int ::date ::string->> ::int=5 ::int>5 z::intz<=1 != ->> is null is not null")
+        assertThat(expression.filterIsInstance<JsonCast>()).hasSize(6)
         assertThat(expression)
             .contains(JsonCast("int::int::int"), Index.atIndex(0))
-            .contains(JsonCast("string"), Index.atIndex(1))
-            .contains(JsonCast("int"), Index.atIndex(3))
+            .contains(JsonCast("date"), Index.atIndex(1))
+            .contains(JsonCast("string"), Index.atIndex(2))
             .contains(JsonCast("int"), Index.atIndex(4))
-            .contains(JsonCast("intz"), Index.atIndex(6))
+            .contains(JsonCast("int"), Index.atIndex(7))
+            .contains(JsonCast("intz"), Index.atIndex(11))
     }
 
     @Test

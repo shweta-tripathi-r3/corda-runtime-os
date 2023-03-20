@@ -23,7 +23,7 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
         """(?<op>(->>)|[+-/*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|%|rem|(?i)\bas\b|(?i)\bfrom\b|(?i)\bselect\b|(?i)\bwhere\b|(?i)\band\b|(?i)\bor\b|(?i)\bis null\b|(?i)\bis not null\b|(?i)\bin\b)"""
     )
 
-    private val jsonCastPattern = Regex("""(?<cast>::\S+)""")
+    private val jsonCastPattern = Regex("""(?<cast>::.*?)((->>)|[+*=]|&&|\|\||<(=)?|>(=)?|==|!(=)?|\s)""")
 
     private val parameterPattern = Regex("""(?<parameter>:[^:]\S+)""")
 
@@ -76,7 +76,7 @@ class PostgresVaultNamedQueryExpressionParser : VaultNamedQueryExpressionParser 
                 val cast = jsonCastMatch.groups["cast"]
                 if (cast != null) {
                     outputTokens += JsonCast(cast.value.removePrefix("::"))
-                    index = jsonCastMatch.range.last + 1
+                    index = cast.range.last + 1
                     continue
                 }
             }
