@@ -67,12 +67,23 @@ class UtxoLedgerTransactionVerificationServiceImpl @Activate constructor(
     }
 
     @Suspendable
-    private fun fetchAndVerifySignedGroupParameters(transaction: UtxoLedgerTransaction): SignedGroupParameters {
-        val membershipGroupParametersHashString =
-            (transaction.metadata as TransactionMetadataInternal).getMembershipGroupParametersHash()
-        requireNotNull(membershipGroupParametersHashString) {
-            "Membership group parameters hash cannot be found in the transaction metadata."
+    override fun initialVerify(transaction: UtxoLedgerTransaction) {
+        verifyCurrenGroupParametersUsed(transaction)
+        verify(transaction)
+    }
+
+    private fun verifyCurrenGroupParametersUsed(transaction: UtxoLedgerTransaction){
+        check(
+            transaction.getMembershipGroupParametersHash() ==
+                    currentGroupParametersService.get().hash.toString()
+        ) {
+            "Transactions can be created only with the latest membership group parameters."
         }
+    }
+
+    @Suspendable
+    private fun fetchAndVerifySignedGroupParameters(transaction: UtxoLedgerTransaction): SignedGroupParameters {
+        val membershipGroupParametersHashString = transaction.getMembershipGroupParametersHash()
 
         val currentGroupParameters = currentGroupParametersService.get()
         val signedGroupParameters =
@@ -104,4 +115,10 @@ class UtxoLedgerTransactionVerificationServiceImpl @Activate constructor(
         }
 
     private fun serialize(payload: Any) = ByteBuffer.wrap(serializationService.serialize(payload).bytes)
+
+    private fun UtxoLedgerTransaction.getMembershipGroupParametersHash(): String {
+        return requireNotNull((metadata as TransactionMetadataInternal).getMembershipGroupParametersHash()) {
+            "Membership group parameters hash cannot be found in the transaction metadata."
+        }
+    }
 }
