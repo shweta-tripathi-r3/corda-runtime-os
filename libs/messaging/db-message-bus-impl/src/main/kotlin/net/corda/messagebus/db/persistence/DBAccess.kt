@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLIntegrityConstraintViolationException
 import java.sql.SQLTransientException
 import java.time.Instant
+import java.util.*
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.PersistenceException
@@ -36,7 +37,7 @@ class DBAccess(
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
-        internal val ATOMIC_TRANSACTION = TransactionRecordEntry("Atomic Transaction", TransactionState.COMMITTED)
+        internal val ATOMIC_TRANSACTION = TransactionRecordEntry("Atomic Transaction-${UUID.randomUUID()}", TransactionState.COMMITTED)
     }
 
     fun close() {
@@ -214,13 +215,18 @@ class DBAccess(
      * an error for this one txn record
      */
     fun writeAtomicTransactionRecord() {
-        executeWithErrorHandling(
-            "write atomic transaction record",
-            allowDuplicate = true
-        ) { entityManager ->
-            if (entityManager.find(TransactionRecordEntry::class.java, ATOMIC_TRANSACTION.transactionId) == null) {
-                entityManager.persist(ATOMIC_TRANSACTION)
+        val lockId = 23
+        if(getAdvisoryLock(lockId)) {
+            executeWithErrorHandling(
+                "write atomic transaction record",
+                allowDuplicate = true
+            ) { entityManager ->
+                if (entityManager.find(TransactionRecordEntry::class.java, ATOMIC_TRANSACTION.transactionId) == null) {
+                    log.debug { "Executing transaction with id: ${ATOMIC_TRANSACTION.transactionId}" }
+                    entityManager.persist(ATOMIC_TRANSACTION)
+                }
             }
+            releaseAdvisoryLock(lockId)
         }
     }
 
@@ -245,7 +251,37 @@ class DBAccess(
             }
         }
     }
+    /**
+     * Obtain an instance of a Postgres advisory lock on [id]
+     *
+     * Returns boolean value 'true' if a lock instance has been obtained, otherwise returns false
+     * @param id the number which you would like to obtain a lock instance on
+     */
+    fun getAdvisoryLock(id: Int): Boolean {
+        log.debug { "Getting the postgres advisory lock for Int: $id" }
+        val result = executeWithErrorHandling("get lock", allowDuplicate = true) { entityManager ->
+            entityManager.createNativeQuery("SELECT pg_try_advisory_lock(:Id);")
+                .setParameter("Id", id)
+                .singleResult as Boolean
+        }
+        log.debug { "Value returned by getAdvisoryLock: $result" }
+        return result
+    }
 
+    /**
+     * Release an instance of a Postgres advisory lock from [id]
+     *
+     * @param id the number which you would like to release a lock instance from
+     */
+    fun releaseAdvisoryLock(id: Int){
+        log.debug { "Releasing the postgres advisory lock for Int: $id" }
+        val result = executeWithErrorHandling("release lock", allowDuplicate = true) { entityManager ->
+            entityManager.createNativeQuery("SELECT pg_advisory_unlock(:Id);")
+                .setParameter("Id", id)
+                .singleResult as Boolean
+        }
+        log.debug { "Value returned by releaseAdvisoryLock: $result" }
+    }
     /**
      * Read records from the given [topicPartition].  Records will be returned which have an offset
      * _greater than_ [fromOffset].
