@@ -211,10 +211,10 @@ allprojects {
                     }
                 }
                 filter {
-//                    includeGroup 'io.micrometer'
-                    includeModule('io.micrometer', 'micrometer-core')
-                    includeModule('io.micrometer', 'micrometer-registry-prometheus')
-                    includeModule('io.micrometer', 'micrometer-commons')
+                    includeGroup 'io.micrometer'
+//                    includeModule('io.micrometer', 'micrometer-core')
+//                    includeModule('io.micrometer', 'micrometer-registry-prometheus')
+//                    includeModule('io.micrometer', 'micrometer-commons')
 //                    includeModule('io.micrometer', 'micrometer-observation')
                 }
             }
