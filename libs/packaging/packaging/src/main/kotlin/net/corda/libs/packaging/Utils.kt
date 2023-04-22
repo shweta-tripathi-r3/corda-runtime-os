@@ -77,7 +77,7 @@ fun Sequence<Certificate>.signerSummaryHash(): SecureHash {
 }
 
 fun Collection<Certificate>.signerSummaryHashForRequiredSigners(): SecureHash {
-    require(size > 0) {
+    require(isNotEmpty()) {
         "Can't create signer summary hash on an empty signers set"
     }
     return asSequence().signerSummaryHash()
