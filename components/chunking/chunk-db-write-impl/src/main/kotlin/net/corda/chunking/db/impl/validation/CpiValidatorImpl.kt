@@ -1,5 +1,9 @@
 package net.corda.chunking.db.impl.validation
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.cert.X509Certificate
+import java.util.jar.JarInputStream
 import net.corda.chunking.ChunkReaderFactoryImpl
 import net.corda.chunking.RequestId
 import net.corda.chunking.db.impl.persistence.ChunkPersistence
@@ -9,7 +13,6 @@ import net.corda.cpiinfo.write.CpiInfoWriteService
 import net.corda.libs.cpiupload.ValidationException
 import net.corda.libs.packaging.Cpi
 import net.corda.libs.packaging.PackagingConstants
-import net.corda.libs.packaging.core.CpiMetadata
 import net.corda.libs.packaging.verify.verifyCpi
 import net.corda.membership.certificate.service.CertificatesService
 import net.corda.membership.group.policy.validation.MembershipGroupPolicyValidator
@@ -18,14 +21,9 @@ import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import net.corda.membership.lib.schema.validation.MembershipSchemaValidationException
 import net.corda.membership.lib.schema.validation.MembershipSchemaValidator
 import net.corda.schema.membership.MembershipSchema.GroupPolicySchema
-import net.corda.utilities.time.Clock
 import net.corda.v5.base.versioning.Version
 import net.corda.v5.crypto.SecureHash
 import org.slf4j.LoggerFactory
-import java.nio.file.Files
-import java.nio.file.Path
-import java.security.cert.X509Certificate
-import java.util.jar.JarInputStream
 
 @Suppress("LongParameterList")
 class CpiValidatorImpl(
@@ -39,7 +37,6 @@ class CpiValidatorImpl(
     private val cpiCacheDir: Path,
     private val cpiPartsDir: Path,
     certificatesService: CertificatesService,
-    private val clock: Clock,
 ) : CpiValidator {
     companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -90,9 +87,7 @@ class CpiValidatorImpl(
         )
 
         cpiPersistence.validateCanUpsertCpi(
-            cpiName = cpi.metadata.cpiId.name,
-            cpiSignerSummaryHash = cpi.metadata.cpiId.signerSummaryHash,
-            cpiVersion = cpi.metadata.cpiId.version,
+            cpi.metadata.cpiId,
             groupId = groupId,
             forceUpload = fileInfo.forceUpload,
             requestId = requestId
@@ -105,18 +100,11 @@ class CpiValidatorImpl(
         externalChannelsConfigValidator.validate(cpi.metadata.cpksMetadata)
 
         publisher.update(requestId, "Persisting CPI")
-        val cpiMetadataEntity =
+        val cpiMetadata =
             cpiPersistence.persistCpiToDatabase(cpi, groupId, fileInfo, requestId, liquibaseScripts, log)
 
         publisher.update(requestId, "Notifying flow workers")
-        val cpiMetadata = CpiMetadata(
-            cpi.metadata.cpiId,
-            fileInfo.checksum,
-            cpi.cpks.map { it.metadata },
-            cpiMetadataEntity.groupPolicy,
-            version = cpiMetadataEntity.entityVersion,
-            timestamp = clock.instant()
-        )
+
         cpiInfoWriteService.put(cpiMetadata.cpiId, cpiMetadata)
 
         return fileInfo.checksum

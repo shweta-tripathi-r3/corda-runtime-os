@@ -14,6 +14,7 @@ import net.corda.cpiinfo.write.CpiInfoWriteService
 import net.corda.data.chunking.Chunk
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.configuration.validation.ConfigurationValidatorFactory
+import net.corda.libs.cpi.datamodel.repository.CpiMetadataRepositoryImpl
 import net.corda.membership.certificate.service.CertificatesService
 import net.corda.membership.group.policy.validation.MembershipGroupPolicyValidator
 import net.corda.membership.lib.schema.validation.MembershipSchemaValidatorFactory
@@ -27,7 +28,6 @@ import net.corda.messaging.api.subscription.factory.SubscriptionFactory
 import net.corda.schema.Schemas
 import net.corda.utilities.PathProvider
 import net.corda.utilities.TempPathProvider
-import net.corda.utilities.time.UTCClock
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
@@ -127,7 +127,7 @@ class ChunkDbWriterFactoryImpl(
         cpiInfoWriteService: CpiInfoWriteService
     ): Pair<Publisher, Subscription<RequestId, Chunk>> {
         val chunkPersistence = DatabaseChunkPersistence(entityManagerFactory)
-        val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter)
+        val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, CpiMetadataRepositoryImpl())
         val publisher = createPublisher(messagingConfig)
         val statusPublisher = StatusPublisher(statusTopic, publisher)
         val cpiCacheDir = tempPathProvider.getOrCreate(bootConfig, CPI_CACHE_DIR)
@@ -145,8 +145,7 @@ class ChunkDbWriterFactoryImpl(
             externalChannelsConfigValidator,
             cpiCacheDir,
             cpiPartsDir,
-            certificatesService,
-            UTCClock()
+            certificatesService
         )
         val processor = ChunkWriteToDbProcessor(statusPublisher, chunkPersistence, validator)
         val subscriptionConfig = SubscriptionConfig(GROUP_NAME, uploadTopic)
