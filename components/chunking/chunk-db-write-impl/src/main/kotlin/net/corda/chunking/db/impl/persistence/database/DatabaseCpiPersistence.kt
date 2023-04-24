@@ -97,7 +97,7 @@ class DatabaseCpiPersistence(
                 cpi.cpks.map { it.metadata },
                 managedCpiMetadataEntity.groupPolicy,
                 version = managedCpiMetadataEntity.entityVersion,
-                timestamp = managedCpiMetadataEntity.insertTimestamp!!// Todo: Ensure this change is OK. Before this was clock.instant
+                timestamp = managedCpiMetadataEntity.insertTimestamp!!
             )
         }
     }
