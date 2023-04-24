@@ -1,5 +1,6 @@
 package net.corda.messagebus.db.configuration
 
+import net.corda.libs.configuration.SmartConfig
 import net.corda.messagebus.api.consumer.CordaOffsetResetStrategy
 
 /**
@@ -11,6 +12,7 @@ import net.corda.messagebus.api.consumer.CordaOffsetResetStrategy
  * @param jdbcUrl URL for database, set to null to use in-memory db
  * @param jdbcUser User for database
  * @param jdbcPass Password for database
+ * @param messageBusConfig message bus configuration
  */
 data class ResolvedConsumerConfig(
     val group: String,
@@ -20,4 +22,5 @@ data class ResolvedConsumerConfig(
     val jdbcUrl: String?,
     val jdbcUser: String,
     val jdbcPass: String,
+    val messageBusConfig : SmartConfig
 )

@@ -28,6 +28,6 @@ class DbMessagingAdminBuilder @Activate constructor(
             resolvedConfig.jdbcPass
         )
 
-        return DbMessagingAdmin(DBAccess(emf))
+        return DbMessagingAdmin(DBAccess(emf, messageBusConfig))
     }
 }

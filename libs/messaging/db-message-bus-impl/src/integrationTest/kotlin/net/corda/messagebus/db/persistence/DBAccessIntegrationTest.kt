@@ -4,6 +4,7 @@ import net.corda.db.admin.impl.ClassloaderChangeLog
 import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.schema.DbSchema
 import net.corda.db.testkit.DbUtils.getEntityManagerConfiguration
+import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.db.datamodel.CommittedPositionEntry
 import net.corda.messagebus.db.datamodel.TopicEntry
@@ -36,6 +37,7 @@ class DBAccessIntegrationTest {
 
         private val key = "key".toByteArray()
         private val value = "value".toByteArray()
+        private val config = SmartConfigImpl.empty()
         private const val consumerGroup = "group1"
 
         @Suppress("unused")
@@ -96,7 +98,7 @@ class DBAccessIntegrationTest {
 
     @Test
     fun `Can read a list of topics`() {
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         val topic1 = randomId()
         val topic2 = randomId()
@@ -125,7 +127,7 @@ class DBAccessIntegrationTest {
             TopicRecordEntry(topic, 3, 0, key, value, "", transactionRecord, timestamp = timestamp),
         )
 
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
         dbAccess.writeTransactionRecord(transactionRecord)
         dbAccess.writeRecords(records)
 
@@ -146,7 +148,7 @@ class DBAccessIntegrationTest {
         val transactionRecord = TransactionRecordEntry(randomId())
         val transactionRecord2 = TransactionRecordEntry(randomId()) // Won't be committed
         val transactionRecord3 = TransactionRecordEntry(randomId())
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         dbAccess.writeTransactionRecord(transactionRecord)
         dbAccess.writeTransactionRecord(transactionRecord2)
@@ -193,7 +195,7 @@ class DBAccessIntegrationTest {
         val transactionId = randomId()
         val transactionRecordEntry = TransactionRecordEntry(transactionId)
 
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
         dbAccess.writeTransactionRecord(transactionRecordEntry)
 
         val nonCommittedResult = query(
@@ -215,7 +217,7 @@ class DBAccessIntegrationTest {
     @Test
     fun `DBWriter writes committed offsets`() {
         val timestamp = Instant.parse("2022-01-01T00:00:00.00Z")
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         val topic = randomId()
 
@@ -245,7 +247,7 @@ class DBAccessIntegrationTest {
 
     @Test
     fun `DBWriter can create new topics and return the correct topics`() {
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
         val newTopic = randomId()
         dbAccess.createTopic(newTopic, 10)
 
@@ -260,7 +262,7 @@ class DBAccessIntegrationTest {
     @Test
     fun `getMaxOffsetsPerTopic returns the correct map`() {
         val timestamp = Instant.parse("2022-01-01T00:00:00.00Z")
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         val topic = randomId()
         val topic2 = randomId()
@@ -308,7 +310,7 @@ class DBAccessIntegrationTest {
     @Test
     fun `DbAccess returns correct max and min committed offsets`() {
         val timestamp = Instant.parse("2022-01-01T00:00:00.00Z")
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         val topic = randomId()
         val group1 = randomId()
@@ -344,7 +346,7 @@ class DBAccessIntegrationTest {
     @Test
     fun `DBAccess correctly returns earliest and latest record offsets`() {
         val timestamp = Instant.parse("2022-01-01T00:00:00.00Z")
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         val topic = randomId()
 
@@ -393,7 +395,7 @@ class DBAccessIntegrationTest {
     @Test
     fun `DBAccess returns the correct set of topic partitions`() {
         val topic = randomId()
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
 
         dbAccess.createTopic(topic, 4)
 
@@ -409,7 +411,7 @@ class DBAccessIntegrationTest {
 
     @Test
     fun `DBAccess auto creates new topic partitions`() {
-        val dbAccess = DBAccess(emf)
+        val dbAccess = DBAccess(emf, config)
         val topic = randomId()
         val expectedResult = setOf(
             CordaTopicPartition(topic, 0),

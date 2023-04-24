@@ -34,14 +34,14 @@ class DBCordaProducerBuilderImpl @Activate constructor(
     private var writeOffsets: WriteOffsets? = null
 
     @Synchronized
-    fun getWriteOffsets(resolvedConfig: ResolvedProducerConfig): WriteOffsets {
+    fun getWriteOffsets(resolvedConfig: ResolvedProducerConfig, messageBusConfig: SmartConfig): WriteOffsets {
         if (writeOffsets == null) {
             val emf = entityManagerFactoryHolder.getEmf(
                 resolvedConfig.jdbcUrl,
                 resolvedConfig.jdbcUser,
                 resolvedConfig.jdbcPass
             )
-            writeOffsets = WriteOffsets(DBAccess(emf))
+            writeOffsets = WriteOffsets(DBAccess(emf, messageBusConfig))
         }
         return writeOffsets ?: throw CordaMessageAPIFatalException("Write Offsets member should never be null.")
     }
@@ -59,15 +59,15 @@ class DBCordaProducerBuilderImpl @Activate constructor(
         return if (isTransactional) {
             CordaTransactionalDBProducerImpl(
                 CordaDBAvroSerializerImpl(avroSchemaRegistry),
-                DBAccess(emf),
-                getWriteOffsets(resolvedConfig),
+                DBAccess(emf, messageBusConfig),
+                getWriteOffsets(resolvedConfig, messageBusConfig),
                 MessageHeaderSerializerImpl()
             )
         } else {
             CordaAtomicDBProducerImpl(
                 CordaDBAvroSerializerImpl(avroSchemaRegistry),
-                DBAccess(emf),
-                getWriteOffsets(resolvedConfig),
+                DBAccess(emf, messageBusConfig),
+                getWriteOffsets(resolvedConfig, messageBusConfig),
                 MessageHeaderSerializerImpl()
             )
         }

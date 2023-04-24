@@ -54,7 +54,7 @@ class DBCordaConsumerBuilderImpl @Activate constructor(
 
         return DBCordaConsumerImpl(
             resolvedConfig,
-            DBAccess(emf),
+            DBAccess(emf, messageBusConfig),
             consumerGroup,
             CordaDBAvroDeserializerImpl(avroSchemaRegistry, onSerializationError, kClazz),
             CordaDBAvroDeserializerImpl(avroSchemaRegistry, onSerializationError, vClazz),

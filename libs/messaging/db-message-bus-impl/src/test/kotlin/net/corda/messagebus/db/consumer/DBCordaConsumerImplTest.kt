@@ -1,6 +1,7 @@
 package net.corda.messagebus.db.consumer
 
 import net.corda.data.CordaAvroDeserializer
+import net.corda.libs.configuration.SmartConfigImpl
 import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.api.consumer.CordaConsumer
 import net.corda.messagebus.api.consumer.CordaConsumerRecord
@@ -28,6 +29,7 @@ import java.time.Instant
 internal class DBCordaConsumerImplTest {
 
     companion object {
+        private val config = SmartConfigImpl.empty()
         private const val topic = "topic"
         private val defaultConfig = ResolvedConsumerConfig(
             "group",
@@ -36,7 +38,8 @@ internal class DBCordaConsumerImplTest {
             CordaOffsetResetStrategy.EARLIEST,
             null,
             "",
-            ""
+            "",
+            config
         )
 
         private val serializedKey = "key".toByteArray()

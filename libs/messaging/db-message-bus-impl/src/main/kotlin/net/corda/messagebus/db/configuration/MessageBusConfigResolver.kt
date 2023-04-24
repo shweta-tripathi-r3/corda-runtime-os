@@ -122,7 +122,8 @@ internal class MessageBusConfigResolver(private val smartConfigFactory: SmartCon
             CordaOffsetResetStrategy.valueOf(dbProperties.getString(AUTO_OFFSET_RESET).uppercase()),
             jdbcProperties.jdbcUrl,
             jdbcProperties.username,
-            jdbcProperties.password
+            jdbcProperties.password,
+            messageBusConfig
         )
     }
 

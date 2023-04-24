@@ -1,5 +1,6 @@
 package net.corda.messagebus.db.persistence
 
+import net.corda.libs.configuration.SmartConfig
 import net.corda.messagebus.api.CordaTopicPartition
 import net.corda.messagebus.db.datamodel.CommittedOffsetEntryKey
 import net.corda.messagebus.db.datamodel.CommittedPositionEntry
@@ -9,6 +10,7 @@ import net.corda.messagebus.db.datamodel.TransactionRecordEntry
 import net.corda.messagebus.db.datamodel.TransactionState
 import net.corda.messaging.api.exception.CordaMessageAPIFatalException
 import net.corda.orm.utils.transaction
+import net.corda.schema.configuration.MessagingConfig
 import net.corda.utilities.debug
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -25,10 +27,12 @@ import javax.persistence.Tuple
  * Class for DB reads and writes.  Handles the query execution.
  *
  * @param entityManagerFactory Provides the underlying DB connection
+ * @param busConfig contains the configuration of the message bus
  */
 @Suppress("TooManyFunctions")
 class DBAccess(
     private val entityManagerFactory: EntityManagerFactory,
+    private val busConfig: SmartConfig
 ) {
     // At the moment it's not easy to create partitions, so default value increased to 3 until tooling is available
     // (There are multiple consumers using the same group for some topics and some stay idle if there is only 1 partition)
@@ -37,7 +41,8 @@ class DBAccess(
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
-        internal val ATOMIC_TRANSACTION = TransactionRecordEntry("Atomic Transaction-${UUID.randomUUID()}", TransactionState.COMMITTED)
+        internal val ATOMIC_TRANSACTION =
+            TransactionRecordEntry("Atomic Transaction-${UUID.randomUUID()}", TransactionState.COMMITTED)
     }
 
     fun close() {
@@ -251,20 +256,35 @@ class DBAccess(
             }
         }
     }
+
+    fun isPostgres(): Boolean {
+        val jdbcUrl =
+            if (busConfig.hasPath(MessagingConfig.Bus.DB_JDBC_URL)) busConfig.getString(MessagingConfig.Bus.DB_JDBC_URL) else null
+        return jdbcUrl?.contains("jdbc:postgresql") == true
+    }
+
     /**
      * Obtain an instance of a Postgres advisory lock on [id]
      *
-     * Returns boolean value 'true' if a lock instance has been obtained, otherwise returns false
+     * @return boolean value 'true' if a lock instance has been obtained, otherwise returns false
      * @param id the number which you would like to obtain a lock instance on
+     *
+     *
+     *
      */
     fun getAdvisoryLock(id: Int): Boolean {
-        log.debug { "Getting the postgres advisory lock for Int: $id" }
-        val result = executeWithErrorHandling("get lock", allowDuplicate = true) { entityManager ->
-            entityManager.createNativeQuery("SELECT pg_try_advisory_lock(:Id);")
-                .setParameter("Id", id)
-                .singleResult as Boolean
+        val result: Boolean
+        if (isPostgres()) {
+            log.debug { "Getting the postgres advisory lock for Int: $id" }
+            result = executeWithErrorHandling("get lock", allowDuplicate = true) { entityManager ->
+                entityManager.createNativeQuery("SELECT pg_try_advisory_lock(:Id);")
+                    .setParameter("Id", id)
+                    .singleResult as Boolean
+            }
+            log.debug { "Value returned by getAdvisoryLock: $result" }
+        } else {
+            result = true
         }
-        log.debug { "Value returned by getAdvisoryLock: $result" }
         return result
     }
 
@@ -273,14 +293,16 @@ class DBAccess(
      *
      * @param id the number which you would like to release a lock instance from
      */
-    fun releaseAdvisoryLock(id: Int){
-        log.debug { "Releasing the postgres advisory lock for Int: $id" }
-        val result = executeWithErrorHandling("release lock", allowDuplicate = true) { entityManager ->
-            entityManager.createNativeQuery("SELECT pg_advisory_unlock(:Id);")
-                .setParameter("Id", id)
-                .singleResult as Boolean
+    fun releaseAdvisoryLock(id: Int) {
+        if (isPostgres()) {
+            log.debug { "Releasing the postgres advisory lock for Int: $id" }
+            val result = executeWithErrorHandling("release lock", allowDuplicate = true) { entityManager ->
+                entityManager.createNativeQuery("SELECT pg_advisory_unlock(:Id);")
+                    .setParameter("Id", id)
+                    .singleResult as Boolean
+            }
+            log.debug { "Value returned by releaseAdvisoryLock: $result" }
         }
-        log.debug { "Value returned by releaseAdvisoryLock: $result" }
     }
     /**
      * Read records from the given [topicPartition].  Records will be returned which have an offset

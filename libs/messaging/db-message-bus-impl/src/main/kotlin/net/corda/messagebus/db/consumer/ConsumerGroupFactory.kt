@@ -16,6 +16,6 @@ class ConsumerGroupFactory(
             config.jdbcUser,
             config.jdbcPass
         )
-        ConsumerGroup(groupId, DBAccess(emf))
+        ConsumerGroup(groupId, DBAccess(emf, config.messageBusConfig))
     }
 }
