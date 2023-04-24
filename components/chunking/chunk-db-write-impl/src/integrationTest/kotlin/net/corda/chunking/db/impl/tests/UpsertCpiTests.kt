@@ -1,6 +1,12 @@
 package net.corda.chunking.db.impl.tests
 
 import com.google.common.jimfs.Jimfs
+import java.nio.file.FileSystem
+import java.nio.file.Files
+import java.nio.file.Path
+import java.time.Instant
+import java.util.Random
+import java.util.UUID
 import net.corda.chunking.datamodel.ChunkingEntities
 import net.corda.chunking.db.impl.persistence.database.DatabaseCpiPersistence
 import net.corda.crypto.core.SecureHashImpl
@@ -9,8 +15,7 @@ import net.corda.db.admin.impl.LiquibaseSchemaMigratorImpl
 import net.corda.db.schema.DbSchema
 import net.corda.db.testkit.DbUtils
 import net.corda.libs.cpi.datamodel.CpiEntities
-import net.corda.libs.cpi.datamodel.entities.CpiMetadataEntity
-import net.corda.libs.cpi.datamodel.entities.CpiMetadataEntityKey
+import net.corda.libs.cpi.datamodel.repository.CpiMetadataRepositoryImpl
 import net.corda.libs.cpiupload.DuplicateCpiUploadException
 import net.corda.libs.cpiupload.ValidationException
 import net.corda.libs.packaging.Cpi
@@ -24,6 +29,7 @@ import net.corda.libs.packaging.core.CpkIdentifier
 import net.corda.libs.packaging.core.CpkManifest
 import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.libs.packaging.core.CpkType
+import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import net.corda.membership.network.writer.NetworkInfoWriter
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
 import net.corda.orm.utils.transaction
@@ -39,12 +45,6 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.nio.file.FileSystem
-import java.nio.file.Files
-import java.nio.file.Path
-import java.time.Instant
-import java.util.Random
-import java.util.UUID
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UpsertCpiTests {
@@ -63,6 +63,8 @@ class UpsertCpiTests {
     private val cpiSignerSummaryHash = SecureHashImpl("SHA-256", "signerSummaryHash".toByteArray())
 
     private val networkInfoWriter: NetworkInfoWriter = mock()
+
+    private val cpiMetadataRepository = CpiMetadataRepositoryImpl()
 
     init {
         val dbChange = ClassloaderChangeLog(
@@ -96,7 +98,7 @@ class UpsertCpiTests {
     @AfterEach
     fun afterEach() = fs.close()
 
-    private val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter)
+    private val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository)
 
     private fun String.writeToPath(): Path {
         val path = fs.getPath(UUID.randomUUID().toString())
@@ -178,15 +180,9 @@ class UpsertCpiTests {
         return cpi
     }
 
-    private fun findCpiMetadataEntity(cpi: Cpi): CpiMetadataEntity? {
-        val entity = entityManagerFactory.createEntityManager().transaction {
-            it.find(
-                CpiMetadataEntity::class.java, CpiMetadataEntityKey(
-                    cpi.metadata.cpiId.name,
-                    cpi.metadata.cpiId.version,
-                    cpi.metadata.cpiId.signerSummaryHash.toString(),
-                )
-            )
+    private fun findCpiMetadata(cpi: Cpi): CpiMetadata? {
+        val entity = entityManagerFactory.createEntityManager().transaction { em ->
+            cpiMetadataRepository.findById(em, cpi.metadata.cpiId)
         }
         return entity
     }
@@ -198,21 +194,19 @@ class UpsertCpiTests {
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
 
-        val entity = findCpiMetadataEntity(cpi)
+        val cpiMetadata = findCpiMetadata(cpi)
 
-        assertThat(entity).isNotNull
-        assertThat(entity!!.name).isEqualTo(cpi.metadata.cpiId.name)
-        assertThat(entity.version).isEqualTo(cpi.metadata.cpiId.version)
-        assertThat(entity.groupId).isEqualTo(groupId)
+        assertThat(cpiMetadata).isNotNull
+        assertThat(cpiMetadata!!.cpiId.name).isEqualTo(cpi.metadata.cpiId.name)
+        assertThat(cpiMetadata.cpiId.version).isEqualTo(cpi.metadata.cpiId.version)
+        assertThat(GroupPolicyParser.groupIdFromJson(cpiMetadata.groupPolicy!!)).isEqualTo(groupId)
     }
 
     @Test
     fun `can insert a cpi into an empty database`() {
         assertDoesNotThrow {
             cpiPersistence.validateCanUpsertCpi(
-                "anything",
-                cpiSignerSummaryHash,
-                "any version",
+                CpiIdentifier("anything", "any version", cpiSignerSummaryHash),
                 "any group",
                 forceUpload = false,
                 requestId = "ID"
@@ -224,9 +218,7 @@ class UpsertCpiTests {
     fun `cannot force update a cpi ithat doesn't exist`() {
         assertThrows<ValidationException> {
             cpiPersistence.validateCanUpsertCpi(
-                "anything" + UUID.randomUUID().toString(),
-                cpiSignerSummaryHash,
-                "any version",
+                CpiIdentifier("anything" + UUID.randomUUID().toString(), "any version", cpiSignerSummaryHash),
                 "any group",
                 forceUpload = true,
                 requestId = "ID"
@@ -240,14 +232,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertDoesNotThrow {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId,
                 groupId,
                 forceUpload = true,
                 requestId = "ID"
@@ -261,14 +251,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertThrows<ValidationException> {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId,
                 groupId + "_2",
                 forceUpload = true,
                 requestId = "ID"
@@ -282,14 +270,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertThrows<DuplicateCpiUploadException> {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId,
                 groupId + "_2",
                 forceUpload = false,
                 requestId = "ID"
@@ -303,14 +289,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertDoesNotThrow {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name + UUID.randomUUID().toString(),
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId.copy(name = cpi.metadata.cpiId.name + UUID.randomUUID().toString()),
                 groupId,
                 forceUpload = false,
                 requestId = "ID"
@@ -324,14 +308,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertDoesNotThrow {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version + UUID.randomUUID().toString(),
+                cpi.metadata.cpiId.copy(version = cpi.metadata.cpiId.version + UUID.randomUUID().toString()),
                 groupId,
                 forceUpload = false,
                 requestId = "ID"
@@ -345,14 +327,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertDoesNotThrow {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                newRandomSecureHash(),
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId.copy(signerSummaryHash = newRandomSecureHash()),
                 groupId,
                 forceUpload = false,
                 requestId = "ID"
@@ -366,14 +346,12 @@ class UpsertCpiTests {
         val name = "test"
         val version = "1.0"
         val cpi = persistCpi(name, version, groupId)
-        val entity = findCpiMetadataEntity(cpi)
-        assertThat(entity).isNotNull
+        val cpiMetadata = findCpiMetadata(cpi)
+        assertThat(cpiMetadata).isNotNull
 
         assertThrows<DuplicateCpiUploadException> {
             cpiPersistence.validateCanUpsertCpi(
-                cpi.metadata.cpiId.name,
-                cpi.metadata.cpiId.signerSummaryHash,
-                cpi.metadata.cpiId.version,
+                cpi.metadata.cpiId,
                 groupId,
                 forceUpload = false,
                 requestId = "ID"
