@@ -21,6 +21,7 @@ import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import net.corda.membership.lib.schema.validation.MembershipSchemaValidationException
 import net.corda.membership.lib.schema.validation.MembershipSchemaValidator
 import net.corda.schema.membership.MembershipSchema.GroupPolicySchema
+import net.corda.utilities.time.Clock
 import net.corda.v5.base.versioning.Version
 import net.corda.v5.crypto.SecureHash
 import org.slf4j.LoggerFactory
@@ -37,6 +38,7 @@ class CpiValidatorImpl(
     private val cpiCacheDir: Path,
     private val cpiPartsDir: Path,
     certificatesService: CertificatesService,
+    private val clock: Clock,
 ) : CpiValidator {
     companion object {
         private val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
@@ -105,7 +107,7 @@ class CpiValidatorImpl(
 
         publisher.update(requestId, "Notifying flow workers")
 
-        cpiInfoWriteService.put(cpiMetadata.cpiId, cpiMetadata)
+        cpiInfoWriteService.put(cpiMetadata.cpiId, cpiMetadata.copy(timestamp = clock.instant()))
 
         return fileInfo.checksum
     }
