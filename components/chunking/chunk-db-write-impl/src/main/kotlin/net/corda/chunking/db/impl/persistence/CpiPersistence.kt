@@ -65,7 +65,7 @@ interface CpiPersistence {
      *
      *  @return null if not found
      */
-     fun getGroupId(cpiId: CpiIdentifier): String?
+    fun getGroupId(cpiId: CpiIdentifier): String?
 
     /**
      * Can we insert (or update) this CPI into the database given its name and groupId?
