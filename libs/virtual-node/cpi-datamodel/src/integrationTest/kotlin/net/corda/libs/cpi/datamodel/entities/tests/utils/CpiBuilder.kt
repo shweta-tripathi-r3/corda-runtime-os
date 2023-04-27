@@ -1,18 +1,20 @@
-package net.corda.test.util.dsl.entities.cpx
+package net.corda.libs.cpi.datamodel.entities.tests.utils
 
+import java.util.UUID
 import net.corda.crypto.core.SecureHashImpl
 import net.corda.libs.cpi.datamodel.entities.CpiMetadataEntity
 import net.corda.libs.cpi.datamodel.entities.CpkMetadataEntity
+import net.corda.test.util.dsl.entities.cpx.CpiCpkBuilder
+import net.corda.test.util.dsl.entities.cpx.CpkMetadataBuilder
 import net.corda.v5.crypto.SecureHash
-import java.util.UUID
 
-fun cpi(init: CpiBuilder.() -> Unit): CpiMetadataEntity {
+internal fun cpi(init: CpiBuilder.() -> Unit): CpiMetadataEntity {
     val cpi = CpiBuilder()
     init(cpi)
     return cpi.build()
 }
 
-class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
+internal class CpiBuilder(private val randomId: UUID = UUID.randomUUID()) {
     private var name: String? = null
     private var version: String? = null
     private var signerSummaryHash: SecureHash? = null
