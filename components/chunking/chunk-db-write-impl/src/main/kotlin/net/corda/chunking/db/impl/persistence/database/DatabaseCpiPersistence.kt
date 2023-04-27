@@ -104,7 +104,6 @@ class DatabaseCpiPersistence(
     }
 
     private fun createCpiCpkRelationships(em: EntityManager, cpi: Cpi): Set<CpiCpkEntity> {
-        // Todo: Move the query below elsewhere
         // there may be some CPKs that already exist. We should load these first, then create CpiCpk associations for them (if necessary).
         val foundCpks = em.createQuery(
             "FROM ${CpkMetadataEntity::class.java.simpleName} cpk " +

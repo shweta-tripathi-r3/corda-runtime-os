@@ -129,7 +129,12 @@ class ChunkDbWriterFactoryImpl(
         cpiInfoWriteService: CpiInfoWriteService
     ): Pair<Publisher, Subscription<RequestId, Chunk>> {
         val chunkPersistence = DatabaseChunkPersistence(entityManagerFactory)
-        val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, CpiMetadataRepositoryImpl(), GroupPolicyParser.Companion)
+        val cpiPersistence = DatabaseCpiPersistence(
+            entityManagerFactory,
+            networkInfoWriter,
+            CpiMetadataRepositoryImpl(),
+            GroupPolicyParser.Companion
+        )
         val publisher = createPublisher(messagingConfig)
         val statusPublisher = StatusPublisher(statusTopic, publisher)
         val cpiCacheDir = tempPathProvider.getOrCreate(bootConfig, CPI_CACHE_DIR)
