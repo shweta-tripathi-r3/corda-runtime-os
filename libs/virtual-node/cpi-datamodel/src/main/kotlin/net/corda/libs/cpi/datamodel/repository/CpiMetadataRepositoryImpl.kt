@@ -56,7 +56,6 @@ class CpiMetadataRepositoryImpl: CpiMetadataRepository {
             timestamp = insertTimestamp!!
         )
 
-    // Todo: This should be moved elsewhere
     private fun CpkMetadataEntity.toDto() =
         CpkMetadata.fromJsonAvro(serializedMetadata)
 }
