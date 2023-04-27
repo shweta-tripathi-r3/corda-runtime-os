@@ -9,7 +9,7 @@ import net.corda.libs.cpiupload.DuplicateCpiUploadException
 import net.corda.libs.cpiupload.ValidationException
 import net.corda.libs.packaging.core.CpiIdentifier
 import net.corda.libs.packaging.core.CpiMetadata
-import net.corda.membership.lib.grouppolicy.GroupPolicyConstants
+import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -31,10 +31,10 @@ class UpsertValidationTest {
             }
         }
 
-        fun createCpiMetadataRepo(cpiId: CpiIdentifier, groupPolicy: String): CpiMetadataRepository {
+        fun createCpiMetadataRepo(cpiId: CpiIdentifier): CpiMetadataRepository {
             val cpiMetadataMock = mock<CpiMetadata> {
                 on { it.cpiId }.doReturn(cpiId)
-                on { it.groupPolicy }.doReturn(groupPolicy)
+                on { it.groupPolicy }.doReturn("{}")
             }
 
             val cpiMetadataRepoMock = mock<CpiMetadataRepository> {
@@ -52,24 +52,19 @@ class UpsertValidationTest {
             return cpiMetadataRepoMock
         }
 
-        fun genGroupPolicy(groupId: String): String {
-            return """
-                {
-                    "${GroupPolicyConstants.PolicyKeys.Root.GROUP_ID}": "$groupId",
-                    "${GroupPolicyConstants.PolicyKeys.Root.PROTOCOL_PARAMETERS}": {
-                        "${GroupPolicyConstants.PolicyKeys.ProtocolParameters.STATIC_NETWORK}": {}
-                    }
-                }
-                """.trimIndent()
-        }
+        fun createGroupPolicyParser(groupId: String) =
+            mock<GroupPolicyParser.Companion> {
+                on { groupIdFromJson(any()) } doReturn (groupId)
+            }
     }
 
     @Test
     fun `succeeds with unique cpi`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
+        val groupPolicyParser = createGroupPolicyParser(groupId)
 
-        val p = DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), mock())
+        val p = DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), mock(), groupPolicyParser)
 
         assertDoesNotThrow {
             p.validateCanUpsertCpi(cpiId, groupId, false, "id")
@@ -80,10 +75,10 @@ class UpsertValidationTest {
     fun `succeeds force upload when version exact`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
-        val groupPolicy = genGroupPolicy(groupId)
+        val groupPolicyParser = createGroupPolicyParser(groupId)
 
         val p =
-            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId, groupPolicy))
+            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId), groupPolicyParser)
 
         assertDoesNotThrow {
             p.validateCanUpsertCpi(cpiId, groupId, true, "id")
@@ -94,10 +89,10 @@ class UpsertValidationTest {
     fun `fails force upload when version correct but groupId different to previous`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
-        val groupPolicy = genGroupPolicy("foo")
+        val groupPolicyParser = createGroupPolicyParser("foo")
 
         val p =
-            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId, groupPolicy))
+            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId), groupPolicyParser)
 
         assertThrows<ValidationException> {
             p.validateCanUpsertCpi(cpiId, groupId, true, "id")
@@ -108,13 +103,14 @@ class UpsertValidationTest {
     fun `fails force upload when version is different`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
-        val groupPolicy = genGroupPolicy(groupId)
+        val groupPolicyParser = createGroupPolicyParser(groupId)
 
         val p =
             DatabaseCpiPersistence(
                 createMockEntityManagerFactory(),
                 mock(),
-                createCpiMetadataRepo(cpiId.copy(version = "2.0"), groupPolicy)
+                createCpiMetadataRepo(cpiId.copy(version = "2.0")),
+                groupPolicyParser
             )
 
         assertThrows<ValidationException> {
@@ -126,13 +122,14 @@ class UpsertValidationTest {
     fun `succeeds upload when version different`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
-        val groupPolicy = genGroupPolicy(groupId)
+        val groupPolicyParser = createGroupPolicyParser(groupId)
 
         val p =
             DatabaseCpiPersistence(
                 createMockEntityManagerFactory(),
                 mock(),
-                createCpiMetadataRepo(cpiId.copy(version = "2.0"), groupPolicy)
+                createCpiMetadataRepo(cpiId.copy(version = "2.0")),
+                groupPolicyParser
             )
 
         assertDoesNotThrow {
@@ -144,10 +141,10 @@ class UpsertValidationTest {
     fun `fails upload when version is same`() {
         val cpiId = CpiIdentifier("aaa", "1.0", SecureHashImpl("SHA-256", "1234567890".toByteArray()))
         val groupId = "ABC"
-        val groupPolicy = genGroupPolicy(groupId)
+        val groupPolicyParser = createGroupPolicyParser(groupId)
 
         val p =
-            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId, groupPolicy))
+            DatabaseCpiPersistence(createMockEntityManagerFactory(), mock(), createCpiMetadataRepo(cpiId), groupPolicyParser)
 
         assertThrows<DuplicateCpiUploadException> {
             p.validateCanUpsertCpi(cpiId, groupId, false, "id")

@@ -38,7 +38,8 @@ import org.slf4j.LoggerFactory
 class DatabaseCpiPersistence(
     private val entityManagerFactory: EntityManagerFactory,
     private val networkInfoWriter: NetworkInfoWriter,
-    private val cpiMetadataRepository: CpiMetadataRepository
+    private val cpiMetadataRepository: CpiMetadataRepository,
+    private val groupPolicyParser: GroupPolicyParser.Companion
 ) : CpiPersistence {
 
     private companion object {
@@ -271,7 +272,7 @@ class DatabaseCpiPersistence(
         entityManagerFactory.createEntityManager().transaction { em ->
             val groupPolicy = getCpiMetadata(em, cpiId)?.groupPolicy
                 ?: return null
-            return GroupPolicyParser.groupIdFromJson(groupPolicy)
+            return groupPolicyParser.groupIdFromJson(groupPolicy)
         }
     }
 
@@ -348,7 +349,7 @@ class DatabaseCpiPersistence(
                 throw ValidationException("No instance of same CPI with previous version found", requestId)
             }
 
-            if (GroupPolicyParser.groupIdFromJson(sameCPis.first().groupPolicy!!) != groupId) {
+            if (groupPolicyParser.groupIdFromJson(sameCPis.first().groupPolicy!!) != groupId) {
                 throw ValidationException("Cannot force update a CPI with a different group ID", requestId)
             }
             // We can force-update this CPI because we found one with the same version
@@ -362,7 +363,7 @@ class DatabaseCpiPersistence(
 
         // NOTE: we may do additional validation here, such as validate that the group ID is not changing during a
         //  regular update. For now, just logging this as un-usual.
-        if (sameCPis.any { GroupPolicyParser.groupIdFromJson(it.groupPolicy!!) != groupId }) {
+        if (sameCPis.any { groupPolicyParser.groupIdFromJson(it.groupPolicy!!) != groupId }) {
             log.info(
                 "CPI upload $requestId contains a CPI with the same name (${cpiId.name}) and " +
                         "signer (${cpiId.signerSummaryHash}) as an existing CPI, but a different Group ID."
