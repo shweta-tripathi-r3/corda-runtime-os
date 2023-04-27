@@ -114,7 +114,7 @@ internal class DatabaseCpiPersistenceTest {
         cordaAvroSerializationFactory
     )
     private val cpiMetadataRepository = CpiMetadataRepositoryImpl()
-    private val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository)
+    private val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository, mock())
     private val mockCpkContent = """
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin id mauris ut tortor 
             condimentum porttitor. Praesent commodo, ipsum vitae malesuada placerat, nisl sem 
