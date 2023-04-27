@@ -29,7 +29,6 @@ import net.corda.libs.packaging.core.CpkIdentifier
 import net.corda.libs.packaging.core.CpkManifest
 import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.libs.packaging.core.CpkType
-import net.corda.membership.lib.grouppolicy.GroupPolicyConstants
 import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import net.corda.membership.network.writer.NetworkInfoWriter
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
@@ -44,6 +43,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -99,7 +100,8 @@ class UpsertCpiTests {
     @AfterEach
     fun afterEach() = fs.close()
 
-    private val cpiPersistence = DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository)
+    private val cpiPersistence =
+        DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository, mock())
 
     private fun String.writeToPath(): Path {
         val path = fs.getPath(UUID.randomUUID().toString())
@@ -150,10 +152,10 @@ class UpsertCpiTests {
         whenever(cpk.metadata).thenReturn(metadata)
     }
 
-    private fun mockCpiWithId(cpks: Collection<Cpk>, cpiId: CpiIdentifier, groupId: String): Cpi {
+    private fun mockCpiWithId(cpks: Collection<Cpk>, cpiId: CpiIdentifier): Cpi {
         val metadata = mock<CpiMetadata>().also {
             whenever(it.cpiId).thenReturn(cpiId)
-            whenever(it.groupPolicy).thenReturn(genGroupPolicy(groupId))
+            whenever(it.groupPolicy).thenReturn("{}")
             whenever(it.fileChecksum).thenReturn(newRandomSecureHash())
         }
 
@@ -165,23 +167,20 @@ class UpsertCpiTests {
         return cpi
     }
 
-    private fun genGroupPolicy(groupId: String): String {
-        return """
-                {
-                    "${GroupPolicyConstants.PolicyKeys.Root.GROUP_ID}": "$groupId"
-                }
-                """.trimIndent()
-    }
-
     /**
      * Persist a sort-of random Cpi with the given name, version and group id.
      *
      * @return the Cpi we persisted to the database.
      */
-    private fun persistCpi(name: String, version: String, groupId: String): Cpi {
+    private fun persistCpi(
+        name: String,
+        version: String,
+        groupId: String,
+        cpiPersistence: DatabaseCpiPersistence = this.cpiPersistence
+    ): Cpi {
         val cpks = listOf(mockCpk("${UUID.randomUUID()}.cpk", newRandomSecureHash()))
         val id = CpiIdentifier(name, version, newRandomSecureHash())
-        val cpi = mockCpiWithId(cpks, id, "abcdef")
+        val cpi = mockCpiWithId(cpks, id)
 
         cpiPersistence.persistMetadataAndCpks(
             cpi, "test.cpi", newRandomSecureHash(), UUID.randomUUID().toString(), groupId, emptyList()
@@ -240,7 +239,13 @@ class UpsertCpiTests {
         val groupId = "abcdef"
         val name = "test"
         val version = "1.0"
-        val cpi = persistCpi(name, version, groupId)
+        val groupPolicyParser = mock<GroupPolicyParser.Companion> {
+            on { groupIdFromJson(any()) } doReturn (groupId)
+        }
+        val cpiPersistence =
+            DatabaseCpiPersistence(entityManagerFactory, networkInfoWriter, cpiMetadataRepository, groupPolicyParser)
+
+        val cpi = persistCpi(name, version, groupId, cpiPersistence)
         val cpiMetadata = findCpiMetadata(cpi)
         assertThat(cpiMetadata).isNotNull
 
