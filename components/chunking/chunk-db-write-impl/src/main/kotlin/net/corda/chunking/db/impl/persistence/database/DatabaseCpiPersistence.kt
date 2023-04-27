@@ -207,20 +207,23 @@ class DatabaseCpiPersistence(
         // Perform update of CPI and store CPK along with its metadata
         entityManagerFactory.createEntityManager().transaction { em ->
             // We cannot delete old representation of CPI as there is FK constraint from `vnode_instance`
-            val existingMetadataEntity = requireNotNull(
+            val existingMetadata = requireNotNull(
                 getCpiMetadata(em, cpiId)
             ) {
                 "Cannot find CPI metadata for ${cpiId.name} v${cpiId.version}"
             }
 
-            val updatedMetadata = CpiMetadataEntity.create(
-                id = existingMetadataEntity.cpiId,
-                fileName = cpiFileName,
-                fileChecksum = cpiFileChecksum,
-                groupPolicy = existingMetadataEntity.groupPolicy!!,
-                groupId = groupId,
-                fileUploadRequestId = requestId,
-                cpks = createCpiCpkRelationships(em, cpi)
+            val updatedMetadata = CpiMetadataEntity(
+                existingMetadata.cpiId.name,
+                existingMetadata.cpiId.version,
+                existingMetadata.cpiId.signerSummaryHash.toString(),
+                cpiFileName,
+                cpiFileChecksum.toString(),
+                existingMetadata.groupPolicy!!,
+                groupId,
+                requestId,
+                createCpiCpkRelationships(em, cpi),
+                entityVersion = existingMetadata.version
             )
 
             val cpiMetadataEntity = em.merge(updatedMetadata)
