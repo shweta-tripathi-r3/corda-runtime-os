@@ -282,7 +282,6 @@ class VirtualNodeRepositoryTest {
         )
 
         entityManagerFactory.createEntityManager().transaction { em ->
-            //cpiMetadataRepository = CpiMetadataRepositoryImpl()
             em.persist(VNodeTestUtils.newCpiMetadataEntity(testName, "v2", signerSummaryHash))
         }
 
