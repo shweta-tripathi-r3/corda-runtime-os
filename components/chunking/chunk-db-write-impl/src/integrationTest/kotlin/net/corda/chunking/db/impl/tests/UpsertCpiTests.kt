@@ -29,6 +29,7 @@ import net.corda.libs.packaging.core.CpkIdentifier
 import net.corda.libs.packaging.core.CpkManifest
 import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.libs.packaging.core.CpkType
+import net.corda.membership.lib.grouppolicy.GroupPolicyConstants
 import net.corda.membership.lib.grouppolicy.GroupPolicyParser
 import net.corda.membership.network.writer.NetworkInfoWriter
 import net.corda.orm.impl.EntityManagerFactoryFactoryImpl
@@ -152,10 +153,10 @@ class UpsertCpiTests {
         whenever(cpk.metadata).thenReturn(metadata)
     }
 
-    private fun mockCpiWithId(cpks: Collection<Cpk>, cpiId: CpiIdentifier): Cpi {
+    private fun mockCpiWithId(cpks: Collection<Cpk>, cpiId: CpiIdentifier, groupId: String): Cpi {
         val metadata = mock<CpiMetadata>().also {
             whenever(it.cpiId).thenReturn(cpiId)
-            whenever(it.groupPolicy).thenReturn("{}")
+            whenever(it.groupPolicy).thenReturn("""{"${GroupPolicyConstants.PolicyKeys.Root.GROUP_ID}": "$groupId"}""")
             whenever(it.fileChecksum).thenReturn(newRandomSecureHash())
         }
 
@@ -180,7 +181,7 @@ class UpsertCpiTests {
     ): Cpi {
         val cpks = listOf(mockCpk("${UUID.randomUUID()}.cpk", newRandomSecureHash()))
         val id = CpiIdentifier(name, version, newRandomSecureHash())
-        val cpi = mockCpiWithId(cpks, id)
+        val cpi = mockCpiWithId(cpks, id, groupId)
 
         cpiPersistence.persistMetadataAndCpks(
             cpi, "test.cpi", newRandomSecureHash(), UUID.randomUUID().toString(), groupId, emptyList()
