@@ -409,7 +409,7 @@ internal class DatabaseCpiPersistenceTest {
 
         assertThat(loadedCpi.entityVersion).isEqualTo(1)
         assertThat(loadedCpi.cpks.size).isEqualTo(1)
-        assertThat(loadedCpi.cpks.first().entityVersion).isEqualTo(0) // Todo: Testing the entity version should be done elsewhere otherwise it will be difficult to replace the CpkMetadataEntity for the CpkMetadata. The serialized field prevents us to add the version field to the CpkMetadata class because the value changes whenever a record is updated
+        assertThat(loadedCpi.cpks.first().entityVersion).isEqualTo(0) // Todos: Testing the entity version should be done elsewhere otherwise it will be difficult to replace the CpkMetadataEntity for the CpkMetadata. The serialized field prevents us to add the version field to the CpkMetadata class because the value changes whenever a record is updated
 
         cpiPersistence.updateMetadataAndCpksWithDefaults(
             cpi,
