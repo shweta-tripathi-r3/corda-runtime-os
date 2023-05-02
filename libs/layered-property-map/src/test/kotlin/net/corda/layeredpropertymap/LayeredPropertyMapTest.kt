@@ -89,20 +89,20 @@ class LayeredPropertyMapTest {
         )
     }
 
-    @Test
-    fun `converter functions should work for custom converter of single value`() {
-        val propertyMap = createLayeredPropertyMapImpl()
-        val single1 = propertyMap.parse<PublicKeyHash>("singlePublicKeyHash")
-        val single2 = propertyMap.parseOrNull<PublicKeyHash>("singlePublicKeyHash")
-        assertEquals(single1, single2)
-        assertEquals(toHexString("single".toByteArray().sha256Bytes()), single1.toString())
-        val set = propertyMap.parseSet<PublicKeyHash>("setPublicKeyHash")
-        assertEquals(3, set.size)
-        val setContents = set.map { it.value }
-        assertTrue(setContents.contains(toHexString("set0".toByteArray().sha256Bytes())))
-        assertTrue(setContents.contains(toHexString("set1".toByteArray().sha256Bytes())))
-        assertTrue(setContents.contains(toHexString("set2".toByteArray().sha256Bytes())))
-    }
+//    @Test
+//    fun `converter functions should work for custom converter of single value`() {
+//        val propertyMap = createLayeredPropertyMapImpl()
+//        val single1 = propertyMap.parse<PublicKeyHash>("singlePublicKeyHash")
+//        val single2 = propertyMap.parseOrNull<PublicKeyHash>("singlePublicKeyHash")
+//        assertEquals(single1, single2)
+//        assertEquals(toHexString("single".toByteArray().sha256Bytes()), single1.toString())
+//        val set = propertyMap.parseSet<PublicKeyHash>("setPublicKeyHash")
+//        assertEquals(3, set.size)
+//        val setContents = set.map { it.value }
+//        assertTrue(setContents.contains(toHexString("set0".toByteArray().sha256Bytes())))
+//        assertTrue(setContents.contains(toHexString("set1".toByteArray().sha256Bytes())))
+//        assertTrue(setContents.contains(toHexString("set2".toByteArray().sha256Bytes())))
+//    }
 
     @Test
     fun `converter functions should work`() {

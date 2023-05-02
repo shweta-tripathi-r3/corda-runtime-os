@@ -13,6 +13,9 @@ ext {
 group 'net.corda.cli.deployment'
 
 dependencies {
+    implementation("software.amazon.awssdk:kms-jce-provider:1.0.0")
+    implementation("software.amazon.awssdk:kms-jce-util:1.0.0")
+
     compileOnly "net.corda.cli.host:api:$pluginHostVersion"
 
     implementation project(':libs:packaging:packaging-verify')
