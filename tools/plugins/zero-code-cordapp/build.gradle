@@ -1,0 +1,26 @@
+plugins{
+    id 'corda.cli-plugin-packager'
+    id 'org.jetbrains.kotlin.kapt' //To resolve :Could not find method kapt()
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+   // compileOnly "org.pf4j:pf4j:$pf4jVersion"
+    compileOnly "net.corda.cli.host:api:$pluginHostVersion"
+
+    kapt "org.pf4j:pf4j:$pf4jVersion"
+  //  kapt "info.picocli:picocli:$picocliVersion"
+
+    implementation "org.pf4j:pf4j:${pf4jVersion}"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
+
+    testCompileOnly "net.corda.cli.host:api:$pluginHostVersion"
+    testImplementation "org.pf4j:pf4j:$pf4jVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter:${junit5Version}"
+    testImplementation "com.github.stefanbirkner:system-lambda:1.2.1"
+}
+
+cliPlugin{
+    cliPluginClass = 'net.corda.cli.plugins.zerocode.ZeroCodePluginWrapper'
+    cliPluginDescription = 'An Zero Code CorDapp Generation Plugin'
+}
