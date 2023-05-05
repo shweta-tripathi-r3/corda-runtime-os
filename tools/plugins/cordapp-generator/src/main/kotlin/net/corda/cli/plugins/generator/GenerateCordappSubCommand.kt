@@ -6,8 +6,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import java.nio.file.Path
 import picocli.CommandLine
 
-@CommandLine.Command(name = "corDapp", description = ["Generates CorDapp structure"])
-class CordappPluginSubCommand : Runnable {
+@CommandLine.Command(name = "generate", description = ["Generates CorDapp structure"])
+class GenerateCordappSubCommand : Runnable {
 
     @CommandLine.Option(
         names = ["--file", "-f"],

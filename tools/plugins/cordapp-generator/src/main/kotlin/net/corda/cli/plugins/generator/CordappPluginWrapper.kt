@@ -1,7 +1,7 @@
 package net.corda.cli.plugins.generator
 
 import net.corda.cli.api.CordaCliPlugin
-import net.corda.cli.plugins.zerocode.CordappPluginSubCommand
+import net.corda.cli.plugins.zerocode.GenerateCordappSubCommand
 import org.pf4j.Extension
 import org.pf4j.Plugin
 import org.pf4j.PluginWrapper
@@ -24,9 +24,9 @@ class CordappPluginWrapper(wrapper: PluginWrapper?) : Plugin(wrapper) {
 
     @Extension
     @CommandLine.Command(
-        name = "zero-code",
+        name = "cordapp",
         mixinStandardHelpOptions = true,
-        subcommands = [CordappPluginSubCommand::class],
+        subcommands = [GenerateCordappSubCommand::class, ViewSubCommand::class],
         description = ["Plugin for auto-generating Cordapp"]
     )
     class ZeroCodePlugin : CordaCliPlugin

@@ -2,7 +2,7 @@ package net.corda.cli.plugins.generator
 
 import java.nio.file.Files
 import java.nio.file.Path
-import net.corda.cli.plugins.zerocode.CordappPluginSubCommand
+import net.corda.cli.plugins.zerocode.GenerateCordappSubCommand
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
@@ -12,7 +12,7 @@ class ZeroCodePluginTest {
 
     @Test
     fun `if file type is not JSON or YAML (YML), exception is thrown`() {
-        val app = CordappPluginSubCommand()
+        val app = GenerateCordappSubCommand()
         val filePath = Files.createFile(tempDir.resolve("src.txt"))
 //        tapSystemErrAndOutNormalized {
 //            CommandLine(app).execute("--file=$filePath")
