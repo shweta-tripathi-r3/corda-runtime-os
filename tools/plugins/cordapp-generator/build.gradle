@@ -1,0 +1,24 @@
+plugins {
+    id 'corda.cli-plugin-packager'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.kapt'
+}
+
+dependencies {
+
+    compileOnly "net.corda.cli.host:api:$pluginHostVersion"
+    implementation "org.pf4j:pf4j:${pf4jVersion}"
+    kapt "org.pf4j:pf4j:${pf4jVersion}"
+    //kapt "info.picocli:picocli:$picocliVersion"
+
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
+
+    testCompileOnly "net.corda.cli.host:api:$pluginHostVersion"
+    testImplementation "org.pf4j:pf4j:$pf4jVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter:${junit5Version}"
+    testImplementation "com.github.stefanbirkner:system-lambda:1.2.1"
+}
+cliPlugin{
+    cliPluginClass = 'net.corda.cli.plugins.generator.CordappPluginWrapper'
+    cliPluginDescription = 'A Cordapp generator plugin'
+}
