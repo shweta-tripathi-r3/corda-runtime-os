@@ -1,13 +1,14 @@
-package net.corda.cli.plugins.zerocode
+package net.corda.cli.plugins.cordappgenerator
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import java.nio.file.Path
+import org.yaml.snakeyaml.Yaml
 import picocli.CommandLine
 
 @CommandLine.Command(name = "corDapp", description = ["Generates CorDapp structure"])
-class ZeroCodeSubCommand : Runnable {
+class CordappSubCommand : Runnable {
 
     @CommandLine.Option(
         names = ["--file", "-f"],
@@ -44,26 +45,16 @@ class ZeroCodeSubCommand : Runnable {
             when {
                 endsWith(".json") -> {
                     try {
-                        jacksonObjectMapper().readValue<Map<String, Any>>(file)
+                        jacksonObjectMapper().readValue(file)
                     } catch (e: MismatchedInputException) {
                         throw IllegalArgumentException("Could not read static network information from $this.")
                     }
                 }
-//                endsWith(".yaml") || endsWith(".yml") -> {
-//                    Yaml().load(file.readText())
-//                        ?: throw IllegalArgumentException("Could not read static network information from $this.")
-//                }
+                endsWith(".yaml") || endsWith(".yml") -> {
+                    Yaml().load(file.readText())
+                        ?: throw IllegalArgumentException("Could not read static network information from $this.")
+                }
                 else -> throw IllegalArgumentException("Input file format not supported.")
-            }.also { parsed ->
-                val hasMemberNames = parsed["memberNames"] != null
-                val hasMembers = parsed["members"] != null
-                if (hasMemberNames && hasMembers) {
-                    throw IllegalArgumentException("Only one of 'memberNames' and 'members' blocks may be specified.")
-                }
-                if (hasMemberNames) {
-                    require(parsed["endpoint"] != null) { "Endpoint must be specified." }
-                    require(parsed["endpointProtocol"] != null) { "Endpoint protocol must be specified." }
-                }
             }
         }
     }

@@ -13,7 +13,7 @@ dependencies {
 
     implementation "org.pf4j:pf4j:${pf4jVersion}"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
-
+    implementation "org.yaml:snakeyaml:${snakeyamlVersion}"
     testCompileOnly "net.corda.cli.host:api:$pluginHostVersion"
     testImplementation "org.pf4j:pf4j:$pf4jVersion"
     testImplementation "org.junit.jupiter:junit-jupiter:${junit5Version}"

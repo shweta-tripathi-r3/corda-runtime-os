@@ -1,4 +1,4 @@
-package net.corda.cli.plugins.zerocode
+package net.corda.cli.plugins.cordappgenerator
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -11,7 +11,7 @@ class ZeroCodePluginTest {
 
     @Test
     fun `if file type is not JSON or YAML (YML), exception is thrown`() {
-        val app = ZeroCodeSubCommand()
+        val app = CordappSubCommand()
         val filePath = Files.createFile(tempDir.resolve("src.txt"))
 //        tapSystemErrAndOutNormalized {
 //            CommandLine(app).execute("--file=$filePath")
