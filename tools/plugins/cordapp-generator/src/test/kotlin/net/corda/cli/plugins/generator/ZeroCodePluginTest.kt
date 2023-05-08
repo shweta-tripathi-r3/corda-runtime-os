@@ -2,7 +2,6 @@ package net.corda.cli.plugins.generator
 
 import java.nio.file.Files
 import java.nio.file.Path
-import net.corda.cli.plugins.zerocode.GenerateCordappSubCommand
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 

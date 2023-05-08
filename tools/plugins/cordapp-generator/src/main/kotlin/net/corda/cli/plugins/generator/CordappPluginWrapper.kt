@@ -1,7 +1,6 @@
 package net.corda.cli.plugins.generator
 
 import net.corda.cli.api.CordaCliPlugin
-import net.corda.cli.plugins.zerocode.GenerateCordappSubCommand
 import org.pf4j.Extension
 import org.pf4j.Plugin
 import org.pf4j.PluginWrapper
