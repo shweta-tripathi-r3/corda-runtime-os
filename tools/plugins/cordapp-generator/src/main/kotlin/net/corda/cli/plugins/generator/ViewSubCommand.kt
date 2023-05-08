@@ -18,9 +18,15 @@ class ViewSubCommand : Runnable {
     var useCase: String? = null
 
     override fun run() {
-        val content = readFile(specFile, useCase)
-        println("The spec file is read: ")
-        println(content)
+        try {
+            val content = readFile(specFile, useCase)
+            var inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, File is read|@")
+            System.out.format(inputMessage)
+            println(content)
+        } catch (e: java.lang.Exception) {
+            val errorMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,red, File is read|@")
+            System.out.format(errorMessage)
+        }
     }
 
     private fun readFile(specFile: String?, useCase: String?): String {
