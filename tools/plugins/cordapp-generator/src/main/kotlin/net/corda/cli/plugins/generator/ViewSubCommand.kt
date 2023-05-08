@@ -28,7 +28,7 @@ class ViewSubCommand : Runnable {
         if (specFile != null) {
             return when (specFile) {
                 "json" -> this::class.java.classLoader.getResource("cordapp-spec.json").readText()
-                "yaml", "yml" -> this::class.java.classLoader.getResource("cordapp-spec.yml").readText()
+                "yaml", "yml" -> this::class.java.classLoader.getResource("cordapp-spec.yaml").readText()
                 else -> "Please input valid file type [json/yml/yaml]"
             }
         }
