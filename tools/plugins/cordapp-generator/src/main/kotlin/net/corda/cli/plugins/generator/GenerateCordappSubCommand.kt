@@ -24,8 +24,22 @@ class GenerateCordappSubCommand : Runnable {
     var outputPath: Path? = null
     override fun run() {
         //read contents from file
-        val content = readAndValidateFile()
-        println(content.toString())
+        var inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, File is being read|@")
+        System.out.format(inputMessage)
+        inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, CorDapp will be generated soon|@")
+        System.out.format(inputMessage)
+        try {
+            readAndValidateFile()
+            var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
+            System.out.format(outputMessage);
+
+            outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,blue,underline ${outputPath} |@")
+            System.out.format(outputMessage);
+//            val itemId = CommandLine.Help.Ansi.AUTO.string("@|bold,green,underline ${content}|@")
+//            System.out.format(itemId);
+        } catch (e: IllegalArgumentException) {
+            System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message}|@"));
+        }
         // val appScaffoldEngine = DefaultApplicationScaffoldEngine(ApplicationFamily.Cordapp,)
     }
 
@@ -36,7 +50,7 @@ class GenerateCordappSubCommand : Runnable {
      * @throws IllegalArgumentException If the input file format is not supported
      */
     @Suppress("ComplexMethod", "ThrowsCount")
-    private fun readAndValidateFile(): Map<String, Any>? {
+    private fun readAndValidateFile(): String? {
         return filePath?.toString()?.run {
             val file = filePath!!.toFile()
             if (!file.exists()) {
@@ -45,7 +59,7 @@ class GenerateCordappSubCommand : Runnable {
             when {
                 endsWith(".json") -> {
                     try {
-                        jacksonObjectMapper().readValue<Map<String, Any>>(file)
+                        jacksonObjectMapper().readValue(file)
                     } catch (e: MismatchedInputException) {
                         throw IllegalArgumentException("Could not read cordapp specification from $this.")
                     }
