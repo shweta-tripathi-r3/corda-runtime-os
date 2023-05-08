@@ -1,0 +1,67 @@
+cordapp-spec: 1.0.0
+doc:
+  title: IOU CorDapp Builder
+  description: This Cordapp Specifications to generate Cordapp Source artifacts, Project
+    Structure & Deployable Artifacts
+  version: 1.2.0
+  contact: Team BlockGeeks
+applications:
+  - basepackage: com.r3.iou
+    name: iou-cordapp
+    description: A Sample IOU Cordapp to demonstrate Cordapp Builder Application
+    contractStateFlows:
+      - datamodel:
+          - name: Account
+            properties:
+              - name: name
+                type: String
+                required: true
+              - name: buyer
+                type: CustomObject
+                ref: Buyer
+                required: true
+          - name: Buyer
+            properties:
+              - name: name
+                type: String
+                required: true
+        state:
+          name: IOUState
+          contract: IOUContract
+          type:
+            - ContractState
+          properties:
+            - name: value
+              type: Int
+              required: true
+            - name: lender
+              type: String
+              required: true
+            - name: borrower
+              type: CustomObject
+              ref: Account
+              required: true
+            - name: participants
+              type: List
+              values:
+                - lender
+                - borrower
+              required: true
+            - name: iouId
+              type: UUID
+              required: true
+        contract:
+          name: IOUContract
+          commands:
+            - name: Create
+              txType: ISSUE
+              evolvableProperties: []
+              signatories:
+                - lender
+                - borrower
+              rules:
+                - condition: "${DvPState.value} > 0"
+                  message: The IOU's value must be non-negative.
+                - condition: "${DvPState.lender} != ${DvPState.borrower}"
+                  message: The lender and the borrower cannot be the same entity.
+        flows: {}

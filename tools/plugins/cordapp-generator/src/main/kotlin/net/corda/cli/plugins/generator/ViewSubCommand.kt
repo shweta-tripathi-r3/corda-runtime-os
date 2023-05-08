@@ -2,7 +2,7 @@ package net.corda.cli.plugins.generator
 
 import picocli.CommandLine
 
-@CommandLine.Command(name = "view", description = ["View File"], mixinStandardHelpOptions = true)
+@CommandLine.Command(name = "view", description = ["View File"])
 class ViewSubCommand : Runnable {
 
     @CommandLine.Option(
@@ -19,7 +19,7 @@ class ViewSubCommand : Runnable {
 
     override fun run() {
         val content = readFile(specFile, useCase)
-        println("Read file")
+        println("The spec file is read: ")
         println(content)
     }
 
@@ -27,15 +27,15 @@ class ViewSubCommand : Runnable {
 
         if (specFile != null) {
             return when (specFile) {
-                "json" -> this::class.java.classLoader.getResource("spec.json").readText()
-                "yaml", "yml" -> this::class.java.classLoader.getResource("spec.yml").readText()
+                "json" -> this::class.java.classLoader.getResource("cordapp-spec.json").readText()
+                "yaml", "yml" -> this::class.java.classLoader.getResource("cordapp-spec.yml").readText()
                 else -> "Please input valid file type [json/yml/yaml]"
             }
         }
         if (useCase != null) {
             return when (useCase) {
                 "json" -> this::class.java.classLoader.getResource("iou-cordapp-spec.json").readText()
-                "yaml", "yml" -> this::class.java.classLoader.getResource("iou-cordapp-spec.yml").readText()
+                "yaml", "yml" -> this::class.java.classLoader.getResource("iou-cordapp-spec.yaml").readText()
                 else -> "Please input valid file type [json/yml/yaml]"
             }
         }
