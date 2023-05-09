@@ -33,10 +33,9 @@ class GenerateCordappSubCommand : Runnable {
             var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
             System.out.format(outputMessage);
 
-            outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,blue,underline ${outputPath} |@")
+            outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,blue,underline $outputPath |@")
             System.out.format(outputMessage);
-//            val itemId = CommandLine.Help.Ansi.AUTO.string("@|bold,green,underline ${content}|@")
-//            System.out.format(itemId);
+
         } catch (e: IllegalArgumentException) {
             System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message}|@"));
         }
@@ -50,7 +49,7 @@ class GenerateCordappSubCommand : Runnable {
      * @throws IllegalArgumentException If the input file format is not supported
      */
     @Suppress("ComplexMethod", "ThrowsCount")
-    private fun readAndValidateFile(): String? {
+    private fun readAndValidateFile(): Map<String, Any>? {
         return filePath?.toString()?.run {
             val file = filePath!!.toFile()
             if (!file.exists()) {
@@ -59,7 +58,7 @@ class GenerateCordappSubCommand : Runnable {
             when {
                 endsWith(".json") -> {
                     try {
-                        jacksonObjectMapper().readValue(file)
+                        jacksonObjectMapper().readValue<Map<String, Any>>(file)
                     } catch (e: MismatchedInputException) {
                         throw IllegalArgumentException("Could not read cordapp specification from $this.")
                     }
