@@ -24,7 +24,7 @@ class ViewSubCommand : Runnable {
             System.out.format(inputMessage)
             println(content)
         } catch (e: java.lang.Exception) {
-            val errorMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,red, File is read|@")
+            val errorMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,red, File could not be read|@")
             System.out.format(errorMessage)
         }
     }
