@@ -1,13 +1,10 @@
 package net.corda.cli.plugins.generator
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.r3.generator.ApplicationArtifactEngine
 import com.r3.generator.ApplicationFamily
 import com.r3.generator.core.FileType
+import java.io.File
 import java.nio.file.Path
-import org.yaml.snakeyaml.Yaml
 import picocli.CommandLine
 
 //import com.r3.generator.
@@ -34,9 +31,9 @@ class GenerateCordappSubCommand : Runnable {
         inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, CorDapp will be generated soon|@")
         System.out.format(inputMessage)
         try {
-            readAndValidateFile()
+            val file = readAndValidateFile()
             val appScaffoldEngine =
-                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, filePath!!.toFile(), FileType.JSON)
+                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, file, FileType.JSON)
                     .ignite();
             println(appScaffoldEngine)
             var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
@@ -45,7 +42,7 @@ class GenerateCordappSubCommand : Runnable {
             outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,blue,underline $outputPath |@")
             System.out.format(outputMessage);
 
-        } catch (e: IllegalArgumentException) {
+        } catch (e: java.lang.Exception) {
             System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message}|@"));
         }
     }
@@ -53,28 +50,18 @@ class GenerateCordappSubCommand : Runnable {
     /**
      * Reads the cordapp spec from a JSON or YAML formatted file.
      *
-     * @return Cordapp specification as [Map], or null if no file was provided.
+     * @return JSON/YAML file present at specified path, or null if no file was provided.
      * @throws IllegalArgumentException If the input file format is not supported
      */
     @Suppress("ComplexMethod", "ThrowsCount")
-    private fun readAndValidateFile(): Map<String, Any>? {
+    private fun readAndValidateFile(): File? {
         return filePath?.toString()?.run {
             val file = filePath!!.toFile()
             if (!file.exists()) {
                 throw IllegalArgumentException("No such file or directory: $this.")
             }
             when {
-                endsWith(".json") -> {
-                    try {
-                        jacksonObjectMapper().readValue<Map<String, Any>>(file)
-                    } catch (e: MismatchedInputException) {
-                        throw IllegalArgumentException("Could not read cordapp specification from $this.")
-                    }
-                }
-                endsWith(".yaml") || endsWith(".yml") -> {
-                    Yaml().load(file.readText())
-                        ?: throw IllegalArgumentException("Could not read cordapp specification from $this.")
-                }
+                endsWith(".json") || endsWith(".yaml") || endsWith(".yml") -> return file
                 else -> throw IllegalArgumentException("Input file format not supported.")
             }
         }
