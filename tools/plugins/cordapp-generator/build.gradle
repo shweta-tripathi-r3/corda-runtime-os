@@ -19,6 +19,8 @@ dependencies {
     implementation project(':tools:plugins:plugins-rest')
     implementation project(':components:membership:membership-rest')
 
+    implementation files('libs/cordapp-builder-app-1.0-SNAPSHOT.jar')
+
     testImplementation "net.corda.cli.host:api:$pluginHostVersion"
     testImplementation "org.pf4j:pf4j:${pf4jVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter:${junit5Version}"

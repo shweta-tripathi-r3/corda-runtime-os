@@ -3,9 +3,14 @@ package net.corda.cli.plugins.generator
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.r3.generator.ApplicationArtifactEngine
+import com.r3.generator.ApplicationFamily
+import com.r3.generator.core.FileType
 import java.nio.file.Path
 import org.yaml.snakeyaml.Yaml
 import picocli.CommandLine
+
+//import com.r3.generator.
 
 @CommandLine.Command(name = "generate", description = ["Generates CorDapp structure"])
 class GenerateCordappSubCommand : Runnable {
@@ -30,6 +35,10 @@ class GenerateCordappSubCommand : Runnable {
         System.out.format(inputMessage)
         try {
             readAndValidateFile()
+            val appScaffoldEngine =
+                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, filePath!!.toFile(), FileType.JSON)
+                    .ignite();
+            println(appScaffoldEngine)
             var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
             System.out.format(outputMessage);
 
@@ -39,7 +48,6 @@ class GenerateCordappSubCommand : Runnable {
         } catch (e: IllegalArgumentException) {
             System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message}|@"));
         }
-        // val appScaffoldEngine = DefaultApplicationScaffoldEngine(ApplicationFamily.Cordapp,)
     }
 
     /**

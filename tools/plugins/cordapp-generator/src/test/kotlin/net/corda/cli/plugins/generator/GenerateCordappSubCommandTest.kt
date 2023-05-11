@@ -46,7 +46,7 @@ class GenerateCordappSubCommandTest {
         tapSystemErrAndOutNormalized {
             CommandLine(app).execute("--file=$filePath")
         }.apply {
-            assertTrue(this.contains("Your CorDapp is downloaded at"))
+            assertTrue(this.contains("CorDapp will be generated soon"))
         }
     }
 }
