@@ -1,7 +1,7 @@
 package net.corda.cli.plugins.generator
 
-import com.r3.generator.ApplicationArtifactEngine
 import com.r3.generator.ApplicationFamily
+import com.r3.generator.ApplicationGenerateArtifactEngine
 import com.r3.generator.core.FileType
 import java.io.File
 import java.nio.file.Path
@@ -32,10 +32,16 @@ class GenerateCordappSubCommand : Runnable {
         System.out.format(inputMessage)
         try {
             val file = readAndValidateFile()
-            val appScaffoldEngine =
-                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, file, FileType.JSON)
-                    .ignite();
-            println(appScaffoldEngine)
+            val hashMap = HashMap<String, String>()
+            val artifactInfo = ApplicationGenerateArtifactEngine.newInstance(
+                ApplicationFamily.Cordapp,
+                file,
+                FileType.JSON,
+                hashMap
+            ).ignite();
+//                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, file, FileType.JSON)
+//                    .ignite();
+            println(artifactInfo)
             var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
             System.out.format(outputMessage);
 
