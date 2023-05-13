@@ -24,25 +24,28 @@ class GenerateCordappSubCommand : Runnable {
         description = ["Path to the output directory where CorDapp zip needs to be downloaded"]
     )
     var outputPath: Path? = null
+    private val fileBeingRead = "    File is being read"
+    private val cordappGeneration = "       CorDapp will be generated soon"
+    private val cordappDownload = "         Your CorDapp is downloaded at:"
     override fun run() {
         //read contents from file
-        var inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, File is being read|@")
+        var inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, $fileBeingRead |@")
         System.out.format(inputMessage)
-        inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, CorDapp will be generated soon|@")
+        inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, $cordappGeneration |@")
         System.out.format(inputMessage)
         try {
             val file = readAndValidateFile()
             val hashMap = HashMap<String, String>()
+            hashMap["buildPath"] = outputPath.toString()
             val artifactInfo = ApplicationGenerateArtifactEngine.newInstance(
                 ApplicationFamily.Cordapp,
                 file,
                 FileType.JSON,
                 hashMap
             ).ignite();
-//                ApplicationArtifactEngine.newInstance(ApplicationFamily.Cordapp, file, FileType.JSON)
-//                    .ignite();
-            println(artifactInfo)
-            var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green, Your CorDapp is downloaded at: |@")
+
+            println(artifactInfo.generatedApplicationSourcePath)
+            var outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,green  $cordappDownload |@")
             System.out.format(outputMessage);
 
             outputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,blue,underline $outputPath |@")
@@ -68,7 +71,7 @@ class GenerateCordappSubCommand : Runnable {
             }
             when {
                 endsWith(".json") || endsWith(".yaml") || endsWith(".yml") -> return file
-                else -> throw IllegalArgumentException("Input file format not supported.")
+                else -> throw IllegalArgumentException("Input file format not supported. We just support JSON/YAML at the moment")
             }
         }
     }
