@@ -1,0 +1,179 @@
+{
+  "cordapp-spec": "1.0.0",
+  "doc": {
+    "title": "IOU CorDapp Builder",
+    "description": "This Cordapp Specifications to generate Cordapp Source artifacts, Project Structure & Deployable Artifacts",
+    "version": "1.2.0",
+    "contact": "Team BlockGeeks"
+  },
+  "applications": [
+    {
+      "domainType": "BASIC",
+      "basepackage": "com.r3.iou",
+      "name": "iou-cordapp",
+      "description": "A Sample IOU Cordapp to demonstrate Cordapp Builder Application",
+      "contractStateFlows": [
+        {
+          "datamodel": [
+            {
+              "name": "Account",
+              "properties": [
+                {
+                  "name": "name",
+                  "type": "String",
+                  "required": true
+                },
+                {
+                  "name": "buyer",
+                  "type": "CustomObject",
+                  "ref": "Buyer",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "name": "Buyer",
+              "properties": [
+                {
+                  "name": "name",
+                  "type": "String",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "name": "IssueFlowArgs",
+              "properties": [
+                {
+                  "name": "otherMember",
+                  "type": "MemberX500Name",
+                  "required": true
+                }
+              ]
+            }
+          ],
+          "state": {
+            "name": "IOUState",
+            "contract": "IOUContract",
+            "type": [
+              "ContractState"
+            ],
+            "properties": [
+              {
+                "name": "amount",
+                "type": "Int",
+                "required": true
+              },
+              {
+                "name": "lender",
+                "type": "MemberX500Name",
+                "required": true
+              },
+              {
+                "name": "borrower",
+                "type": "CustomObject",
+                "ref": "Account",
+                "required": true
+              },
+              {
+                "name": "participants",
+                "type": "List",
+                "values": [
+                  "lender",
+                  "borrower"
+                ],
+                "required": true
+              },
+              {
+                "name": "paid",
+                "type": "Int",
+                "required": true
+              },
+              {
+                "name": "linearId",
+                "type": "UUID",
+                "required": true
+              }
+            ]
+          },
+          "contract": {
+            "name": "IOUContract",
+            "commands": [
+              {
+                "name": "Create",
+                "txType": "ISSUE",
+                "evolvableProperties": [],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
+                "rules": [
+                  {
+                    "condition": "output.value > 0",
+                    "message": "The IOU's value must be non-negative."
+                  },
+                  {
+                    "condition": "output.lender != output.borrower",
+                    "message": "The lender and the borrower cannot be the same entity."
+                  }
+                ]
+              },
+              {
+                "name": "Update",
+                "txType": "UPDATE",
+                "evolvableProperties": [
+                  "value"
+                ],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
+                "rules": [
+                  {
+                    "condition": "output.value > 0",
+                    "message": "The IOU's value must be non-negative."
+                  },
+                  {
+                    "condition": "input.value != output.value",
+                    "message": "The Update value must be different to input value."
+                  }
+                ]
+              },
+              {
+                "name": "Exit",
+                "txType": "DELETE",
+                "evolvableProperties": [],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
+                "rules": []
+              }
+            ]
+          },
+          "flows": {
+            "name": "IOUIssueFlow",
+            "txType": "ISSUE",
+            "flowArgs": {
+              "type": "CustomObject",
+              "ref": "IssueFlowArgs"
+            },
+            "states": [
+              {
+                "name": "IOUState",
+                "data": {
+                  "amount": "flowArgs.amount.toInt()",
+                  "lender": "lenderInfo.name",
+                  "borrower": "myInfo.name",
+                  "paid": "0",
+                  "linearId": "UUID.randomUUID()",
+                  "participants": "listOf(myInfo.ledgerKeys[0], otherMember.ledgerKeys[0])"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

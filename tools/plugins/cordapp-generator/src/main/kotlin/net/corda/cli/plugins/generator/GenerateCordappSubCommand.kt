@@ -24,9 +24,16 @@ class GenerateCordappSubCommand : Runnable {
         description = ["Path to the output directory where CorDapp zip needs to be downloaded"]
     )
     var outputPath: Path? = null
-    private val fileBeingRead = "    File is being read"
-    private val cordappGeneration = "       CorDapp will be generated soon"
-    private val cordappDownload = "         Your CorDapp is downloaded at:"
+
+    @CommandLine.Option(
+        names = ["--workspace", "-w"],
+        description = ["Path to the intermediate directory where CorDapp files will be downloaded"]
+    )
+    var workspacePath: Path? = null
+
+    private val fileBeingRead = "     File is being read"
+    private val cordappGeneration = "     CorDapp will be generated soon"
+    private val cordappDownload = "     Your CorDapp is downloaded at:"
     override fun run() {
         //read contents from file
         var inputMessage = CommandLine.Help.Ansi.AUTO.string("@|bold,yellow, $fileBeingRead |@")
@@ -36,7 +43,8 @@ class GenerateCordappSubCommand : Runnable {
         try {
             val file = readAndValidateFile()
             val hashMap = HashMap<String, String>()
-            hashMap["buildPath"] = outputPath.toString()
+            hashMap["out-dir"] = outputPath.toString()
+            hashMap["workspace-path"] = workspacePath.toString()
             val artifactInfo = ApplicationGenerateArtifactEngine.newInstance(
                 ApplicationFamily.Cordapp,
                 file,
@@ -52,7 +60,10 @@ class GenerateCordappSubCommand : Runnable {
             System.out.format(outputMessage);
 
         } catch (e: java.lang.Exception) {
-            System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message}|@"));
+            System.out.format(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed to read the file due to : ${e.message} :|@"));
+            for(error in e.stackTrace){
+                println(error)
+            }
         }
     }
 

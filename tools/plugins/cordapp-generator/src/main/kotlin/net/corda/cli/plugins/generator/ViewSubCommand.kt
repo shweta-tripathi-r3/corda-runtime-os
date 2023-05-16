@@ -33,15 +33,15 @@ class ViewSubCommand : Runnable {
 
         if (specFile != null) {
             return when (specFile) {
-                "json" -> this::class.java.classLoader.getResource("cordapp-spec.json").readText()
-                "yaml", "yml" -> this::class.java.classLoader.getResource("cordapp-spec.yaml").readText()
+                "json" -> this::class.java.classLoader.getResource("cordapp-spec-v1.json").readText()
+                "yaml", "yml" -> this::class.java.classLoader.getResource("cordapp-spec-v1.yaml").readText()
                 else -> "Please input valid file type [json/yml/yaml]"
             }
         }
         if (useCase != null) {
             return when (useCase) {
-                "json" -> this::class.java.classLoader.getResource("iou-cordapp-spec.json").readText()
-                "yaml", "yml" -> this::class.java.classLoader.getResource("iou-cordapp-spec.yaml").readText()
+                "json" -> this::class.java.classLoader.getResource("iou-cordapp-spec-v1.json").readText()
+                "yaml", "yml" -> this::class.java.classLoader.getResource("iou-cordapp-spec-v1.yaml").readText()
                 else -> "Please input valid file type [json/yml/yaml]"
             }
         }

@@ -8,14 +8,13 @@
   },
   "applications": [
     {
-
-      "basepackage":"com.r3.iou",
+      "domainType": "BASIC",
+      "basepackage": "com.r3.iou",
       "name": "iou-cordapp",
       "description": "A Sample IOU Cordapp to demonstrate Cordapp Builder Application",
       "contractStateFlows": [
         {
-
-          "datamodel" : [
+          "datamodel": [
             {
               "name": "Account",
               "properties": [
@@ -27,7 +26,7 @@
                 {
                   "name": "buyer",
                   "type": "CustomObject",
-                  "ref":"Buyer",
+                  "ref": "Buyer",
                   "required": true
                 }
               ]
@@ -39,29 +38,36 @@
                   "name": "name",
                   "type": "String",
                   "required": true
-                }]
-
+                }
+              ]
+            },
+            {
+              "name": "IssueFlowArgs",
+              "properties": [
+                {
+                  "name": "otherMember",
+                  "type": "MemberX500Name",
+                  "required": true
+                }
+              ]
             }
-
           ],
-
           "state": {
             "name": "IOUState",
-            "contract":"IOUContract",
+            "contract": "IOUContract",
             "type": [
               "ContractState"
             ],
             "properties": [
               {
-                "name": "value",
+                "name": "amount",
                 "type": "Int",
                 "required": true
               },
               {
                 "name": "lender",
-                "type": "String",
+                "type": "MemberX500Name",
                 "required": true
-
               },
               {
                 "name": "borrower",
@@ -72,12 +78,19 @@
               {
                 "name": "participants",
                 "type": "List",
-                "values": ["lender", "borrower"],
+                "values": [
+                  "lender",
+                  "borrower"
+                ],
                 "required": true
               },
-
               {
-                "name": "iouId",
+                "name": "paid",
+                "type": "Int",
+                "required": true
+              },
+              {
+                "name": "linearId",
                 "type": "UUID",
                 "required": true
               }
@@ -88,27 +101,79 @@
             "commands": [
               {
                 "name": "Create",
-                "txType" : "ISSUE",
+                "txType": "ISSUE",
                 "evolvableProperties": [],
-                "signatories":["lender", "borrower"],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
                 "rules": [
                   {
-                    "condition": "${DvPState.value} > 0",
+                    "condition": "output.value > 0",
                     "message": "The IOU's value must be non-negative."
-
                   },
                   {
-                    "condition": "${DvPState.lender} != ${DvPState.borrower}",
+                    "condition": "output.lender != output.borrower",
                     "message": "The lender and the borrower cannot be the same entity."
                   }
-
                 ]
+              },
+              {
+                "name": "Update",
+                "txType": "UPDATE",
+                "evolvableProperties": [
+                  "value"
+                ],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
+                "rules": [
+                  {
+                    "condition": "output.value > 0",
+                    "message": "The IOU's value must be non-negative."
+                  },
+                  {
+                    "condition": "input.value != output.value",
+                    "message": "The Update value must be different to input value."
+                  }
+                ]
+              },
+              {
+                "name": "Exit",
+                "txType": "DELETE",
+                "evolvableProperties": [],
+                "signatories": [
+                  "lender",
+                  "borrower"
+                ],
+                "rules": []
               }
             ]
           },
-          "flows": {}
+          "flows": {
+            "name": "IOUIssueFlow",
+            "txType": "ISSUE",
+            "flowArgs": {
+              "type": "CustomObject",
+              "ref": "IssueFlowArgs"
+            },
+            "states": [
+              {
+                "name": "IOUState",
+                "data": {
+                  "amount": "flowArgs.amount.toInt()",
+                  "lender": "lenderInfo.name",
+                  "borrower": "myInfo.name",
+                  "paid": "0",
+                  "linearId": "UUID.randomUUID()",
+                  "participants": "listOf(myInfo.ledgerKeys[0], otherMember.ledgerKeys[0])"
+                }
+              }
+            ]
+          }
         }
       ]
-
-    }]
+    }
+  ]
 }
